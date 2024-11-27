@@ -327,7 +327,7 @@ def _CHECK_scattering_potential(sld):
     return (ENERGY_FACTOR/pi) * asarray(sld)
 
 _4PI_100 = 4*np.pi/100
-class Neutron(object):
+class Neutron:
     r"""
     Neutron scattering factors are attached to each element in the periodic
     table for which values are available.  If no information is available,

@@ -243,7 +243,7 @@ def xray_energy(wavelength):
     """
     return planck_constant/electron_volt*speed_of_light/np.asarray(wavelength)*1e7
 
-class Xray(object):
+class Xray:
     """
     X-ray scattering properties for the elements. Refer help(periodictable.xsf)
     from command prompt for details.

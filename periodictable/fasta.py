@@ -98,7 +98,7 @@ def isotope_substitution(formula, source, target, portion=1):
     return formula.replace(source, target, portion=portion)
 
 # TODO: allow Molecule to be used as compound in formulas.formula()
-class Molecule(object):
+class Molecule:
     """
     Specify a biomolecule by name, chemical formula, cell volume and charge.
 

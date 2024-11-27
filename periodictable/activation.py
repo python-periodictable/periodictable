@@ -251,7 +251,7 @@ def IAEA1987_isotopic_abundance(iso):
     except AttributeError:
         return 0
 
-class Sample(object):
+class Sample:
     """
     Sample properties.
 
@@ -452,7 +452,7 @@ def sorted_activity(activity_pair):
     return sorted(activity_pair, key=lambda x: (x[0].isotope, x[0].daughter))
 
 
-class ActivationEnvironment(object):
+class ActivationEnvironment:
     """
     Neutron activation environment.
 
@@ -745,7 +745,7 @@ def activity(isotope, mass, env, exposure, rest_times):
 
     return result
 
-class ActivationResult(object):
+class ActivationResult:
     r"""
     *isotope* :
 

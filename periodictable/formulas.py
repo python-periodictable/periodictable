@@ -305,7 +305,7 @@ def formula(compound=None, density=None, natural_density=None,
     return Formula(structure=structure, name=name, density=density,
                    natural_density=natural_density)
 
-class Formula(object):
+class Formula:
     """
     Simple chemical formula representation.
 

@@ -34,7 +34,7 @@ def formfactor_n(jn, q):
     return s_sq * (A * exp(-a*s_sq) + B * exp(-b*s_sq) + C * exp(-c*s_sq) + D)
 
 
-class MagneticFormFactor(object):
+class MagneticFormFactor:
     """
     Magnetic form factor for the ion.
 

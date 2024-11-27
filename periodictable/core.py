@@ -151,7 +151,7 @@ def delayed_load(all_props, loader, element=True, isotope=False, ion=False):
             setattr(Ion, p, prop)
 
 # Define the element names from the element table.
-class PeriodicTable(object):
+class PeriodicTable:
     """
     Defines the periodic table of the elements with isotopes.
     Individidual elements are accessed by name, symbol or atomic number.
@@ -411,7 +411,7 @@ class PeriodicTable(object):
                 #    print "format", format, "args", L
                 #    raise
 
-class IonSet(object):
+class IonSet:
     def __init__(self, element_or_isotope):
         self.element_or_isotope = element_or_isotope
         self.ionset = {}
@@ -424,7 +424,7 @@ class IonSet(object):
             self.ionset[charge] = Ion(self.element_or_isotope, charge)
         return self.ionset[charge]
 
-class Ion(object):
+class Ion:
     """
     Periodic table entry for an individual ion.
 
@@ -459,7 +459,7 @@ class Ion(object):
                                self.element.number,
                                self.charge)
 
-class Isotope(object):
+class Isotope:
     """
     Periodic table entry for an individual isotope.
 
@@ -487,7 +487,7 @@ class Isotope(object):
                                self.element.number,
                                self.isotope)
 
-class Element(object):
+class Element:
     """
     Periodic table entry for an element.
 
