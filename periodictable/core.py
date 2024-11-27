@@ -55,7 +55,6 @@ Helper functions:
     periodic table with custom values for the attributes.
 
 """
-from __future__ import print_function
 
 __docformat__ = 'restructuredtext en'
 __all__ = ['delayed_load', 'define_elements', 'get_data_path',

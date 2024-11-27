@@ -222,8 +222,6 @@ Code original developed for spreadsheet by Les Slaback of NIST.
 #     58Ni (n,alpha)
 
 
-from __future__ import division, print_function
-
 from math import exp, log, expm1
 import os
 
