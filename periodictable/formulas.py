@@ -14,7 +14,7 @@ from pyparsing import (Literal, Optional, White, Regex,
 
 from .core import default_table, isatom, isisotope, ision, change_table
 from .constants import avogadro_number
-from .util import require_keywords, cell_volume
+from .util import cell_volume
 
 PACKING_FACTORS = dict(cubic=pi/6, bcc=pi*sqrt(3)/8, hcp=pi/sqrt(18),
                        fcc=pi/sqrt(18), diamond=pi*sqrt(3)/16)
@@ -518,8 +518,7 @@ class Formula:
             packing_factor = PACKING_FACTORS[packing_factor.lower()]
         return V/packing_factor*1e-24
 
-    @require_keywords
-    def neutron_sld(self, wavelength=None, energy=None):
+    def neutron_sld(self, *, wavelength=None, energy=None):
         """
         Neutron scattering information for the molecule.
 
@@ -543,8 +542,7 @@ class Formula:
         return neutron_sld(self.atoms, density=self.density,
                            wavelength=wavelength, energy=energy)
 
-    @require_keywords
-    def xray_sld(self, energy=None, wavelength=None):
+    def xray_sld(self, *, energy=None, wavelength=None):
         """
         X-ray scattering length density for the molecule.
 
