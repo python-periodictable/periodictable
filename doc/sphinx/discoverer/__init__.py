@@ -5,6 +5,6 @@ def _load_discoverer():
     """
     The name of the person or group who discovered the element.
     """
-    from . import core
-    core.init(periodictable.core.default_table())
+    from . import discoverer
+    discoverer.init(periodictable.core.default_table())
 periodictable.core.delayed_load(['discoverer'], _load_discoverer)

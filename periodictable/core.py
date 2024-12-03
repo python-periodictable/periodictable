@@ -136,19 +136,20 @@ def delayed_load(all_props, loader, element=True, isotope=False, ion=False):
             setattr(el, propname, value)
         return setfn
 
+    doc = loader.__doc__
     if element:
         for p in all_props:
-            prop = property(getter(p), setter(p), doc=loader.__doc__)
+            prop = property(getter(p), setter(p), doc=doc)
             setattr(Element, p, prop)
 
     if isotope:
         for p in all_props:
-            prop = property(getter(p), setter(p), doc=loader.__doc__)
+            prop = property(getter(p), setter(p), doc=doc)
             setattr(Isotope, p, prop)
 
     if ion:
         for p in all_props:
-            prop = property(getter(p), setter(p), doc=loader.__doc__)
+            prop = property(getter(p), setter(p), doc=doc)
             setattr(Ion, p, prop)
 
 # Define the element names from the element table.
