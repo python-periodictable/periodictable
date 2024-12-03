@@ -17,18 +17,17 @@ Known issues
 Change history
 ==============
 
-2.0.0 2024-10-??
+2.0.0 2024-12-03
 ----------------
 
 Modified:
 
 * Move to IAEA AME2020 for isotope mass
-* Move to IUPAC CIAAW 2021 for atomic weight and isotopic abundance
+* Move to IUPAC CIAAW 2021 for atomic mass and isotopic abundance
 * Move old mass/abundance tables into periodictable.mass_2001
 * Li-6:Li-7 mass ratio changed from 12.2 to 19.6 (delta = 2.7%)
-* Isotope percentage changed by 0.1 to 0.5 for B, Zn, Ge, Se, Mo, Er, Yb, Pt, Hg
+* Isotope abundance changed by 0.1 to 0.5 for B, Zn, Ge, Se, Mo, Er, Yb, Pt, Hg
 * Atomic weight changed by 0.04% for Zn, 0.02% for S and 0.01% for Li, Ge, Se, Mo
-* Neutron b_c changed for Zn-70 from 6.9 to 6.0 (fixes a typo in the table)
 * Fix typos in uncertainties in the neutron table (Zr-90, Te-124, Ba-138, Sm-147)
 * Use correct activation for Pb-208 which was entered as barns rather than mbarns
 * Use Aug 2023 update to X-ray scattering factors (Pt, Cr, Nb, Y, Er)
@@ -37,6 +36,7 @@ Modified:
   electron mass, neutron mass and atomic mass constant.
 * Updated bound coherent scattering length for H-1, H-2, He-4, C-12,
   O-16, O-17, O-18, Sn-119, Sm-154, Eu-153, Ir-191, Ir-193, Pb-207, Bi-209
+* Neutron b_c changed for Zn-70 from 6.9 to 6.0 (fixes a typo in the table)
 * Updated total cross section for He, Kr, Xe
 * Use log-log interpolation for X-ray f''
 
