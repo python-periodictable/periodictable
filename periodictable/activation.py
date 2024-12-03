@@ -636,17 +636,17 @@ def activity(isotope, mass, env, exposure, rest_times):
         #    ai.daughter
         # Column G: Half-life
         #    ai.Thalf_str
-        # Column H: initial effective cross-section (b)
+        # Column H: initial effective cross-section [barn]
         #    env.epithermal_reduction_factor:$Q$1 = 1/env.Cd_ratio:$F$15
         initialXS = ai.thermalXS + env.epithermal_reduction_factor*ai.resonance
         # Column I: reaction
         #    ai.reaction
         # Column J: fast?
         #    ai.fast
-        # Column K: effective reaction flux (n/cm^2/s)
+        # Column K: effective reaction flux [n/cm^2/s]
         #    env.fluence:$F$13  env.fast_ratio:$F$17
         flux = env.fluence/env.fast_ratio if ai.fast else env.fluence
-        # Column L: root part of activation calculation
+        # Column L: root part of activation calculation [uCi]
         #    mass:$F$19
         #    Decay correction portion done in column M
         #    The given mass is sample mass * sample fraction * isotope abundance
@@ -654,17 +654,22 @@ def activity(isotope, mass, env, exposure, rest_times):
         #        N_A[atoms] / 3.7e10[Bq/Ci] * 1e6 [uCi/Ci] ~ 1.627605611e19
         Bq_to_uCi = 1.6276e19
         #Bq_to_uCi = constants.avogadro_number / 3.7e4
-        root = flux * initialXS * 1e-24 * mass / isotope.isotope * Bq_to_uCi
-        # Column M: 0.69/t1/2  (1/h) lambda of produced nuclide
+        # 1/(cm^2 s) (Bq s) (barn cm^2/barn) g / (g/mol) ((1/mol) / (Bq/uCi))
+        # TODO: use isotope.mass rather than isotope.isotope
+        # Using isotope number rather than isotope mass to estimate the number
+        # atoms introduces some error, overestimating Li activation by 0.25%
+        # and underestimating Fe activation by 0.11%
+        root = flux * (initialXS * 1e-24) * mass / isotope.isotope * Bq_to_uCi
+        # Column M: 0.69/t1/2  [1/h] lambda of produced nuclide
         lam = LN2/ai.Thalf_hrs
         #print(ai.thermalXS, ai.resonance, env.epithermal_reduction_factor)
         #print(isotope, "D", mass, "F", ai.daughter, "G", ai.Thalf_str,
         #      "H", initialXS, "I", ai.reaction, "J", ai.fast, "K", flux,
         #      "L", root, "M", lam)
 
-        # Column Y: activity at the end of irradiation (uCi)
+        # Column Y: activity at the end of irradiation [uCi]
         if ai.reaction == 'b':
-            # Column N: 0.69/t1/2 (1/h) lambda of parent nuclide
+            # Column N: 0.69/t1/2 [1/h] lambda of parent nuclide
             parent_lam = LN2 / ai.Thalf_parent
             # Column O: Activation if "b" mode production
             # 2022-05-18 PAK: addressed the following
@@ -686,16 +691,16 @@ def activity(isotope, mass, env, exposure, rest_times):
                 lam*expm1(-parent_lam*exposure) - parent_lam*expm1(-lam*exposure))
             #print("N", parent_lam, "O", activity)
         elif ai.reaction == '2n':
-            # Column N: 0.69/t1/2 (1/h) lambda of parent nuclide
+            # Column N: 0.69/t1/2 [1/h] lambda of parent nuclide
             parent_lam = LN2 / ai.Thalf_parent
-            # Column P: effective cross-section 2n product and n, g burnup (b)
+            # Column P: effective cross-section 2n product and n, g burnup [barn]
             # Note: This cross-section always uses the total thermal flux
             effectiveXS = ai.thermalXS_parent + env.epithermal_reduction_factor*ai.resonance_parent
-            # Column Q: 2n mode effective lambda of stable target (1/h)
-            lam_2n = flux*initialXS*1e-24*3600
-            # Column R: radioactive parent (1/h)
-            parent_activity = env.fluence*1e-24*3600*effectiveXS+parent_lam
-            # Column S: resulting product (1/h)
+            # Column Q: 2n mode effective lambda of stable target [1/h]
+            lam_2n = (flux*3600)*(initialXS*1e-24)
+            # Column R: radioactive parent [1/h]
+            parent_activity = (env.fluence*3600)*(effectiveXS*1e-24) + parent_lam
+            # Column S: resulting product [1/h]
             product_2n = lam if ai.reaction == '2n' else 0
             # Column T: activity if 2n mode
             activity = root*lam*(parent_activity-parent_lam)*(
@@ -716,20 +721,22 @@ def activity(isotope, mass, env, exposure, rest_times):
             # reactions (excluding 'b') is included here.
             # See README file for details.
 
-            # Column P: effective cross-section 2n product and n, g burnup (b)
+            # Column P: effective cross-section 2n product and n, g burnup [barn]
             # Note: This cross-section always uses the total thermal flux
             effectiveXS = ai.thermalXS_parent + env.epithermal_reduction_factor*ai.resonance_parent
-            # Column U: nv1s1t
-            U = flux*initialXS*3600*1e-24*exposure
-            # Column V: nv2s2t+L2*t
-            V = (env.fluence*effectiveXS*3600*1e-24+lam)*exposure
-            # Column W: L/(L-nvs1+nvs2)
-            W = lam/(lam-flux*initialXS*3600*1e-24+env.fluence*effectiveXS*3600*1e-24)
+            # Column U: nv1s1t [neutrons]
+            U = (flux*3600)*(initialXS*1e-24)*exposure
+            # Column V: nv2s2t+L2*t [neutrons]
+            V = ((env.fluence*3600)*(effectiveXS*1e-24)+lam)*exposure
+            # Column W: L/(L-nvs1+nvs2) [unitless]
+            W = lam/(lam-(flux*3600)*(initialXS*1e-24)+(env.fluence*3600)*(effectiveXS*1e-24))
             # Column X: W*(exp(-U)-exp(V)) if U,V > 1e-10 else W*(V-U+(V-U)*(V+U)/2)
             # [PAK 2024-02-28] Rewrite the exponential difference using expm1()
+            #Xp = exp(-V)*expm1(V-U) if U>V else -exp(-U)*expm1(U-V)
             X = W*exp(-V)*expm1(V-U) if U>V else -W*exp(-U)*expm1(U-V)
             # Column Y: O if "b" else T if "2n" else L*X
             activity = root*X
+            #print(f"{ai.isotope}=>{ai.daughter} {U=} {V=} {W=} {Xp=} {X=} {activity=} {lam=} {flux*initialXS*3600*1e-24+env.fluence*effectiveXS*3600*1e-24}")
             #print(f"{ai.isotope}=>{ai.daughter} {U=} {V=} {W=} {X=} {activity=}")
 
             if activity < 0:
@@ -742,6 +749,7 @@ def activity(isotope, mass, env, exposure, rest_times):
             #data = env.fluence, initialXS, flux, root, U, V, W, precision_correction
             #print(" ".join("%.5e"%v for v in data))
 
+        # TODO: chained activity (e.g., )
         result[ai] = [activity*exp(-lam*Ti) for Ti in rest_times]
         #print([(Ti, Ai) for Ti, Ai in zip(rest_times, result[ai])])
 
@@ -828,7 +836,7 @@ class ActivationResult(object):
         fluence is reduced by the specified fast/thermal ratio. When
         *fast_ratio* is zero in the environment this activation will not appear.
 
-    *thermalXS*, *resonance*, *thermalXS_parent*, *resonance_parent* :
+    *thermalXS*, *resonance*, *thermalXS_parent*, *resonance_parent* : float | barns
 
         Activation database values for computing the reaction cross section.
 
@@ -864,11 +872,13 @@ class ActivationResult(object):
     user to determine, but are usually negligible for irradiations that are
     long relative to the parent halflife:
 
-        A1 = K [1-exp(-L1*t)]   where A1 is activity, L1 is decay constant
+        A1 = K [1 - exp(-L1*t)]
+
+    where A1 is activity, L1 is decay constant
 
     For the beta produced daughter the activity (A2) is:
 
-        A2 = K [1- exp(-L1*t) * L2/(L2-L1) + exp(-L2*t) * L1/(L2-L1)]
+        A2 = K [1 - exp(-L1*t) * L2/(L2-L1) + exp(-L2*t) * L1/(L2-L1)]
 
     where K is the parent saturation activity.
 
