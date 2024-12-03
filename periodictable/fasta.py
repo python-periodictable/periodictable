@@ -69,8 +69,6 @@ https://doi.org/10.1007/3-540-29111-3_1
 [5] Arrighi, F.E., Mandel, M., Bergendahl, J. et al. (1970). Buoyant densities
 of DNA of mammals. Biochem Genet 4, 367–376. https://doi.org/10.1007/BF00485753
 """
-from __future__ import division
-
 import warnings
 
 from .formulas import formula as parse_formula
@@ -343,6 +341,10 @@ def _set_amino_acid_average(target, codes, name=None):
         name = "/".join(AMINO_ACID_CODES[c].name for c in codes)
     molecule = Molecule(name, formula, cell_volume=cell_volume, charge=charge)
     AMINO_ACID_CODES[target] = molecule
+
+# TODO: importing fasta does work, computing the neutron SLD for each molecule.
+# This triggers nsf.init() which defines the neutron data for each isotope.
+# Further, this does not allow private tables for fasta calculations.
 
 # FASTA code table
 def _(code, V, formula, name):
