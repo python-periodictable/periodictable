@@ -113,6 +113,8 @@ The following newer measurements from the literature are included:
     119Sn b_c 6.28(3) => 6.2239(13) [1]
     154Sm b_c 8.0(1.0) => 8.97(6) [4]
     153Eu b_c 8.22(12) => 8.85(3) [4]
+    191Ir b_c => 12.1(9) [6]
+    193Ir b_c => 9.71(18) [6]
     207Pb b_c 9.286(16) => 9.4024(13) [1]
     209Bi b_c 8.532(2) => 8.5242(18) [1]
 
@@ -126,6 +128,7 @@ The following newer measurements from the literature are included:
     [3] Haun (2020) 10.1103/PhysRevLett.124.012501
     [4] Kohlmann (2016) 10.1515/zkri-2016-1984
     [5] Haddock (2019) 10.1103/PhysRevC.100.064002
+    [6] Hannon (2018) 10.1107/S1600576718006064
 
 .. [#Rauch2003] Rauch, H. and Waschkowski, W. (2003)
     Neutron Scattering Lengths in ILL
@@ -593,6 +596,18 @@ def init(table, reload=False):
         b_c = nsf.b_c if nsf.b_c is not None else np.nan
         b_c_i = -nsf.absorption/(2000*ABSORPTION_WAVELENGTH)
         nsf.b_c_complex = b_c + 1j*b_c_i
+
+        if not np.isnan(b_c):
+            # Ir-191 and Ir-193 don't list scattering cross sections so deduce
+            # them from the bound coherent cross section. Since these are both
+            # odd isotopes there ought to be some incoherent scattering, but
+            # zero is well within the uncertainty measured in bulk Ir.
+            if nsf.coherent is None:
+                nsf.coherent = 4*pi/100*abs(nsf.b_c_complex)**2
+            if nsf.incoherent is None:
+                nsf.incoherent = 0
+            if nsf.total is None:
+                nsf.total = nsf.coherent + nsf.incoherent
 
         parts = columns[0].split('-')
         Z = int(parts[0])
@@ -1623,8 +1638,8 @@ nsftable = """\
 76-Os-190,26.4,0,11.4(3),,,,15.2(8),0,15.2(8),13.1(3)
 76-Os-192,41,0,11.9(4),,,,16.6(1.2),0,16.6(1.2),2.0(1)
 77-Ir,,,10.6(3),,,,14.1(8),0.0(3.0),14.0(3.0),425.0(2.0)
-77-Ir-191,37.4,3/2,,,,,,,,954.0(10.0)
-77-Ir-193,62.6,3/2,,,,,,,,111.0(5.0)
+77-Ir-191,37.4,3/2,12.1(9),,,,,,,954.0(10.0)
+77-Ir-193,62.6,3/2,9.71(18),,,,,,,111.0(5.0)
 78-Pt,,,9.60(1),,,,11.58(2),0.13(11),11.71(11),10.3(3)
 78-Pt-190,0.01,0,9.0(1.0),,,,10.0(2.0),0,10.0(2.0),152.0(4.0)
 78-Pt-192,1.78,0,9.9(5),,,,12.3(1.2),0,12.3(1.2),10.0(2.5)
