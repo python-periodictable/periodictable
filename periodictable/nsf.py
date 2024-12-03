@@ -191,7 +191,7 @@ from numpy import sqrt, pi, asarray, inf
 from .core import Element, Isotope, default_table
 from .constants import (avogadro_number, planck_constant, electron_volt,
                         neutron_mass, atomic_mass_constant)
-from .util import require_keywords, parse_uncertainty
+from .util import parse_uncertainty
 
 __all__ = ['init', 'Neutron',
            'neutron_energy', 'neutron_wavelength',
@@ -330,7 +330,7 @@ def _CHECK_scattering_potential(sld):
     return (ENERGY_FACTOR/pi) * asarray(sld)
 
 _4PI_100 = 4*np.pi/100
-class Neutron(object):
+class Neutron:
     r"""
     Neutron scattering factors are attached to each element in the periodic
     table for which values are available.  If no information is available,
@@ -486,8 +486,7 @@ class Neutron(object):
         sigma_s = _4PI_100*abs(b_c)**2 # 1 barn = 1 fm^2 1e-2 barn/fm^2
         return b_c, sigma_s
 
-    @require_keywords
-    def sld(self, wavelength=ABSORPTION_WAVELENGTH):
+    def sld(self, *, wavelength=ABSORPTION_WAVELENGTH):
         r"""
         Returns scattering length density for the element at natural
         abundance and density.
@@ -508,8 +507,7 @@ class Neutron(object):
             return None, None, None
         return self.scattering(wavelength=wavelength)[0]
 
-    @require_keywords
-    def scattering(self, wavelength=ABSORPTION_WAVELENGTH):
+    def scattering(self, *, wavelength=ABSORPTION_WAVELENGTH):
         r"""
         Returns neutron scattering information for the element at natural
         abundance and density.
@@ -665,8 +663,7 @@ def init(table, reload=False):
 # TODO: split incoherent into spin and isotope incoherence (eq 17-19 of Sears)
 # TODO: require parsed compound rather than including formula() keywords in api
 # Note: docs and function prototype are reproduced in __init__
-@require_keywords
-def neutron_scattering(compound, density=None,
+def neutron_scattering(compound, *, density=None,
                        wavelength=None, energy=None,
                        natural_density=None, table=None):
     r"""

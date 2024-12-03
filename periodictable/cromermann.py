@@ -110,7 +110,7 @@ def fxrayatstol(symbol, stol, charge=None):
     return rv
 
 
-class CromerMannFormula(object):
+class CromerMannFormula:
     """
     Cromer-Mann formula for x-ray scattering factors.
     Coefficient storage and evaluation.
