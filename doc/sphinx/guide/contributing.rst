@@ -7,7 +7,7 @@ Contributing Changes
 The best way to contribute to the periodic table package is to work
 from a copy of the source tree in the revision control system.
 
-The source is available via git at `<https://github.com/pkienzle/periodictable>`_.
+The source is available via git at `<https://github.com/python-periodictable/periodictable>`_.
 To make changes, create a fork of the project on github, then do following,
 with your github user name substituted for *GITNAME*::
 
@@ -21,7 +21,7 @@ install each time.
 
 Track updates to the original package using::
 
-    git remote add upstream https://github.com/pkienzle/periodictable.git
+    git remote add upstream https://github.com/python-periodictable/periodictable.git
     git remote -v   # check that it is set
     git fetch upstream
     git merge upstream/master

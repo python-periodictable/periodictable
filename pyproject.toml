@@ -35,7 +35,7 @@
 
 [project.urls]
     documentation = "https://periodictable.readthedocs.io"
-    repository = "https://github.com/pkienzle/periodictable"
+    repository = "https://github.com/python-periodictable/periodictable"
 
 [build-system]
     requires = ["setuptools", "wheel"]

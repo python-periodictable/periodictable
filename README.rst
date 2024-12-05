@@ -35,14 +35,14 @@ Documentation is `available online <https://periodictable.readthedocs.io>`_.
 
 Source links:
 
-* https://github.com/pkienzle/periodictable
-* https://github.com/scattering/activation
+* https://github.com/python-periodictable/periodictable
+* https://github.com/python-periodictable/activation
 
 |CI| |RTD| |DOI|
 
-.. |CI| image:: https://github.com/pkienzle/periodictable/workflows/Test/badge.svg
+.. |CI| image:: https://github.com/python-periodictable/periodictable/workflows/Test/badge.svg
    :alt: Build status
-   :target: https://github.com/pkienzle/periodictable/actions
+   :target: https://github.com/python-periodictable/periodictable/actions
 
 .. |DOI| image:: https://zenodo.org/badge/1146700.svg
    :alt: DOI tag

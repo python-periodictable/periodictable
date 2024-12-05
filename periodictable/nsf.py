@@ -93,11 +93,11 @@ functions highlight these differences.
 Tables from Sears\ [#Sears1992]_\ [#Sears2006]_, Rauch\ [#Rauch2003]_ and
 Dawidowski\ [#Dawidowski2013]_ make different choices for the recommended
 values. These are noted in periodictable issue #59
-`<https://github.com/pkienzle/periodictable/issues/59>`_
+`<https://github.com/python-periodictable/periodictable/issues/59>`_
 with changes from Sears to Rauch
-`(a) <https://github.com/pkienzle/periodictable/issues/59#issuecomment-1693686953>`__
+`(a) <https://github.com/python-periodictable/periodictable/issues/59#issuecomment-1693686953>`__
 and from Rauch to Dawidowski
-`(b) <https://github.com/pkienzle/periodictable/issues/59#issuecomment-1690212205>`__.
+`(b) <https://github.com/python-periodictable/periodictable/issues/59#issuecomment-1690212205>`__.
 
 The following newer measurements from the literature are included:
 
