@@ -6,13 +6,19 @@ Known issues
   isotope proportions and density computed in neutron_sld(). This may change
   in a future release.
 
-* The mass and composition tables are out of date. This package uses tables
-  from 1997 but IUPAC produced new tables in 2009.
-
 * Incoherent scattering calculations for energy-dependent rare earth elements
   is underestimated. The calculation requires bound incoherent scattering
   length (b_i) but only the bound coherent scattering length (b_c) is
   included.
+
+* For very high fluences, e.g., more than 1E16 n/cm2, the activation
+  equations give erroneous results because of the precision limitations.
+  If there is doubt simply do the calculation at a lower flux and
+  proportion the result. This will not work for the cascade reactions,
+  i.e., two neutron additions.
+
+* Post-exposure decay for b reaction daughter nuclides do not include
+  activity from the decaying parent nuclide.
 
 Change history
 ==============

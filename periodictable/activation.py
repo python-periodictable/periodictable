@@ -498,22 +498,22 @@ class ActivationEnvironment(object):
         For other materials, correct for the thermal:epithermal cross-section
         ratio.
 
-        At the NBSR this ranges from 12 in mid-core, to 200 at RT-4, to
-        >2000 at a filtered cold neutron guide position.
+        At the NBSR this ranges from 12 in mid-core, to 200 at RT-4,
+        to >2000 at a filtered cold neutron guide position.
 
     *fast_ratio* : float
 
         Thermal/fast ratio needed for fast reactions. Use 0 to suppress fast
         contribution.
 
-        this is very reaction dependent. You in essence need to know the
+        This is very reaction dependent. You in essence need to know the
         answer before you do the calculation! That is, this ratio depends
         upon the shape of the cross-section curve as well as the spectrum
         shape above the energy threshold of the reaction. But at least you
         can do 'what-if' calculations with worse case assumptions (in the
         absence of specific ratios).
 
-        the fast cross-sections in this database are weighted for a fast
+        The fast cross-sections in this database are weighted for a fast
         maxwellian spectrum so the fast/thermal ratio should be just a
         fluence correction (i.e., a fluence ratio), not an energy correction.
 
@@ -870,17 +870,17 @@ class ActivationResult(object):
     daughter is through the end of irradiation. Contributions from the
     added decay of the parent after the end of irradiation are left for the
     user to determine, but are usually negligible for irradiations that are
-    long relative to the parent halflife:
+    long relative to the parent halflife.
+
+    During irradiation parent activity (A1) is:
 
         A1 = K [1 - exp(-L1*t)]
 
-    where A1 is activity, L1 is decay constant
+    where K is the parent saturation activity and L1 is the decay constant.
 
     For the beta produced daughter the activity (A2) is:
 
         A2 = K [1 - exp(-L1*t) * L2/(L2-L1) + exp(-L2*t) * L1/(L2-L1)]
-
-    where K is the parent saturation activity.
 
     """
     def __init__(self, **kw):
