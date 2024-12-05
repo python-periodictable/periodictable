@@ -193,7 +193,6 @@ from .core import Element, Ion, default_table, get_data_path
 from .constants import (
     avogadro_number, planck_constant, speed_of_light, electron_volt,
     electron_radius)
-from .util import require_keywords
 
 def xray_wavelength(energy):
     r"""
@@ -243,7 +242,7 @@ def xray_energy(wavelength):
     """
     return planck_constant/electron_volt*speed_of_light/np.asarray(wavelength)*1e7
 
-class Xray(object):
+class Xray:
     """
     X-ray scattering properties for the elements. Refer help(periodictable.xsf)
     from command prompt for details.
@@ -271,8 +270,7 @@ class Xray(object):
         return self._table
     sftable = property(_gettable, doc="X-ray scattering factor table (E,f1,f2)")
 
-    @require_keywords
-    def scattering_factors(self, energy=None, wavelength=None):
+    def scattering_factors(self, *, energy=None, wavelength=None):
         """
         X-ray scattering factors f', f''.
 
@@ -337,8 +335,7 @@ class Xray(object):
                                 charge=self.element.charge)
         return f
 
-    @require_keywords
-    def sld(self, wavelength=None, energy=None):
+    def sld(self, *, wavelength=None, energy=None):
         r"""
         X ray scattering length density.
 
@@ -382,8 +379,7 @@ class Xray(object):
         return rho, irho
 
 # Note: docs and function prototype are reproduced in __init__
-@require_keywords
-def xray_sld(compound, density=None, natural_density=None,
+def xray_sld(compound, *, density=None, natural_density=None,
              wavelength=None, energy=None):
     """
     Compute xray scattering length densities for molecules.
@@ -435,8 +431,7 @@ def xray_sld(compound, density=None, natural_density=None,
     return rho, irho
 
 
-@require_keywords
-def index_of_refraction(compound, density=None, natural_density=None,
+def index_of_refraction(compound, *, density=None, natural_density=None,
                         energy=None, wavelength=None):
     """
     Calculates the index of refraction for a given compound
@@ -470,8 +465,7 @@ def index_of_refraction(compound, density=None, natural_density=None,
                       wavelength=wavelength)
     return 1 - wavelength**2/(2*pi)*(f1 + f2*1j)*1e-6
 
-@require_keywords
-def mirror_reflectivity(compound, density=None, natural_density=None,
+def mirror_reflectivity(compound, *, density=None, natural_density=None,
                         energy=None, wavelength=None,
                         angle=None, roughness=0):
     """
