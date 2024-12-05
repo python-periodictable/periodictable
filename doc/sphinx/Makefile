@@ -7,13 +7,18 @@ SPHINXOPTS    = -W --keep-going -n
 SPHINXBUILD   = $(PYTHON) -m sphinx
 PAPER         =
 BUILDDIR      = _build
+ifdef ComSpec
+    RMDIR   = rmdir /s/q
+else
+    RMDIR   = rm -rf
+endif
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help clean html dirhtml pickle json htmlhelp qthelp latex changes linkcheck doctest build
+.PHONY: help api clean html dirhtml pickle json htmlhelp qthelp latex changes linkcheck doctest build
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -29,9 +34,13 @@ help:
 	@echo "  doctest   to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf _build/* build/* plots/*.pyc plots/*.png
+	-rm -rf _build build plots/*.pyc plots/*.png api __pycache__
 
-html: build
+api: genmods.py
+	-$(RMDIR) api
+	"$(PYTHON)" genmods.py
+
+html: api
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
@@ -66,7 +75,7 @@ qthelp:
 	@echo "To view the help file:"
 	@echo "# assistant -collectionFile _build/qthelp/Periodic Table.qhc"
 
-latex: build
+latex:
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) _build/latex
 	@echo
 	@echo "Build finished; the LaTeX files are in _build/latex."
@@ -91,6 +100,3 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) _build/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in _build/doctest/output.txt."
-
-build:
-	cd ../.. && python setup.py build

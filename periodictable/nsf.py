@@ -75,9 +75,9 @@ There are a number of functions available in periodictable.nsf
 For private tables use :func:`init` to set the data.
 
 The neutron scattering information table is reproduced from the Atomic
-Institute for Austrian Universities\ [#Rauch2003]_  (retrieved March 2008):
+Institute for Austrian Universities\ [#Rauch2003]_,\ [#Rauch2000]_:
 
-`<http://www.ati.ac.at/~neutropt/scattering/table.html>`_
+    `<http://www.ati.ac.at/~neutropt/scattering/table.html>`_
 
 The above site has references to the published values for every entry in
 the table.  We have included these in the documentation directory
@@ -85,34 +85,62 @@ within the periodictable source package. Some typographical errors have
 been fixed. In particular, Zn-70 has b_c listed as 6.9 in the table,
 but 6.0 in the source materials for the table.
 
-Alternative tables from Sears\ [#Sears1992]\ [#Sears2006] and Dawidowski,
-et al.\ [#Dawidowski2013] make different choices for the recommended values.
-These are noted in periodictable issue #59
+Note that enteries in the table have been measured independently, so the values
+for the scattering length of an element or isotope may be inconsistent with
+the values measured for the corresponding cross section. The comparison table
+functions highlight these differences.
+
+Tables from Sears\ [#Sears1992]_\ [#Sears2006]_, Rauch\ [#Rauch2003]_ and
+Dawidowski\ [#Dawidowski2013]_ make different choices for the recommended
+values. These are noted in periodictable issue #59
 `<https://github.com/pkienzle/periodictable/issues/59>`_
 with changes from Sears to Rauch
 `(a) <https://github.com/pkienzle/periodictable/issues/59#issuecomment-1693686953>`__
 and from Rauch to Dawidowski
 `(b) <https://github.com/pkienzle/periodictable/issues/59#issuecomment-1690212205>`__.
 
-.. Note:
+The following newer measurements from the literature are included:
 
-   Enteries in the table have been measured independently, so the values
-   measured for the scattering length of an element or isotope may be
-   inconsistent with the values measured for the corresponding cross section.
+    1H b_c -3.7423(12) => -3.7395(11) [1]
+    2H b_c 6.674(6) => 6.6681(27) [1]
+    4He b_c 3.26(3) => 3.0982(21) [3] (see also [5], which gives 3.075(6))
+    4He coherent = total cross sections computed from 4 pi b_c^2/100
+    nat-He computed from isotopic weighting of 3He and 4He
+    12C b_c 6.6535(14) => 6.6472(9) [1]
+    16O b_c 5.805(5) => 5.8037(29) [1]
+    17O b_c 5.6(5) => 5.867(4) [2]
+    18O b_c 5.84(7) => 6.009(5) [2]
+    119Sn b_c 6.28(3) => 6.2239(13) [1]
+    154Sm b_c 8.0(1.0) => 8.97(6) [4]
+    153Eu b_c 8.22(12) => 8.85(3) [4]
+    191Ir b_c => 12.1(9) [6]
+    193Ir b_c => 9.71(18) [6]
+    207Pb b_c 9.286(16) => 9.4024(13) [1]
+    209Bi b_c 8.532(2) => 8.5242(18) [1]
+
+    He total 1.34(2) => 1.188(5) [5] (ignored; using 4 pi b_c^2/100)
+    Ar total 0.683(4) => 0.683(5) [5] (ignored; existing value is more precise)
+    Kr total 7.68(13) => 7.685(26) [5]
+    Xe total --- => 4.344(17) [5]
+
+    [1] Snow (2020) 10.1103/PhysRevD.101.062004
+    [2] Fischer (2012) 10.1088/0953-8984/24/50/505105
+    [3] Haun (2020) 10.1103/PhysRevLett.124.012501
+    [4] Kohlmann (2016) 10.1515/zkri-2016-1984
+    [5] Haddock (2019) 10.1103/PhysRevC.100.064002
+    [6] Hannon (2018) 10.1107/S1600576718006064
 
 .. [#Rauch2003] Rauch, H. and Waschkowski, W. (2003)
     Neutron Scattering Lengths in ILL
     Neutron Data Booklet (second edition), A.-J. Dianoux, G. Lander, Eds.
     Old City Publishing, Philidelphia, PA. pp 1.1-1 to 1.1-17.
-    (https://www.ill.eu/fileadmin/user_upload/ILL/1_About_ILL/Documentation/NeutronDataBooklet.pdf)
+    (https://www.ill.eu/fileadmin/user_upload/ILL/1_About_ILL/Documentation/NeutronDataBooklet.pdf
+    Retrieved March 2008)
 
 .. [#Rauch2000] Rauch, H. and Waschkowski, W. (2000)
     Neutron scattering lengths. Schopper, H. (ed.). SpringerMaterials -
     The Landolt-Börnstein Database (http://www.springermaterials.com).
-    doi: 10.1007/10499706_6
-
-.. [#Koester1991] Koester, L., Rauch, H., Seymann. E. (1991)
-    Atomic Data Nuclear Data Tables 49, 65. doi:10.1016/0092-640X(91)90012-S
+    doi:10.1007/10499706_6
 
 .. [#Lynn1990] Lynn, J.E. and Seeger, P.A. (1990)
     Resonance effects in neutron scattering lengths of rare-earth nuclides.
@@ -138,11 +166,6 @@ and from Rauch to Dawidowski
    Neutron Transmission of Single-Crystal Sapphire.
    J Appl Crystallogr 31, 835–840. doi:10.1107/S0021889898005846
 
-.. [#Smith2006] Smith, G.S. and Majkrzak, C.M. (2006)
-    2.9 Neutron reflectometry.
-    In E. Prince ed. Intl. Tables for Crystallography C.
-    Wiley InterScience. pp 126-146. doi:10.1107/97809553602060000584
-
 .. [#Glinka2011] Glinka, C.J. (2011)
     Incoherent Neutron Scattering from Multi-element Materials.
     J. Appl. Cryst. 44, 618-624. doi:10.1107/S0021889811008223
@@ -153,16 +176,22 @@ and from Rauch to Dawidowski
     In F. Fernandez-Alonso & D. L. Price (Eds.),
     Experimental Methods in the Physical Sciences (Vol. 44, pp. 471–528).
     Academic Press. doi:10.1016/B978-0-12-398374-9.09989-7
-
 """
-from __future__ import print_function
+
+#.. [#Koester1991] Koester, L., Rauch, H., Seymann. E. (1991)
+#    Atomic Data Nuclear Data Tables 49, 65. doi:10.1016/0092-640X(91)90012-S
+#.. [#Smith2006] Smith, G.S. and Majkrzak, C.M. (2006)
+#    2.9 Neutron reflectometry.
+#    In E. Prince ed. Intl. Tables for Crystallography C.
+#    Wiley InterScience. pp 126-146. doi:10.1107/97809553602060000584
+#
 
 import numpy as np
 from numpy import sqrt, pi, asarray, inf
 from .core import Element, Isotope, default_table
-from .constants import (avogadro_number, plancks_constant, electron_volt,
+from .constants import (avogadro_number, planck_constant, electron_volt,
                         neutron_mass, atomic_mass_constant)
-from .util import require_keywords, parse_uncertainty
+from .util import parse_uncertainty
 
 __all__ = ['init', 'Neutron',
            'neutron_energy', 'neutron_wavelength',
@@ -176,24 +205,24 @@ __all__ = ['init', 'Neutron',
            #'scattering_potential',
           ]
 
-ABSORPTION_WAVELENGTH = 1.798
+#: Wavelength [Å] for which neutron scattering cross sections are tabulated.
+ABSORPTION_WAVELENGTH = 1.798 # [Å]
 
 
-# Velocity (m/s) <=> wavelength (A)
-#   lambda = h / p = h (eV) (J/eV) / ( m_n (kg) v (m/s) ) (10^10 A/m)
-#
-# Since plancks constant is in eV
-#   lambda = (1e10 * h*electron_volt/(neutron_mass/N_A)) / velocity
+#: Energy [eV] <=> wavelength [Å]:
+#:   E = 1/2 m v² = h² / (2 m λ²)
+#:   E[meV s]  = h[J s]²/(2 m_n[u] m_u[kg/u] λ[Å]²/10^20[Å/m])
+#:             * 1000[meV/eV] / electron_volt[J/eV]
+ENERGY_FACTOR = (
+    1e23 * planck_constant**2/electron_volt
+    / (2 * neutron_mass * atomic_mass_constant))
 
-# Energy (eV) <=> wavelength (A)
-#   h^2/(2 m_n kg lambda A) (10^20 A/m) (1000 meV/eV) / (electron_volt J/eV)
-# Since plancks constant is in eV
-#   (h J)^2/electron_volt = ((h eV)(electron_volt J/eV))^2/electron_volt
-#                         = (h eV)^2 * electron_volt
-ENERGY_FACTOR = (plancks_constant**2*electron_volt
-                 / (2 * neutron_mass * atomic_mass_constant)) * 1e23
-VELOCITY_FACTOR = (plancks_constant*electron_volt
-                   / (neutron_mass * atomic_mass_constant)) * 1e10
+#: Velocity[m/s] <=> wavelength[Å]:
+#:  h = p λ = m v λ
+#:  λ[Å] = h[J s] / ( m_n[kg] v[m/s] ) 10^10[Å/m]
+VELOCITY_FACTOR = (
+    1e10 * planck_constant / (neutron_mass * atomic_mass_constant))
+
 def neutron_wavelength(energy):
     r"""
     Convert neutron energy to wavelength.
@@ -213,7 +242,7 @@ def neutron_wavelength(energy):
 
     where
 
-        $h$ = planck's constant in |Js|
+        $h$ = Planck constant in |Js|
 
         $m_n$ = neutron mass in kg
 
@@ -238,7 +267,7 @@ def neutron_wavelength_from_velocity(velocity):
 
     where
 
-        $h$ = planck's constant in |Js|
+        $h$ = Planck constant in |Js|
 
         $m_n$ = neutron mass in kg
     """
@@ -262,7 +291,7 @@ def neutron_energy(wavelength):
 
     where:
 
-        $h$ = planck's constant in |Js|
+        $h$ = Planck constant in |Js|
 
         $m_n$ = neutron mass in kg
     """
@@ -292,7 +321,7 @@ def _CHECK_scattering_potential(sld):
 
         $\hbar = h / (2 \pi)$
 
-        $h$ = planck's constant in |Js|
+        $h$ = Planck constant in |Js|
 
         $N_b = \sum{ n_i b_i } / V$
 
@@ -301,7 +330,7 @@ def _CHECK_scattering_potential(sld):
     return (ENERGY_FACTOR/pi) * asarray(sld)
 
 _4PI_100 = 4*np.pi/100
-class Neutron(object):
+class Neutron:
     r"""
     Neutron scattering factors are attached to each element in the periodic
     table for which values are available.  If no information is available,
@@ -447,16 +476,17 @@ class Neutron(object):
             *sigma_s* \: float(s) | barn
         """
         # TODO: do vector conversion at the end rather than the beginning.
-        ones = 1 if np.isscalar(wavelength) else np.ones_like(wavelength)
         if self.nsf_table is None:
+            ones = 1 if np.isscalar(wavelength) else np.ones_like(wavelength)
             return ones*self.b_c_complex, ones*self.total
+        #energy = neutron_energy(wavelength)
+        #b_c = np.interp(energy, self.nsf_table[0], self.nsf_table[1])
         b_c = np.interp(wavelength, self.nsf_table[0], self.nsf_table[1])
         # TODO: sigma_s should include an incoherent contribution
         sigma_s = _4PI_100*abs(b_c)**2 # 1 barn = 1 fm^2 1e-2 barn/fm^2
         return b_c, sigma_s
 
-    @require_keywords
-    def sld(self, wavelength=ABSORPTION_WAVELENGTH):
+    def sld(self, *, wavelength=ABSORPTION_WAVELENGTH):
         r"""
         Returns scattering length density for the element at natural
         abundance and density.
@@ -473,15 +503,11 @@ class Neutron(object):
         See :func:`neutron_scattering` for details.
         """
         # TODO: deprecate in favour of neutron_scattering(el)
-        # TODO: return NaN instead of None for missing sld.
-        # This should happen automatically if the cross sections are NaN in
-        # the table.
         if not self.has_sld():
             return None, None, None
         return self.scattering(wavelength=wavelength)[0]
 
-    @require_keywords
-    def scattering(self, wavelength=ABSORPTION_WAVELENGTH):
+    def scattering(self, *, wavelength=ABSORPTION_WAVELENGTH):
         r"""
         Returns neutron scattering information for the element at natural
         abundance and density.
@@ -523,6 +549,7 @@ def energy_dependent_init(table):
         el = getattr(table, el_name)
         atom = el if iso_num is None else el[iso_num]
         xs = asarray(re_a) + 1j*asarray(im_a)
+        #atom.neutron.nsf_table = asarray(energy)*1000, xs
         atom.neutron.nsf_table = wavelength[::-1], xs[::-1]
         #print(f"adding {atom}")
 
@@ -568,6 +595,18 @@ def init(table, reload=False):
         b_c_i = -nsf.absorption/(2000*ABSORPTION_WAVELENGTH)
         nsf.b_c_complex = b_c + 1j*b_c_i
 
+        if not np.isnan(b_c):
+            # Ir-191 and Ir-193 don't list scattering cross sections so deduce
+            # them from the bound coherent cross section. Since these are both
+            # odd isotopes there ought to be some incoherent scattering, but
+            # zero is well within the uncertainty measured in bulk Ir.
+            if nsf.coherent is None:
+                nsf.coherent = 4*pi/100*abs(nsf.b_c_complex)**2
+            if nsf.incoherent is None:
+                nsf.incoherent = 0
+            if nsf.total is None:
+                nsf.total = nsf.coherent + nsf.incoherent
+
         parts = columns[0].split('-')
         Z = int(parts[0])
         symbol = parts[1]
@@ -582,15 +621,8 @@ def init(table, reload=False):
         # it can calculate sld.
         nsf._number_density = element.number_density # N/cm^3 = N/cm^3
 
-
-        # For new elements, clear out 'neutron' attribute for isotopes
-        # This protects against isotope using the element data when
-        # they don't have any specific neutron data.
-        #if isotope_number == 0 or not hasattr(element,'neutron'):
-        #    for iso in element: iso.neutron = None
-
         if isotope_number == 0:
-            # Bulk values using laboratory abundances of isotopes
+            # Value for element using laboratory abundances of isotopes
             element.neutron = nsf
         else:
             # Values for the individual isotope
@@ -605,17 +637,6 @@ def init(table, reload=False):
             # one isotope.
             if element.neutron is missing:
                 element.neutron = nsf
-
-    # Gaps in the table for Xe and Eu[151]. Fill them in with guesses from
-    # other columns even though they have not been measured directly. The
-    # assertions are here so that we remember to remove this code if the
-    # table eventually gets updated.
-    assert table.Xe.neutron.total is None
-    assert table.Eu[151].neutron.b_c is None
-    table.Xe.neutron.total = (
-        table.Xe.neutron.coherent + table.Xe.neutron.incoherent)
-    table.Eu[151].neutron.b_c = (
-        sqrt(table.Eu[151].neutron.coherent/_4PI_100))
 
     for line in nsftableI.split('\n'):
         columns = line.split(',')
@@ -642,8 +663,7 @@ def init(table, reload=False):
 # TODO: split incoherent into spin and isotope incoherence (eq 17-19 of Sears)
 # TODO: require parsed compound rather than including formula() keywords in api
 # Note: docs and function prototype are reproduced in __init__
-@require_keywords
-def neutron_scattering(compound, density=None,
+def neutron_scattering(compound, *, density=None,
                        wavelength=None, energy=None,
                        natural_density=None, table=None):
     r"""
@@ -911,7 +931,7 @@ def neutron_scattering(compound, density=None,
         num_atoms += quantity
         # PAK 2021-04-05: allow energy dependent b_c, b''
         b_ck, sigma_sk = element.neutron.scattering_by_wavelength(wavelength)
-        #print(f"{element=}; {re_a=}; {im_a=}; {total_xs=}")
+        #print(f"{element=}; {b_ck=}; {sigma_sk=}")
         b_c += quantity * b_ck
         sigma_s += quantity * sigma_sk
         is_energy_dependent |= element.neutron.is_energy_dependent
@@ -970,6 +990,8 @@ def _calculate_scattering(number_density, wavelength, b_c, sigma_s):
     # Compute absorption cross section (barn)
     # Note: Sears (1992) uses b = b' - i b'', so use |Im(b_c)| for sigma_a.
     sigma_a = 2000 * abs(b_c.imag) * wavelength # 1 barn = 1 fm 1 A 1e5 A/fm 1e-2 barn/fm
+
+    # print(f"σ_a {sigma_c:.3f} σ_i {sigma_i:.3f} σ_s {sigma_s:.3f} σ_a {sigma_a:.3f}")
 
     # Compute macroscopic scattering cross section per unit volume (1/cm)
     total_xs = number_density * sigma_s # 1/cm = 1/A^3 1 barn 1e-8 A^2/barn 1e8 A/cm
@@ -1276,24 +1298,30 @@ def sld_plot(table=None):
 # coherent, incoherent, total
 #   The coherent and incoherent scattering cross-sections in barns.
 # absorption
-#   The thermal absorption cross section in barns at 1.798 Angstroms/25.30 meV.
-#   2200 m/s
+#   The thermal absorption cross section in barns at 1.798 A; 25.30 meV; 2200 m/s
 #
 # Numbers in parenthesis represents uncertainty.
 # Numbers followed by '*' are estimated.
 # Numbers may be given as limit, e.g., <1.0e-6
 #
-# Formatting corrections by Paul Kienzle
+# [Paul Kienzle]
+# * Fix typos such as 70Zn b_c 6.9(1.0) => 6.0(1.0).
+# * Update bound coherent scattering length for H-1, H-2, He-4, C-12,
+#   O-16, O-17, O-18, Sn-119, Sm-154, Eu-153, Pb-207, Bi-209
+# * Update total cross section for He, Kr, Xe
+# * Usd 63-Eu-151 b_c from 84Mug1. This change is moot since this isotope
+#   has energy dependent isotope coeffs.
+# * Use calculated values for 4He coh and total, and natHe b_c, coh and total.
 
 nsftable = """\
 0-n-1,618 S,1/2,-37.0(6),0,-37.0(6),,43.01(2),,43.01(2),0
 1-H,,,-3.7409(11),,,,1.7568(10),80.26(6),82.02(6),0.3326(7)
-1-H-1,99.985,1/2,-3.7423(12),10.817(5),-47.420(14),+/-,1.7583(10),80.27(6),82.03(6),0.3326(7)
-1-H-2,0.0149,1,6.674(6),9.53(3),0.975(60),,5.592(7),2.05(3),7.64(3),0.000519(7)
+1-H-1,99.985,1/2,-3.7395(11),10.817(5),-47.420(14),+/-,1.7583(10),80.27(6),82.03(6),0.3326(7)
+1-H-2,0.0149,1,6.6681(27),9.53(3),0.975(60),,5.592(7),2.05(3),7.64(3),0.000519(7)
 1-H-3,12.26 Y,1/2,4.792(27),4.18(15),6.56(37),,2.89(3),0.14(4),3.03(5),<6.0E-6
-2-He,,,3.26(3),,,,1.34(2),0,1.34(2),0.00747(1)
+2-He,,,3.0985(21),,,,1.2065(16),0,1.2065(16),0.00747(1)
 2-He-3,0.013,1/2,5.74(7),4.7(5),8.8(1.4),E,4.42(10),1.6(4),6.0(4),5333.0(7.0)
-2-He-4,99.987,0,3.26(3),,,,1.34(2),0,1.34(2),0
+2-He-4,99.987,0,3.0982(21),,,,1.2062(16),0,1.2062(16),0
 3-Li,,,-1.90(3),,,,0.454(10),0.92(3),1.37(3),70.5(3)
 3-Li-6,7.5,1,2.0(1),0.67(14),4.67(17),+/-,0.51(5),0.46(5),0.97(7),940.0(4.0)
 3-Li-7,92.5,3/2,-2.22(2),-4.15(6),1.00(8),+/-,0.619(11),0.78(3),1.40(3),0.0454(3)
@@ -1302,15 +1330,15 @@ nsftable = """\
 5-B-10,19.4,3,-0.2(4),-4.2(4),5.2(4),,0.144(6),3.0(4),3.1(4),3835.0(9.0)
 5-B-11,80.2,3/2,6.65(4),5.6(3),8.3(3),,5.56(7),0.21(7),5.77(10),0.0055(33)
 6-C,,,6.6484(13),,,,5.551(2),0.001(4),5.551(3),0.00350(7)
-6-C-12,98.89,0,6.6535(14),,,,5.559(3),0,5.559(3),0.00353(7)
+6-C-12,98.89,0,6.6472(9),,,,5.559(3),0,5.559(3),0.00353(7)
 6-C-13,1.11,1/2,6.19(9),5.6(5),6.2(5),+/-,4.81(14),0.034(11),4.84(14),0.00137(4)
 7-N,,,9.36(2),,,,11.01(5),0.50(12),11.51(11),1.90(3)
 7-N-14,99.635,1,9.37(2),10.7(2),6.2(3),,11.03(5),0.50(12),11.53(11),1.91(3)
 7-N-15,0.365,1/2,6.44(3),6.77(10),6.21(10),,5.21(5),0.00005(10),5.21(5),0.000024(8)
 8-O,,,5.805(4),,,,4.232(6),0.000(8),4.232(6),0.00019(2)
-8-O-16,99.75,0,5.805(5),,,,4.232(6),0,4.232(6),0.00010(2)
-8-O-17,0.039,5/2,5.6(5),5.52(20),5.17(20),,4.20(22),0.004(3),4.20(22),0.236(10)
-8-O-18,0.208,0,5.84(7),,,,4.29(10),0,4.29(10),0.00016(1)
+8-O-16,99.75,0,5.8037(29),,,,4.232(6),0,4.232(6),0.00010(2)
+8-O-17,0.039,5/2,5.867(4),5.52(20),5.17(20),,4.20(22),0.004(3),4.20(22),0.236(10)
+8-O-18,0.208,0,6.009(5),,,,4.29(10),0,4.29(10),0.00016(1)
 9-F-19,100,1/2,5.654(12),5.632(10),5.767(10),+/-,4.017(14),0.0008(2),4.018(14),0.0096(5)
 10-Ne,,,4.566(6),,,,2.620(7),0.008(9),2.628(6),0.039(4)
 10-Ne-20,90.5,0,4.631(6),,,,2.695(7),0,2.695(7),0.036(4)
@@ -1407,7 +1435,7 @@ nsftable = """\
 35-Br,,,6.79(2),,,,5.80(3),0.10(9),5.90(9),6.9(2)
 35-Br-79,50.49,3/2,6.79(7),,,+/-,5.81(2),0.15(6),5.96(13),11.0(7)
 35-Br-81,49.31,3/2,6.78(7),,,+/-,5.79(12),0.05(2),5.84(12),2.7(2)
-36-Kr,,,7.81(2),,,,7.67(4),0.01(14),7.68(13),25.0(1.0)
+36-Kr,,,7.81(2),,,,7.67(4),0.01(14),7.685(26),25.0(1.0)
 36-Kr-78,0.35,0,,,,,,0,,6.4(9)
 36-Kr-80,2.5,0,,,,,,0,,11.8(5)
 36-Kr-82,11.6,0,,,,,,0,,29.0(20.0)
@@ -1477,7 +1505,7 @@ nsftable = """\
 50-Sn-116,14.3,0,6.10(1),,,,4.42(7),0,4.42(7),0.14(3)
 50-Sn-117,7.61,1/2,6.59(8),0.22(10),-0.23(10),,5.28(8),0.3(3)*,5.6(3),2.3(5)
 50-Sn-118,24.03,0,6.23(4),,,,4.63(8),0,4.63(8),0.22(5)
-50-Sn-119,8.58,1/2,6.28(3),0.14(10),0.0(1),,4.71(8),0.3(3)*,5.0(3),2.2(5)
+50-Sn-119,8.58,1/2,6.2239(13),0.14(10),0.0(1),,4.71(8),0.3(3)*,5.0(3),2.2(5)
 50-Sn-120,32.86,0,6.67(4),,,,5.29(8),0,5.29(8),0.14(3)
 50-Sn-122,4.72,0,5.93(3),,,,4.14(7),0,4.14(7),0.18(2)
 50-Sn-124,5.94,0,6.15(3),,,,4.48(8),0,4.48(8),0.133(5)
@@ -1494,7 +1522,7 @@ nsftable = """\
 52-Te-128,31.79,0,5.88(8),,,,4.36(10),0,4.36(10),0.215(8)
 52-Te-130,34.48,0,6.01(7),,,,4.55(11),0,4.55(11),0.29(6)
 53-I-127,100,5/2,5.28(2),6.6(2),3.4(2),,3.50(3),0.31(6),3.81(7),6.15(6)
-54-Xe,,,4.69(4),,,,3.04(4),0,,23.9(1.2)
+54-Xe,,,4.69(4),,,,3.04(4),0,4.344(17),23.9(1.2)
 54-Xe-124,0.1,0,,,,,,0,,165.0(20.0)
 54-Xe-126,0.09,0,,,,,,0,,3.5(8)
 54-Xe-128,1.9,0,,,,,,0,,<8.0
@@ -1538,10 +1566,10 @@ nsftable = """\
 62-Sm-149,13.8,7/2,18.7(28),,,E,63.5(6),137.0(5.0),200.0(5.0),42080.0(400.0)
 62-Sm-150,7.4,0,14.0(3.0),,,,25.0(11.0),0,25.0(11.0),104.0(4.0)
 62-Sm-152,26.7,0,-5.0(6),,,,3.1(8),0,3.1(8),206.0(6.0)
-62-Sm-154,22.8,0,8.0(1.0),,,,11.0(2.0),0,11.0(2.0),8.4(5)
+62-Sm-154,22.8,0,8.97(6),,,,11.0(2.0),0,11.0(2.0),8.4(5)
 63-Eu,,,5.3(3),,,E,6.57(4),2.5(4),9.2(4),4530.0(40.0)
-63-Eu-151,47.8,5/2,,,,E,5.5(2),3.1(4),8.6(4),9100.0(100.0)
-63-Eu-153,52.8,5/2,8.22(12),,,,8.5(2),1.3(7),9.8(7),312.0(7.0)
+63-Eu-151,47.8,5/2,6.92(15),,,E,5.5(2),3.1(4),8.6(4),9100.0(100.0)
+63-Eu-153,52.8,5/2,8.85(3),,,,8.5(2),1.3(7),9.8(7),312.0(7.0)
 64-Gd,,,9.5(2),,,E,29.3(8),151.0(2.0),180.0(2.0),49700.0(125.0)
 64-Gd-152,0.2,0,10.0(3.0)*,,,,13.0(8.0),0,13.0(8.0),735.0(20.0)
 64-Gd-154,2.2,0,10.0(3.0)*,,,,13.0(8.0),0,13.0(8.0),85.0(12.0)
@@ -1607,8 +1635,8 @@ nsftable = """\
 76-Os-190,26.4,0,11.4(3),,,,15.2(8),0,15.2(8),13.1(3)
 76-Os-192,41,0,11.9(4),,,,16.6(1.2),0,16.6(1.2),2.0(1)
 77-Ir,,,10.6(3),,,,14.1(8),0.0(3.0),14.0(3.0),425.0(2.0)
-77-Ir-191,37.4,3/2,,,,,,,,954.0(10.0)
-77-Ir-193,62.6,3/2,,,,,,,,111.0(5.0)
+77-Ir-191,37.4,3/2,12.1(9),,,,,,,954.0(10.0)
+77-Ir-193,62.6,3/2,9.71(18),,,,,,,111.0(5.0)
 78-Pt,,,9.60(1),,,,11.58(2),0.13(11),11.71(11),10.3(3)
 78-Pt-190,0.01,0,9.0(1.0),,,,10.0(2.0),0,10.0(2.0),152.0(4.0)
 78-Pt-192,1.78,0,9.9(5),,,,12.3(1.2),0,12.3(1.2),10.0(2.5)
@@ -1631,9 +1659,9 @@ nsftable = """\
 82-Pb,,,9.401(2),,,,11.115(7),0.0030(7),11.118(7),0.171(2)
 82-Pb-204,1.4,0,10.893(78),,,,12.3(2),0,12.3(2),0.65(7)
 82-Pb-206,24.1,0,9.221(78),,,,10.68(12),0,10.68(12),0.0300(8)
-82-Pb-207,22.1,1/2,9.286(16),,,+/-,10.82(9),0.002(2),10.82(9),0.699(10)
+82-Pb-207,22.1,1/2,9.4024(13),,,+/-,10.82(9),0.002(2),10.82(9),0.699(10)
 82-Pb-208,52.4,0,9.494(30),,,,11.34(5),0,11.34(5),0.00048(3)
-83-Bi-209,100,9/2,8.532(2),8.26(1),8.74(1),,9.148(4),0.0084(19),9.156(4),0.0338(7)
+83-Bi-209,100,9/2,8.5242(18),8.26(1),8.74(1),,9.148(4),0.0084(19),9.156(4),0.0338(7)
 88-Ra-226,1620 Y,0,10.0(1.0),,,,13.0(3.0),0,13.0(3.0),12.8(1.5)
 90-Th-232,100,0,10.31(3),,,,13.36(8),0,13.36(8),7.37(6)
 91-Pa-231,32500 Y,3/2,9.1(3),,,,10.4(7),0.1(3.3),10.5(3.2),200.6(2.3)
@@ -1706,12 +1734,12 @@ def sld_table(wavelength=1, table=None, isotopes=True):
          Neutron scattering length density table
         atom       mass density     sld    imag   incoh
         H         1.008   0.071  -1.582   0.000  10.690
-        1-H       1.008   0.071  -1.583   0.000  10.690
-        D         2.014   0.141   2.823   0.000   1.705
+        1-H       1.008   0.071  -1.582   0.000  10.691
+        D         2.014   0.141   2.820   0.000   1.709
         T         3.016   0.212   2.027   0.000   0.453
-        He        4.003   0.122   0.598   0.000   0.035
+        He        4.003   0.122   0.569   0.000   0.003
         3-He      3.016   0.092   1.054   0.272   0.652 *
-        4-He      4.003   0.122   0.598   0.000   0.035
+        4-He      4.003   0.122   0.569   0.000   0.000
            ...
         248-Cm  248.072  13.569   2.536   0.000   0.207
         * Energy dependent cross sections
@@ -1883,8 +1911,6 @@ def coherent_comparison_table(table=None, tol=None):
 
         >>> coherent_comparison_table (tol=0.5) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
         Comparison of (4 pi |b_c|^2/100) and coherent
-                 n   172.03    43.01 300.0%
-               1-n   172.03    43.01 300.0%
                 Sc    18.40    19.00  -3.2%
              45-Sc    18.40    19.00  -3.2%
              65-Cu    13.08    14.10  -7.2%
@@ -1915,9 +1941,8 @@ def total_comparison_table(table=None, tol=None):
 
         >>> total_comparison_table (tol=0.1)
         Comparison of total cross section to (coherent + incoherent)
-                 n    43.01     ----
-               1-n    43.01     ----
              84-Kr     6.60     ----
+                Xe     4.34     3.04  42.9%
             149-Sm   200.00   200.50  -0.2%
                 Eu     9.20     9.07   1.4%
                 Gd   180.00   180.30  -0.2%
@@ -1974,8 +1999,8 @@ def print_scattering(compound, wavelength=ABSORPTION_WAVELENGTH):
     print("%s at %g Ang  (density=%g g/cm^3)"
           % (str(compound), wavelength, density))
     print("  sld: %g + %g j  (%g incoherent)  1e-6/Ang^2"%sld)
-    print("  sigma_c: %g  sigma_a: %g  sigma_i: %g  1/cm"%xs)
-    print("  mu: %g 1/cm  1/e penetration: %g cm"%(1/penetration, penetration))
+    print("  Σ_c: %g  Σ_a: %g  Σ_i: %g  1/cm"%xs)
+    print("  μ: %g 1/cm  1/e penetration: %g cm"%(1/penetration, penetration))
 
 def main():
     """
@@ -2006,5 +2031,8 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #coherent_comparison_table(tol=0.5)
-    #incoherent_comparison_table(tol=0.5)
+    #sld_table()
+    #coherent_comparison_table(tol=0.1)
+    #incoherent_comparison_table(tol=0.1)
+    #absorption_comparison_table(tol=0.1)
+    #total_comparison_table(tol=0.1)

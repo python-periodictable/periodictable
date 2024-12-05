@@ -120,6 +120,7 @@ if [ $step -le 5 ]; then
   git tag -a v$version -m "Release $version"
   git push --tags
   python setup.py sdist
+  #twine upload dist/periodictable-$version.tar.gz -p <token>
   twine upload dist/periodictable-$version.tar.gz
   ready pypi Package upload successful?
 fi

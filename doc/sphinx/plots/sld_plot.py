@@ -1,7 +1,7 @@
-import pylab
+import matplotlib.pyplot as plt
 import periodictable.nsf
 
 params = {'figure.figsize': (10,8)}
-pylab.rcParams.update(params)
+plt.rcParams.update(params)
 
 periodictable.nsf.sld_plot()

@@ -25,5 +25,6 @@ and if you want to know in detail about Periodic Table, refer to the
    extending.rst
    customizing.rst
    data_sources.rst
+   ChangeLog_link.rst
    contributing.rst
    license.rst

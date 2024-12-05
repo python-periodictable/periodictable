@@ -110,7 +110,7 @@ def fxrayatstol(symbol, stol, charge=None):
     return rv
 
 
-class CromerMannFormula(object):
+class CromerMannFormula:
     """
     Cromer-Mann formula for x-ray scattering factors.
     Coefficient storage and evaluation.
@@ -177,26 +177,28 @@ def _update_cmformulas():
     """
     Update the static dictionary of CromerMannFormula instances.
     """
-    data_path = core.get_data_path('xsf')
-    filename = os.path.join(data_path, 'f0_WaasKirf.dat')
-    fp = open(filename)
-    lineiter = iter(fp)
-    for line in lineiter:
-        w = line.split()
-        if w[0] == "#S":
-            smbl = w[2]
-            continue
-        if w[0] == "#L":
-            assert smbl is not None
-            line1 = next(lineiter)
-            w1 = line1.split()
-            assert len(w1) == 11
-            a = list(map(float, w1[0:5]))
-            b = list(map(float, w1[6:11]))
-            c = float(w1[5])
-            cmf = CromerMannFormula(smbl, a, b, c)
-            _cmformulas[cmf.symbol] = cmf
-            smbl = None
+    path = os.path.join(core.get_data_path('.'), 'f0_WaasKirf.dat')
+    # Data file contains:
+    #   #{C,D,F,UD,UO,UT,UIDL,UF0TYPE}              header lines
+    #
+    #   #S <Z> <El>(#[+-])?                         data blocks
+    #   #N 11
+    #   #L a1 a2 a3 a4 a5 c b1 b2 b3 b4 b5
+    #    <a1 a2 a3 a4 a5> <c> <b1 b2 b3 b4 b5>
+    with open(path) as fp:
+        for line in fp:
+            if line.startswith("#S"):
+                symbol = line.split()[2]
+            elif line.startswith(" "):
+                if symbol is None:
+                    raise RuntimeError(f"Should not be here; {path} has been corrupted.")
+                w = line.split()
+                a = list(map(float, w[0:5]))
+                b = list(map(float, w[6:11]))
+                c = float(w[5])
+                cmf = CromerMannFormula(symbol, a, b, c)
+                _cmformulas[cmf.symbol] = cmf
+                symbol = None
 
 _cmformulas = {}
 

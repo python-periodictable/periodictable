@@ -74,7 +74,7 @@ Emission line tables
 ====================
 
 Data for the $K_\alpha$ and $K_\beta$ lines comes from
-[#Deslattes2003], with the full tables available at
+[#Deslattes2003]_, with the full tables available at
 `<http://www.nist.gov/pml/data/xraytrans/index.cfm>`_.
 Experimental Values are used, truncated to 4 digits
 of precision to correspond to the values for the subset
@@ -141,26 +141,31 @@ with minor formatting changes:
 
   .. table::
 
-           ========  ==========   =================
-           Element   Updated      Energy Range (eV)
-           ========  ==========   =================
-           Mg        Jan 2011     10-1300
-           Zr        Apr 2010     20-1000
-           La        Jun 2007     14-440
-           Gd        Jun 2007     12-450
-           Sc        Apr 2006     50-1300
-           Ti        Aug 2004     20-150
-           Ru        Aug 2004     40-1300
-           W         Aug 2004     35-250
-           Mo        Aug 2004     25-60
-           Be        Aug 2004     40-250
-           Mo        Nov 1997     10-930
-           Fe        Oct 1995     600-800
-           Si        Jun 1995     30-500
-           Au        Jul 1994     2000-6500
-           Mg,Al,Si  Jan 1994     30-200
-           Li        Nov 1994     2000-30000
-           ========  ==========   =================
+    ========  ==========   =================
+    Element   Updated      Energy Range (eV)
+    ========  ==========   =================
+    Pt        Aug 2023     0.1-800
+    Cr        Aug 2023     0.4-813
+    Nb        Aug 2023     10-1000
+    Y         Aug 2023     50-1300
+    Er        Aug 2023     3-1580
+    Mg        Jan 2011     10-1300
+    Zr        Apr 2010     20-1000
+    La        Jun 2007     14-440
+    Gd        Jun 2007     12-450
+    Sc        Apr 2006     50-1300
+    Ti        Aug 2004     20-150
+    Ru        Aug 2004     40-1300
+    W         Aug 2004     35-250
+    Mo        Aug 2004     25-60
+    Be        Aug 2004     40-250
+    Mo        Nov 1997     10-930
+    Fe        Oct 1995     600-800
+    Si        Jun 1995     30-500
+    Au        Jul 1994     2000-6500
+    Mg,Al,Si  Jan 1994     30-200
+    Li        Nov 1994     2000-30000
+    ========  ==========   =================
 
 
   Data available at:
@@ -172,9 +177,7 @@ with minor formatting changes:
 
 .. [#Deslattes2003] R. D. Deslattes, E. G. Kessler, Jr., P. Indelicato, L. de Billy,
        E. Lindroth, and J. Anton.  Rev. Mod. Phys. 75, 35-99 (2003).
-
 """
-from __future__ import with_statement
 __all__ = ['Xray', 'init', 'init_spectral_lines',
            'xray_energy', 'xray_wavelength',
            'xray_sld', 'xray_sld_from_atoms',
@@ -183,13 +186,13 @@ __all__ = ['Xray', 'init', 'init_spectral_lines',
            ]
 import os.path
 
-import numpy
+import numpy as np
 from numpy import nan, pi, exp, sin, cos, sqrt, radians
 
 from .core import Element, Ion, default_table, get_data_path
-from .constants import (avogadro_number, plancks_constant, speed_of_light,
-                        electron_radius)
-from .util import require_keywords
+from .constants import (
+    avogadro_number, planck_constant, speed_of_light, electron_volt,
+    electron_radius)
 
 def xray_wavelength(energy):
     r"""
@@ -209,11 +212,11 @@ def xray_wavelength(energy):
 
     where:
 
-        $h$ = planck's constant in eV\ |cdot|\ s
+        $h$ = Planck constant in J\ |cdot|\ s
 
         $c$ = speed of light in m/s
     """
-    return plancks_constant*speed_of_light/numpy.asarray(energy)*1e7
+    return planck_constant/electron_volt*speed_of_light/np.asarray(energy)*1e7
 
 def xray_energy(wavelength):
     r"""
@@ -233,13 +236,13 @@ def xray_energy(wavelength):
 
     where:
 
-        $h$ = planck's constant in eV\ |cdot|\ s
+        $h$ = Planck constant in J\ |cdot|\ s
 
         $c$ = speed of light in m/s
     """
-    return plancks_constant*speed_of_light/numpy.asarray(wavelength)*1e7
+    return planck_constant/electron_volt*speed_of_light/np.asarray(wavelength)*1e7
 
-class Xray(object):
+class Xray:
     """
     X-ray scattering properties for the elements. Refer help(periodictable.xsf)
     from command prompt for details.
@@ -260,15 +263,14 @@ class Xray(object):
             filename = os.path.join(self._nff_path,
                                     self.element.symbol.lower()+".nff")
             if self.element.symbol != 'n' and os.path.exists(filename):
-                xsf = numpy.loadtxt(filename, skiprows=1).T
-                xsf[1, xsf[1] == -9999.] = numpy.nan
+                xsf = np.loadtxt(filename, skiprows=1).T
+                xsf[1, xsf[1] == -9999.] = np.nan
                 xsf[0] *= 0.001  # Use keV in table rather than eV
                 self._table = xsf
         return self._table
     sftable = property(_gettable, doc="X-ray scattering factor table (E,f1,f2)")
 
-    @require_keywords
-    def scattering_factors(self, energy=None, wavelength=None):
+    def scattering_factors(self, *, energy=None, wavelength=None):
         """
         X-ray scattering factors f', f''.
 
@@ -293,11 +295,13 @@ class Xray(object):
         if energy is None:
             raise TypeError('X-ray scattering factors need wavelength or energy')
 
-        scalar = numpy.isscalar(energy)
+        scalar = np.isscalar(energy)
         if scalar:
-            energy = numpy.array([energy])
-        f1 = numpy.interp(energy, xsf[0], xsf[1], left=nan, right=nan)
-        f2 = numpy.interp(energy, xsf[0], xsf[2], left=nan, right=nan)
+            energy = np.array([energy])
+        f1 = np.interp(energy, xsf[0], xsf[1], left=nan, right=nan)
+        f2 = np.exp(np.interp(
+            np.log(energy), np.log(xsf[0]), np.log(xsf[2]),
+            left=nan, right=nan))
         if scalar:
             f1, f2 = f1[0], f2[0]
         return f1, f2
@@ -331,8 +335,7 @@ class Xray(object):
                                 charge=self.element.charge)
         return f
 
-    @require_keywords
-    def sld(self, wavelength=None, energy=None):
+    def sld(self, *, wavelength=None, energy=None):
         r"""
         X ray scattering length density.
 
@@ -376,8 +379,7 @@ class Xray(object):
         return rho, irho
 
 # Note: docs and function prototype are reproduced in __init__
-@require_keywords
-def xray_sld(compound, density=None, natural_density=None,
+def xray_sld(compound, *, density=None, natural_density=None,
              wavelength=None, energy=None):
     """
     Compute xray scattering length densities for molecules.
@@ -415,7 +417,7 @@ def xray_sld(compound, density=None, natural_density=None,
         mass += element.mass*quantity
         f1, f2 = element.xray.scattering_factors(energy=energy)
         if f1 is None:
-            raise ValueError('X-ray scattering factors not available for '+str(element))
+            raise ValueError(f"X-ray scattering factors not available for {element}")
         #print element, f1, f2, wavelength
         sum_f1 += f1*quantity
         sum_f2 += f2*quantity
@@ -429,8 +431,7 @@ def xray_sld(compound, density=None, natural_density=None,
     return rho, irho
 
 
-@require_keywords
-def index_of_refraction(compound, density=None, natural_density=None,
+def index_of_refraction(compound, *, density=None, natural_density=None,
                         energy=None, wavelength=None):
     """
     Calculates the index of refraction for a given compound
@@ -464,8 +465,7 @@ def index_of_refraction(compound, density=None, natural_density=None,
                       wavelength=wavelength)
     return 1 - wavelength**2/(2*pi)*(f1 + f2*1j)*1e-6
 
-@require_keywords
-def mirror_reflectivity(compound, density=None, natural_density=None,
+def mirror_reflectivity(compound, *, density=None, natural_density=None,
                         energy=None, wavelength=None,
                         angle=None, roughness=0):
     """
@@ -500,10 +500,10 @@ def mirror_reflectivity(compound, density=None, natural_density=None,
         wavelength = xray_wavelength(energy)
     assert wavelength is not None, "scattering calculation needs energy or wavelength"
     angle = radians(angle)
-    if numpy.isscalar(wavelength):
-        wavelength = numpy.array([wavelength])
-    if numpy.isscalar(angle):
-        angle = numpy.array([angle])
+    if np.isscalar(wavelength):
+        wavelength = np.array([wavelength])
+    if np.isscalar(angle):
+        angle = np.array([angle])
     nv = index_of_refraction(compound=compound,
                              density=density, natural_density=natural_density,
                              wavelength=wavelength)
@@ -664,15 +664,16 @@ def plot_xsf(el):
 
     :Returns: None
     """
-    import pylab
+    import matplotlib.pyplot as plt
+
     xsf = el.xray.sftable
-    pylab.title('X-ray scattering factors for '+el.name)
-    pylab.plot(xsf[0], xsf[1])
-    pylab.plot(xsf[0], xsf[2])
-    pylab.xlabel('Energy (keV)')
-    pylab.ylabel('Scattering factor')
-    pylab.legend(['f1', 'f2'])
-    pylab.show()
+    plt.title('X-ray scattering factors for '+el.name)
+    plt.plot(xsf[0], xsf[1])
+    plt.plot(xsf[0], xsf[2])
+    plt.xlabel('Energy (keV)')
+    plt.ylabel('Scattering factor')
+    plt.legend(['f1', 'f2'])
+    plt.show()
 
 def sld_table(wavelength=None, table=None):
     """
@@ -695,7 +696,7 @@ def sld_table(wavelength=None, table=None):
          He   1.03   0.00
          Li   3.92   0.00
          Be  13.93   0.01
-          B  18.40   0.02
+          B  18.40   0.01
           C  18.71   0.03
           N   6.88   0.02
           O   9.74   0.04

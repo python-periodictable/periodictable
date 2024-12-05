@@ -68,6 +68,17 @@ A formula string is translated into a formula using
     >>> print(formula("CaCO3+(3HO1.5)2"))
     CaCO3((HO1.5)3)2
 
+* Unicode subscripts can be used for counts, with the usual decimal point:
+
+    >>> print(formula("CaCO₃+(3HO₁.₅)₂"))
+    CaCO3((HO1.5)3)2
+
+* Print formulas with unicode using the pretty() function:
+
+    >>> from periodictable.formulas import pretty
+    >>> print(pretty(formula("CaCO3+(3HO1.5)2")))
+    CaCO₃((HO₁.₅)₃)₂
+
 * Formula density can be specified using the special '@' tag:
 
     >>> print(formula("NaCl@2.16").density)
@@ -150,25 +161,26 @@ The grammar used for parsing formula strings is the following:
 
     formula    :: compound | mixture | nothing
     mixture    :: quantity | percentage
-    quantity   :: count unit part ('//' count unit part)*
-    percentage :: count 'wt%|vol%' part ('//' count '%' part)* '//' part
+    quantity   :: number unit part ('//' number unit part)*
+    percentage :: number 'wt%|vol%' part ('//' number '%' part)* '//' part
     part       :: compound | '(' mixture ')'
-    compound   :: group (separator group)* density?
-    group      :: count element+ | '(' formula ')' count
-    element    :: symbol isotope? ion? count?
+    compound   :: (composite | fasta) density?
+    fasta      :: ('dna' | 'rna' | 'aa') ':' [A-Z -*]+
+    composite  :: group (separator group)*
+    group      :: number element+ | '(' formula ')' number
+    element    :: symbol isotope? ion? number?
     symbol     :: [A-Z][a-z]*
-    isotope    :: '[' number ']'
-    ion        :: '{' number? [+-] '}'
-    density    :: '@' count
-    count      :: number | fraction
-    number     :: [1-9][0-9]*
+    isotope    :: '[' integer ']'
+    ion        :: '{' integer? [+-] '}'
+    density    :: '@' number [ni]?
+    number     :: integer | fraction
+    integer    :: [1-9][0-9]*
     fraction   :: ([1-9][0-9]* | 0)? '.' [0-9]*
     separator  :: space? '+'? space?
     unit       :: mass | volume | length
     mass       :: 'kg' | 'g' | 'mg' | 'ug' | 'ng'
     volume     :: 'L' | 'mL' | 'uL' | 'nL'
     length     :: 'cm' | 'mm' | 'um' | 'nm'
-
 
 Formulas can also be constructed from atoms or other formulas:
 
@@ -191,7 +203,7 @@ Formulas can also be constructed from atoms or other formulas:
 
 * Formulas can be easily cloned:
 
-    >>> print(formula( formula("CaCO3+6H2O")))
+    >>> print(formula(formula("CaCO3+6H2O")))
     CaCO3(H2O)6
 
 Density
@@ -205,7 +217,7 @@ to those isotopes used.
 
 This makes heavy water density easily specified as:
 
-    >>> D2O = formula('D2O',natural_density=1)
+    >>> D2O = formula("D2O", natural_density=1)
     >>> print(f"{D2O} {D2O.density:.4g}")
     D2O 1.112
 
@@ -223,21 +235,18 @@ Because the packing fraction method relies on the covalent radius
 estimate it is not very accurate:
 
     >>> from periodictable import elements, formula
-    >>> Fe_bcc = formula("2Fe")  # bcc lattice has 2 atoms per unit cell
-    >>> Fe_bcc.density = Fe_bcc.molecular_mass/Fe_bcc.volume('bcc')
-    >>> print(f"{Fe_bcc.density:.3g}")
+    >>> Fe = formula("2Fe")  # bcc lattice has 2 atoms per unit cell
+    >>> Fe.density = Fe.molecular_mass/Fe.volume('bcc')
+    >>> print(f"{Fe.density:.3g}")
     6.55
     >>> print(f"{elements.Fe.density:.3g}")
     7.87
 
 Using lattice parameters the results are much better:
 
-    >>> Fe_lattice = formula("2Fe")  # bcc lattice has 2 atoms per unit cell
-    >>> Fe_lattice.density = Fe_lattice.molecular_mass/Fe_lattice.volume(a=2.8664)
-    >>> print(f"{Fe_lattice.density:.3g}")
+    >>> Fe.density = Fe.molecular_mass/Fe.volume(a=2.8664)
+    >>> print(f"{Fe.density:.3g}")
     7.88
-    >>> print(f"{elements.Fe.density:.3g}")
-    7.87
 
 Mixtures
 --------

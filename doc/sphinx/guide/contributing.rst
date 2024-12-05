@@ -39,10 +39,10 @@ When all the tests run, create a pull request (PR) on the github page.
 Windows user can use `TortoiseGit <http://code.google.com/p/tortoisegit/>`_
 package which provides similar operations.
 
-You can build the documentation as follows::
+You can build the documentation as follows (linux, mac)::
 
     pip install sphinx
-    (cd doc/sphinx && make clean html pdf)
+    (cd doc/sphinx && PYTHONPATH=../.. make clean html pdf)
 
 You can see the result by pointing your browser to::
 

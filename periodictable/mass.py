@@ -2,7 +2,6 @@
 # This program is public domain
 # Author: Paul Kienzle
 u"""
-
 Provides average mass for the elements:
 
 *    mass, mass_units (u)
@@ -27,40 +26,42 @@ recommended table therefore gives ranges of values for the natural mass
 and isotope abundance rather than a single value with an uncertainty.
 
 For periodictable, fractionation ranges for masses were replaced with abridged
-standard atomic weights as given in Prohaska [#Prohaska]. For the abundance
+standard atomic weights as given in Prohaska [#Prohaska]_. For the abundance
 ratios the center value of the range was chosen. A few elements had to be
 adjusted slightly so that they would sum to 100%.
 
 The values for Ar and N were set to the values present in the atmosphere
 and U was set to the values in a Namibian ore per the recommendations
-in Meija (2016).
+in Meija [#Meija]_.
 
 The values for Pb in the CIAAW table are too broad to be usable. For example,
-206-Pb varies from 0.02 to 0.87 in monazite samples (Zhu 2020) [#Zhu]. Rather
+206-Pb varies from 0.02 to 0.87 in monazite samples (Zhu 2020) [#Zhu]_. Rather
 than return NaN for composition we replace the ranges with representative
 atomic abundance values in Meija (2016). See the CIAAW page on
 `lead <https://www.ciaaw.org/lead.htm>`_ for details.
 
-.. [#CIAAW] CIAAW. Isotopic compositions of the elements 2021.
-   Available online at www.ciaaw.org.
+Note: uncertainties are stored in `iso._mass_unc` and `iso._abundance_unc`,
+but they are not yet part of the public interface.
+
 .. [#Wang] Meng Wang et al. (2021) Chinese Phys. C 45 030003
     DOI:10.1088/1674-1137/abddaf
     From https://www-nds.iaea.org/amdc/ame2020/massround.mas20.txt (2023-07-06)
-.. [#Meija] J. Meija et al. (2016)
-    Isotopic compositions of the elements 2013
-    Pure and Applied Chemistry 88, 293-306.
-    From https://www.ciaaw.org/isotopic-abundances.htm (2023-07-06)
+.. [#CIAAW] CIAAW. Isotopic compositions of the elements 2021.
+   Available online at https://www.ciaaw.org.
 .. [#Prohaska] T. Prohaska, et al. (2022)
     Standard atomic weights of the elements 2021.
     Pure Appl. Chem. 94. DOI:10.1515/pac-2019-0603
     From https://www.ciaaw.org/atomic-weights.htm (2023-07-06)
-.. [*Zhu] Zhu, X., Benefield, J., Coplen, T., Gao, Z. & Holden, N. (2021).
+.. [#Meija] J. Meija et al. (2016)
+    Isotopic compositions of the elements 2013
+    Pure and Applied Chemistry 88, 293-306.
+    From https://www.ciaaw.org/isotopic-abundances.htm (2023-07-06)
+.. [#Zhu] Zhu, X., Benefield, J., Coplen, T., Gao, Z. & Holden, N. (2021).
     Variation of lead isotopic composition and atomic weight in terrestrial
     materials (IUPAC Technical Report). Pure and Applied Chemistry, 93(1), 155-166.
     https://doi.org/10.1515/pac-2018-0916
 """
 from .core import Element, Isotope, default_table
-from .constants import neutron_mass, neutron_mass_unc
 from .util import parse_uncertainty
 
 def mass(isotope):
@@ -73,11 +74,6 @@ def mass(isotope):
     :Returns:
         *mass* : float | u
             Atomic weight of the element.
-
-    Reference:
-        Wang. M., Huang. W. J., Kondev. F. G., Audi. G., Naimi. S. (2021)
-        The AME 2020 atomic mass evaluation (II). Tables, graphs and references
-        *Chinese Physics C*, Volume 45, Number 3
     """
     return isotope._mass
 
@@ -90,10 +86,6 @@ def abundance(isotope):
 
     :Returns:
         *abundance* : float | %
-
-    Reference:
-        J. Meija et al. (2016) Isotopic compositions of the elements 2013
-        *Pure and Applied Chemistry* 88, 293-306.
     """
     return isotope._abundance
 
@@ -127,8 +119,9 @@ def init(table, reload=False):
         #iso._abundance, iso._abundance_unc = parse_uncertainty(p)
         iso._abundance, iso._abundance_unc = 0, 0
 
-    # A single neutron is an isotope of element 0
-    el = table[0]
+    # # A single neutron is an isotope of element 0
+    from .constants import neutron_mass, neutron_mass_unc
+    el = table.n
     el._mass, el._mass_unc = neutron_mass, neutron_mass_unc
     iso = el.add_isotope(1)
     iso._mass, iso._mass_unc = neutron_mass, neutron_mass_unc
@@ -223,9 +216,6 @@ def check_abundance(table=None):
         if abundance:
             assert abs(sum(abundance) - 100.0) < 1e-12,\
                 "Inconsistent abundance for %d-%s: %g"%(el.number,el,sum(abundance))
-
-
-
 
 # Table of masses.
 # g Geological and biological materials are known in which the element has an

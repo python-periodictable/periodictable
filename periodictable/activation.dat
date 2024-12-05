@@ -1,62 +1,3 @@
-	Computational note:																					
-	  For some numerical combinations with very large half-lives the numerical																					
-	  precision is inadequate and you get negative results. This can be																					
-	  corrected by reformulation or approximations but has not been done.																					
-	"  Remember, the X in EXP(X) is limited to |X|<709"																					
-																						
-	**********************************************************************																					
-	WARNING: If you SORT this table take care to include all columns!!!																					
-	   Otherwise all is lost and you have no means to unscramble your action																					
-	"WARNING: A relative reference is used in the daughter nuclide entry. That is, the parent must be on the line directly above the daughter!"																					
-	"    DO NOT change the order of the parent daughter pairs, upon pain of erroneous results"																					
-	"    This caution applies to both ""b"" and ""2n"" mode production."																					
-	**********************************************************************																					
-																						
-	Notes:																					
-	Simplifications have been made as indicated in the comments column.																					
-	"Typically, for a decay chain where the daughter is also produced (isomers)"																					
-	  the s of the parent has been added to that of the daughter when the																					
-	  daughter t1/2 is much longer (true for most cases) and the parent																					
-	"  t1/2 is relatively short, e.g. less than 1 day, so that allthe daughter"																					
-	  will be made relatively promptly.																					
-	In cases where the above condition is not met an * is put next to the																					
-	  nuclide name to warn that the daughter production has not been accounted																					
-	  for. In most cases the daughter is in a simple decay equilibrium.																					
-	Where the decay product is a new nuclide a line has been added to the																					
-	  database to account for this. This production mode is indicated in																					
-	  the reaction column by 'b'. Where both m and g state contribute to daughter																					
-	"  production it is simplified to a single parent, that with the greater"																					
-	  cross-section or that with the longer half-life together with the sum of the cross-sections.																					
-	In a few cases where the parent nuclide t1/2 is very short all production																					
-	"  is assigned to the daughter and no entry is made for the parent, as"																					
-	  noted in the comments column.																					
-	No correction for neutron burn up has been made																					
-	Most cross-section data is from IAEA 273.																					
-	"Fast neutron data from NBSIR 85-3151, Compendium of Benchmark Neutron Fields"																					
-	"  is for reaction above the Cd cutooff, .4eV. Noted in comment column"																					
-	Fast neutron reaction data from IAEA 273 has been weighted by a unit fluence																					
-	"  fast maxwellian spectrum as described in NBSIR 85-3151, but no further"																					
-	  weighting for a 1/v or thermal component has been made. Only selected																					
-	  reactions have been included.																					
-																						
-																						
-	fast? : identifies fast neutron reactions so fast fluence reduction factor can be applied.																					
-	"isomer : identifies isomers, and is used to flag radioactive daughter info"																					
-	%IT : Info only. Not used in any spreadsheet calculation.																					
-	Resonance: the cross-section above the nominal Cd cutoff.																					
-	          Basically useful if you already know the answer.																					
-																						
-																						
-							Notation on nuclide name															
-							"m,m1,m2 indicate metastable states. Decay may be the ground state or another nuclide."															
-							+ indicates radioactive daughter production already included in daughter listing															
-							   several parent t1/2's required to acheive calculated daughter activity. All act. assigned at end of irradiation.															
-							   In most cases the added activity to the daughter is small.															
-							"* indicates radioactive daughter production NOT calculated, approx secular equilibrium"															
-							s indicates radioactive daughter of this nuclide in secular equilibrium after several daughter t1/2's															
-							t indicates transient equil via beta decay. Accumulation of that nuclide during irradiation is separately calculated.															
-							Reaction = b indicates production via decay from an activation produced parent															
-																			|..............|			
 	   Target Element					Isotopic					    Reaction			  Cross-section					b or 2n mode production			
 	Index		Symbol			  %	Resulting		t1/2	 isomer		^		 Thermal		Resonance		t1/2	t1/2 of	Cross-section (b) of 2n precursor		
 		 Z	^	  A		Abund	Nuclide	 t1/2	unit	 ^	 %IT	  fast		  (b)	g(T)	  (b)	t1/2	as text	 parent	& burnup X-sect of 2n parent		
@@ -481,7 +422,7 @@ Dy	417	66	Dy	164	Dy-164	28.18	Dy-166	81.6	h			2n	n	1000			81.6	81.60 h	2.35	3900
 Ho	418	67	Ho	165	Ho-165	100	Ho-166m	1200	y	m	0	act	n	3.5		55	10512000	1200 y				
 Ho	419	67	Ho	165	Ho-165	100	Ho-166	27.2	h	g		act	n	61.2		660	27.2	27.2 h				
 Er	420	68	Er	162	Er-162	0.136	Er-163t	75.1	m	t		act	n	19		480	1.251666667	75.1 m				
-Er	421	68	Er	162	Er-162	0.136	Ho-163	10	y			b	n	19		480	87600	10 y	1.251666667			
+Er	421	68	Er	162	Er-162	0.136	Ho-163	4570	y			b	n	19		480	40033200	4570 y	1.251666667			
 Er	422	68	Er	164	Er-164	1.56	Er-165	10.34	h			act	n	13		120	10.34	10.34 h				
 Er	423	68	Er	166	Er-166	33.41	Er-167m	2.35	s	m	100	act	n	15			0.000652778	2.35 s				
 Er	424	68	Er	168	Er-168	27.07	Er-169	9.6	d			act	n	1.95		35	230.4	9.60 d				
@@ -489,7 +430,7 @@ Er	425	68	Er	170	Er-170	14.88	Er-171t	7.52	h	t		act	n	5.7		24	7.52	7.52 h		280
 Er	426	68	Er	170	Er-170	14.88	Tm-171	1.92	y			b	n	5.7		24	16819.2	1.92 y	7.52	4.5	118	burnup not calculated.
 Er	427	68	Er	170	Er-170	14.88	Er-172*	49.3	h			2n	n	5.7		24	49.3	49.30 h	7.52	280		
 Tm	428	69	Tm	169	Tm-169	100	Tm-170	130	d	g		act	n	103		1710	3120	130 d		92	460	"assigned m+g s, m is 4us"
-Tm	429	69	Tm	169	Tm-169	100	Tm-171	63.6	h			2n	n	103		1710	63.6	64 h	3120	92	460	
+Tm	429	69	Tm	169	Tm-169	100	Tm-171	1.92	y			2n	n	103		1710	16819.2	1.92 y	3120	92	460	
 Yb	430	70	Yb	168	Yb-168	0.14	Yb-169m+	46	s	m+	100	act	n	3470		30500	0.012777778	46.0 s				assigned m+g barns to both states
 Yb	431	70	Yb	168	Yb-168	0.14	Yb-169	31.8	d	g		act	n	3470		30500	763.2	31.8 d				assigned m+g barns to both states
 Yb	432	70	Yb	174	Yb-174	31.84	Yb-175m+	0.067	s	m+	100	act	n	46			1.86111E-05	0.067 s				
@@ -523,7 +464,7 @@ W	459	74	W	184	W-184	30.6	Hf-181	42.5	d			"n,a"	y	0.0000002			1020	42.5 d		40		"
 W	460	74	W	184	W-184	30.6	Hf-182s	9000000	y			2n	n	0.0000002			78840000000	9.00My	1020	40		produced via Hf-181
 W	461	74	W	186	W-186	28.4	W-185	75	d			"n,2n"	y	0.01			1800	75.0 d				"IAEA156, fission averaged"
 W	462	74	W	186	W-186	28.4	W-187	23.9	h			act	n	37		490	23.9	23.9 h		64	2670	
-W	463	74	W	186	W-186	28.4	W-188	69.4	d			2n	n	37		490	69.4	69.4 d	23.9	64	2670	
+W	463	74	W	186	W-186	28.4	W-188	69.4	d			2n	n	37		490	1665.6	69.4 d	23.9	64	2670	
 Re	464	75	Re	185	Re-185	37.07	Re-184ms	165	d			"n,2n"	y	0.00062			3960	165.0 d				"IAEA156, fission averaged"
 Re	465	75	Re	185	Re-185	37.07	Re-184	38	d			"n,2n"	y	0.0046			912	38.0 d				"IAEA156, fission averaged"
 Re	466	75	Re	185	Re-185	37.07	Re-186	88.9	h			act	n	112		1718	88.9	88.9 h				
@@ -556,7 +497,7 @@ Pt	492	78	Pt	198	Pt-198	7.19	Pt-200s	12.6	h			2n	n	3.7		55.6	12.6	12.6 h	0.51666
 Au	493	79	Au	197	Au-197	100	Au-196	6.18	d			"n,2n"	y	0.003			148.32	6.18 d				"IAEA156, fission averaged"
 Au	494	79	Au	197	Au-197	100	Au-197m	7.8	s			"n,n'"	y	0.38			0.002166667	7.8 s				"IAEA156, fission averaged"
 Au	495	79	Au	197	Au-197	100	Au-198	2.7	d			act	n	98.8	1.0038	1551	64.8	2.70 d		26736	41420	
-Au	496	79	Au	198	Au-198	100	Au-199	3.15	d			2n	n	98.8			75.6	3.15 d	64.8	26736	41420	*** produced from a radioactive parent
+Au	496	79	Au	197	Au-197	100	Au-199	3.15	d			2n	n	98.8			75.6	3.15 d	64.8	26736	41420	*** produced from a radioactive parent
 Hg	497	80	Hg	196	Hg-196	0.146	Hg-197m*	24	h	m*	93.5	act	n	120		58.9	24	24.0 h				
 Hg	498	80	Hg	196	Hg-196	0.146	Hg-197	65	h	g		act	n	3080		413	65	65.0 h				
 Hg	499	80	Hg	198	Hg-198	10.02	Hg-199m	43	m	m	100	act	n	0.018		1.8	0.716666667	43.0 m				
@@ -569,7 +510,7 @@ Tl	505	81	Tl	205	Tl-205	70.5	Tl-206	4.19	m			act	n	0.1		0.7	0.069833333	4.19 m
 Pb	506	82	Pb	204	Pb-204	1.4	Pb-203	51.88	h			"n,2n"	y	0.00245			51.88	51.88 h				"IAEA156, fission averaged"
 Pb	507	82	Pb	204	Pb-204	1.4	Pb-204m	66.9	m			"n,n'"	y	0.38			1.115	66.90 m				"IAEA156, fission averaged"
 Pb	508	82	Pb	204	Pb-204	1.4	Pb-205	14000000	y			act	n	0.661		1.7	1.2264E+11	14.0 My				
-Pb	509	82	Pb	208	Pb-208	52.3	Pb-209	3.3	h			act	n	0.487			3.3	3.30 h				
+Pb	509	82	Pb	208	Pb-208	52.3	Pb-209	3.3	h			act	n	0.000487			3.3	3.30 h				
 Bi	510	83	Bi	209	Bi-209	100	Bi-210ms	3500000	y	ms	0	act	n	0.019			30660000000	3.5 My				
 Bi	511	83	Bi	209	Bi-209	100	Bi-210t	5.01	d	t		act	n	0.014			120.24	5.01 d		0.054	0.2	
 Bi	512	83	Bi	209	Bi-209	100	Po-210	138.38	d			b	n	0.014			3321.12	138.4 d	120.24			
@@ -578,3 +519,62 @@ xx	514		xx		error		error
 																						
 																	^^^ Take care. The formulas in this column are NOT					
 																	all the same.  Each is different depending on the halflife unit					
+
+	Computational note:																					
+	  For some numerical combinations with very large half-lives the numerical																					
+	  precision is inadequate and you get negative results. This can be																					
+	  corrected by reformulation or approximations but has not been done.																					
+	"  Remember, the X in EXP(X) is limited to |X|<709"																					
+																						
+	**********************************************************************																					
+	WARNING: If you SORT this table take care to include all columns!!!																					
+	   Otherwise all is lost and you have no means to unscramble your action																					
+	"WARNING: A relative reference is used in the daughter nuclide entry. That is, the parent must be on the line directly above the daughter!"																					
+	"    DO NOT change the order of the parent daughter pairs, upon pain of erroneous results"																					
+	"    This caution applies to both ""b"" and ""2n"" mode production."																					
+	**********************************************************************																					
+																						
+	Notes:																					
+	Simplifications have been made as indicated in the comments column.																					
+	"Typically, for a decay chain where the daughter is also produced (isomers)"																					
+	  the s of the parent has been added to that of the daughter when the																					
+	  daughter t1/2 is much longer (true for most cases) and the parent																					
+	"  t1/2 is relatively short, e.g. less than 1 day, so that allthe daughter"																					
+	  will be made relatively promptly.																					
+	In cases where the above condition is not met an * is put next to the																					
+	  nuclide name to warn that the daughter production has not been accounted																					
+	  for. In most cases the daughter is in a simple decay equilibrium.																					
+	Where the decay product is a new nuclide a line has been added to the																					
+	  database to account for this. This production mode is indicated in																					
+	  the reaction column by 'b'. Where both m and g state contribute to daughter																					
+	"  production it is simplified to a single parent, that with the greater"																					
+	  cross-section or that with the longer half-life together with the sum of the cross-sections.																					
+	In a few cases where the parent nuclide t1/2 is very short all production																					
+	"  is assigned to the daughter and no entry is made for the parent, as"																					
+	  noted in the comments column.																					
+	No correction for neutron burn up has been made																					
+	Most cross-section data is from IAEA 273.																					
+	"Fast neutron data from NBSIR 85-3151, Compendium of Benchmark Neutron Fields"																					
+	"  is for reaction above the Cd cutooff, .4eV. Noted in comment column"																					
+	Fast neutron reaction data from IAEA 273 has been weighted by a unit fluence																					
+	"  fast maxwellian spectrum as described in NBSIR 85-3151, but no further"																					
+	  weighting for a 1/v or thermal component has been made. Only selected																					
+	  reactions have been included.																					
+																						
+																						
+	fast? : identifies fast neutron reactions so fast fluence reduction factor can be applied.																					
+	"isomer : identifies isomers, and is used to flag radioactive daughter info"																					
+	%IT : Info only. Not used in any spreadsheet calculation.																					
+	Resonance: the cross-section above the nominal Cd cutoff.																					
+	          Basically useful if you already know the answer.																					
+																						
+																						
+							Notation on nuclide name															
+							"m,m1,m2 indicate metastable states. Decay may be the ground state or another nuclide."															
+							+ indicates radioactive daughter production already included in daughter listing															
+							   several parent t1/2's required to acheive calculated daughter activity. All act. assigned at end of irradiation.															
+							   In most cases the added activity to the daughter is small.															
+							"* indicates radioactive daughter production NOT calculated, approx secular equilibrium"															
+							s indicates radioactive daughter of this nuclide in secular equilibrium after several daughter t1/2's															
+							t indicates transient equil via beta decay. Accumulation of that nuclide during irradiation is separately calculated.															
+							Reaction = b indicates production via decay from an activation produced parent															

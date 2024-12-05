@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import pi, isnan
+
 from periodictable import formula
 from periodictable import Cu,Mo,Ni,Fe,Si,H,D,O
 from periodictable.xsf import xray_energy, xray_sld_from_atoms, xray_sld
@@ -117,12 +118,9 @@ def test_xsf():
     assert '_xray' not in Ni[58].__dict__
 
 def test_refl():
-    # Note: io always works on unicode (python 2.x and 3.x), so tag the input
-    # as unicode.  The alternative is to import StringIO from six, but only
-    # if six is already required for some other reason.
     from io import StringIO
     # http://henke.lbl.gov/optical_constants/mirror2.html
-    data2=StringIO(u"""\
+    data2=StringIO("""\
 #SiO2 Rho=2.2, Sig=3.nm, P=1., 2.deg
 # Photon Energy (eV), Reflectivity
    30.0000  0.900114
@@ -136,7 +134,7 @@ def test_refl():
    495.934  0.717134
    704.226  0.392855
    1000.00  5.563799E-02""")
-    data3=StringIO(u"""\
+    data3=StringIO("""\
 #SiO2 Rho=2.2, Sig=3.nm, P=1., 3.deg
 # Photon Energy (eV), Reflectivity
    30.0000  0.853800
@@ -151,13 +149,11 @@ def test_refl():
    704.226  2.655170E-02
    1000.00  1.240138E-03""")
 
-    e,R2 = np.loadtxt(data2).T
-    e,R3 = np.loadtxt(data3).T
+    e, R2 = np.loadtxt(data2).T
+    e, R3 = np.loadtxt(data3).T
     R = mirror_reflectivity(
         energy=e*1e-3, angle=[2,3],
         compound='SiO2', density=2.2, roughness=30)
-    #print(R.T)
-    #print(((R - np.vstack([R2,R3]))/R).T)
     assert np.max(abs((R-np.vstack([R2,R3]))/R)) < 2e-4
 
 

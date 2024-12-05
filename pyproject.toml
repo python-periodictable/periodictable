@@ -1,0 +1,57 @@
+[project]
+    name = "periodictable"
+    dynamic = ["version"]
+    description = "Extensible periodic table of the elements"
+    readme = "README.rst"
+    authors = [
+        { name = "Paul Kienzle", email = "paul.kienzle@nist.gov" },
+    ]
+    license = { file = "LICENSE.txt" }
+    dependencies = [
+        "pyparsing", "numpy",
+    ]
+
+    classifiers = [
+        "Development Status :: 5 - Production/Stable",
+        "Environment :: Console",
+        "Intended Audience :: Science/Research",
+        "License :: Public Domain",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Physics",
+    ]
+    requires-python = ">=3.8"
+
+[project.optional-dependencies]
+    dev = [
+        "build",
+        "pytest",
+        "pytest-cov",
+        "matplotlib",
+        "sphinx",
+    ]
+
+[project.urls]
+    documentation = "https://periodictable.readthedocs.io"
+    repository = "https://github.com/pkienzle/periodictable"
+
+[build-system]
+    requires = ["setuptools", "wheel"]
+    build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+    version = { attr = "periodictable.__version__" }
+
+[tool.setuptools]
+    packages = ["periodictable"]
+
+[tool.pytest.ini_options]
+    addopts = ["--doctest-modules", "--doctest-glob=*.rst", "--cov=periodictable"]
+    doctest_optionflags = "ELLIPSIS"
+    pythonpath = ["doc/sphinx"]
+    testpaths = ["periodictable", "test", "doc/sphinx/guide"]
+    python_files = "*.py"
+    python_classes = "NoClassTestsWillMatch"
+    python_functions = ["test", "*_test", "test_*"]

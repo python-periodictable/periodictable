@@ -7,9 +7,44 @@ on:
     branches: [ master ]
 
 jobs:
-  test:
+  build-wheel:
+    runs-on: ubuntu-latest
 
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Build the wheel
+      run: |
+        python -m pip install build
+        python -m build
+
+    - name: Upload wheel
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheel
+        path: dist/*.whl
+
+    - name: Run the tests
+      run: |
+        python -m pip install numpy pyparsing pytest pytest-cov
+        pytest -v
+
+    - name: Build the docs
+      run: |
+        python -m pip install matplotlib sphinx
+        python -m pip install dist/periodictable*.whl
+        make -j 4 -C doc/sphinx SPHINXOPTS="-W --keep-going" html
+
+  # Test the wheel on different platforms
+  test:
     runs-on: ${{ matrix.cfg.os }}
+    needs: build-wheel
+
     strategy:
       matrix:
         cfg:
@@ -19,6 +54,7 @@ jobs:
           - { os: ubuntu-latest, py: 3.11, doc: 1 }
           - { os: windows-latest, py: 3.11 }
           - { os: macos-latest, py: 3.11 }
+      fail-fast: false
 
     steps:
     - uses: actions/checkout@v4
@@ -28,18 +64,43 @@ jobs:
       with:
         python-version: ${{ matrix.cfg.py }}
 
+    - name: Download the wheel
+      uses: actions/download-artifact@v4
+      with:
+        name: wheel
+        path: dist
+
+    - name: Install the wheel
+      run: python -m pip install dist/periodictable*.whl
+      shell: bash
+
     - name: Install Python dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install wheel setuptools
-        python -m pip install numpy scipy matplotlib pytest pytest-cov
+        python -m pip install pytest pytest-cov
 
-    - name: Test with pytest
+    # Change into the test directory to test the wheel so that the
+    # source directory is not on the path. Full tests with coverage are
+    # run before building the wheel.
+    - name: Test wheel with pytest
       run: |
-        pytest -v
+        cd test
+        pytest -v --pyargs --import-mode=append periodictable . ../doc/sphinx/guide
 
-    - name: check that the docs build (linux only)
-      if: matrix.cfg.doc == 1
-      run: |
-        python -m pip install sphinx
-        make -j 4 -C doc/sphinx SPHINXOPTS="-W --keep-going" html
+  # Upload wheel to PyPI only when a tag is pushed, and its name begins with 'v'
+  upload-to-pypi:
+    runs-on: ubuntu-latest
+    environment: release
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      id-token: write
+    steps:
+
+    - name: Download wheel
+      uses: actions/download-artifact@v4
+      with:
+        name: wheel
+        path: dist
+
+    - name: Publish package distributions to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1

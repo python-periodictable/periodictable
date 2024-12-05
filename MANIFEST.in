@@ -1,9 +1,13 @@
 include LICENSE.txt
-graft doc
+include README.rst
+graft periodictable/xsf
+include periodictable/f0_WaasKirf.dat
+include periodictable/activation.dat
+prune doc
 prune doc/sphinx/_build
 prune doc/sphinx/build
 prune */__pycache__
 prune */*/__pycache__
 prune */*/*/__pycache__
-#recursive-exclude __pycache__ *
-#exclude build dist *.pyc __pycache__/*
+prune build
+prune dist

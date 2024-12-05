@@ -15,9 +15,9 @@ available on demand.  This is done with the function ``init(table)`` in
 your table extension.
 
 This example adds the attribute ``discoverer`` to each element.  First
-create the file ``discoverer/core.py``:
+create the file ``discoverer/discoverer.py``:
 
-.. literalinclude:: /discoverer/core.py
+.. literalinclude:: /discoverer/discoverer.py
    :language: python
 
 Now that we have defined the ``init(table)`` function, we need a way to call it.
@@ -25,7 +25,7 @@ The simplest solution is to load it directly when your package is imported.
 In the current example, this could be done by adding the following
 line to the end of the file::
 
-    init(periodictable.core.elements)
+    init(periodictable.core.default_table())
 
 This would be fine for the current example because the table size is
 small and load time is fast.  For large tables, you may wish to
@@ -57,9 +57,9 @@ each element.  The following example uses a dictionary of elements,
 with a dictionary of isotopes for each.  It adds the ``shells``
 attribute to Fe[56] and Fe[58].
 
-Define ``shelltable/core.py``:
+Define ``shelltable/shelltable.py``:
 
-.. literalinclude:: /shelltable/core.py
+.. literalinclude:: /shelltable/shelltable.py
    :language: python
 
 Again, we are going to initialize the table with delayed loading.

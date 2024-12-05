@@ -42,7 +42,6 @@ This data is from Ashcroft and Mermin.
 
 
 crystal_structures = [\
-    None, #X
     {'symmetry': 'diatom', 'd': 0.74}, #H
     {'symmetry': 'atom'}, #He
     {'symmetry': 'BCC', 'a': 3.49}, #Li
@@ -155,5 +154,5 @@ def init(table, reload=False):
         return
     table.properties.append('crystal_structure')
 
-    for Z, struct in enumerate(crystal_structures):
-        table[Z].crystal_structure = struct
+    for k, struct in enumerate(crystal_structures):
+        table[k+1].crystal_structure = struct

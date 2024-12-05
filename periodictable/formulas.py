@@ -3,7 +3,6 @@
 """
 Chemical formula parser.
 """
-from __future__ import division, print_function
 
 from copy import copy
 from math import pi, sqrt
@@ -13,9 +12,9 @@ from math import pi, sqrt
 from pyparsing import (Literal, Optional, White, Regex,
                        ZeroOrMore, OneOrMore, Forward, StringEnd, Group)
 
-from .core import default_table, isatom, isisotope, change_table
+from .core import default_table, isatom, isisotope, ision, change_table
 from .constants import avogadro_number
-from .util import require_keywords, cell_volume
+from .util import cell_volume
 
 PACKING_FACTORS = dict(cubic=pi/6, bcc=pi*sqrt(3)/8, hcp=pi/sqrt(18),
                        fcc=pi/sqrt(18), diamond=pi*sqrt(3)/16)
@@ -221,6 +220,42 @@ def formula(compound=None, density=None, natural_density=None,
     :Exceptions:
         *ValueError* : invalid formula initializer
 
+    Example compounds:
+
+       string:
+          m = formula( "CaCO3+6H2O" )
+       sequence of fragments:
+          m = formula( [(1, Ca), (2, C), (3, O), (6, [(2, H), (1, O)]] )
+       molecular math:
+          m = formula( "CaCO3" ) + 6*formula( "H2O" )
+       another formula (makes a copy):
+          m = formula( formula("CaCO3+6H2O") )
+       an atom:
+          m = formula( Ca )
+       nothing:
+          m = formula()
+
+    Operations:
+       m.atoms returns {isotope: count, ...} for each atom in the compound.
+
+    Formula strings consist of counts and atoms such as "CaCO3+6H2O".
+    Groups can be separated by '+' or space, so "CaCO3 6H2O" works as well.
+    Groups and be defined using parentheses, such as "CaCO3(H2O)6".
+    Parentheses can nest: "(CaCO3(H2O)6)1"
+    Isotopes are represented by index, e.g., "CaCO[18]3+6H2O".
+    Counts can be integer or decimal, e.g. "CaCO3+(3HO0.5)2".
+    Density can be specified in the formula using, e.g., "H2O@1". Isotopic
+    formulas can use natural density, e.g., "D2O@1n", or the expected density
+    with that isotope, e.g., "D2O@1.11".
+
+    For full details see help(periodictable.formulas.formula_grammar)
+
+    The chemical formula is designed for simple calculations such
+    as molar mass, not for representing bonds or atom positions.
+    However, we preserve the structure of the formula so that it can
+    be used as a basis for a rich text representation such as
+    matplotlib TeX markup.
+
     After creating a formula, a rough estimate of the density can be
     computed using::
 
@@ -250,14 +285,6 @@ def formula(compound=None, density=None, natural_density=None,
     elif isinstance(compound, dict):
         structure = _convert_to_hill_notation(compound)
     elif _is_string_like(compound):
-        if ':' in compound:
-            # TODO: avoid circular imports
-            # TODO: support other biochemicals (carbohydrate residues, lipids)
-            from . import fasta
-            seq_type, seq = compound.split(':', 1)
-            if seq_type in fasta.CODE_TABLES:
-                seq = fasta.Sequence(name=None, sequence=seq, type=seq_type)
-                return seq.labile_formula
         try:
             chem = parse_formula(compound, table=table)
             if name:
@@ -278,7 +305,7 @@ def formula(compound=None, density=None, natural_density=None,
     return Formula(structure=structure, name=name, density=density,
                    natural_density=natural_density)
 
-class Formula(object):
+class Formula:
     """
     Simple chemical formula representation.
 
@@ -297,7 +324,9 @@ class Formula(object):
         elif density is not None:
             self.density = density
         elif len(self.atoms) == 1:
-            self.density = list(self.atoms.keys())[0].density
+            # Note: density for isotopes already corrected for natural density
+            atom = list(self.atoms.keys())[0]
+            self.density = atom.density
         else:
             self.density = None
 
@@ -458,6 +487,8 @@ class Formula(object):
         Note: a single non-keyword argument is interpreted as a packing factor
         rather than a lattice spacing of 'a'.
         """
+        # TODO: density estimated from H.covalent_radius is much too high
+        #H_radius = kw.pop('H_radius', None)
         # Get packing factor
         if len(args) == 1 and not kw:
             packing_factor = args[0]
@@ -472,7 +503,10 @@ class Formula(object):
         # Compute atomic volume
         V = 0
         for el, count in self.atoms.items():
-            V += el.covalent_radius**3*count
+            radius = el.covalent_radius
+            #if el.number == 1 and H_radius is not None:
+            #    radius = H_radius
+            V += radius**3*count
         V *= 4.*pi/3
 
         # Translate packing factor from string
@@ -484,8 +518,7 @@ class Formula(object):
             packing_factor = PACKING_FACTORS[packing_factor.lower()]
         return V/packing_factor*1e-24
 
-    @require_keywords
-    def neutron_sld(self, wavelength=None, energy=None):
+    def neutron_sld(self, *, wavelength=None, energy=None):
         """
         Neutron scattering information for the molecule.
 
@@ -509,8 +542,7 @@ class Formula(object):
         return neutron_sld(self.atoms, density=self.density,
                            wavelength=wavelength, energy=energy)
 
-    @require_keywords
-    def xray_sld(self, energy=None, wavelength=None):
+    def xray_sld(self, *, energy=None, wavelength=None):
         """
         X-ray scattering length density for the molecule.
 
@@ -640,6 +672,8 @@ def _isotope_substitution(compound, source, target, portion=1):
     return formula(atoms, density=density)
 
 
+# TODO: Grammar should be independent of table
+# TODO: Parser can't handle meters as 'm' because it conflicts with the milli prefix
 LENGTH_UNITS = {'nm': 1e-9, 'um': 1e-6, 'mm': 1e-3, 'cm': 1e-2}
 MASS_UNITS = {'ng': 1e-9, 'ug': 1e-6, 'mg': 1e-3, 'g': 1e+0, 'kg': 1e+3}
 VOLUME_UNITS = {'nL': 1e-9, 'uL': 1e-6, 'mL': 1e-3, 'L': 1e+0}
@@ -662,6 +696,10 @@ def formula_grammar(table):
             an *element* or a list of pairs (*count, fragment*).
 
     """
+    # TODO: fix circular imports
+    # This ickiness is because the formula class returned from the circular
+    # import of fasta does not match the local formula class.
+    from .formulas import Formula
 
     # Recursive
     composite = Forward()
@@ -690,14 +728,36 @@ def formula_grammar(table):
     ion = ion.setParseAction(lambda s, l, t: int(t[0][-1]+(t[0][:-1] if len(t[0]) > 1 else '1')))
 
     # Translate counts
+    # TODO: regex should reject a bare '.' if we want to allow dots between formula parts
     fract = Regex("(0|[1-9][0-9]*|)([.][0-9]*)")
     fract = fract.setParseAction(lambda s, l, t: float(t[0]) if t[0] else 1)
-    whole = Regex("[1-9][0-9]*")
+    whole = Regex("(0|[1-9][0-9]*)")
     whole = whole.setParseAction(lambda s, l, t: int(t[0]) if t[0] else 1)
-    count = Optional(~White()+(fract|whole), default=1)
+    number = Optional(~White()+(fract|whole), default=1)
+    # TODO use unicode ₀₁₉ in the code below?
+    sub_fract = Regex("(\u2080|[\u2081-\u2089][\u2080-\u2089]*|)([.][\u2080-\u2089]*)")
+    sub_fract = sub_fract.setParseAction(lambda s, l, t: float(from_subscript(t[0])) if t[0] else 1)
+    sub_whole = Regex("(\u2080|[\u2081-\u2089][\u2080-\u2089]*)")
+    sub_whole = sub_whole.setParseAction(lambda s, l, t: int(from_subscript(t[0])) if t[0] else 1)
+    sub_count = Optional(~White()+(fract|whole|sub_fract|sub_whole), default=1)
+
+    # Fasta code
+    fasta = Regex("aa|rna|dna") + Literal(":").suppress() + Regex("[A-Z *-]+")
+    def convert_fasta(string, location, tokens):
+        #print("fasta", string, location, tokens)
+        # TODO: fasta is ignoring table when parsing
+        # TODO: avoid circular imports
+        # TODO: support other biochemicals (carbohydrate residues, lipids)
+        from . import fasta
+        seq_type, seq = tokens
+        if seq_type not in fasta.CODE_TABLES:
+            raise ValueError(f"Invalid fasta sequence type '{seq_type}:'")
+        seq = fasta.Sequence(name=None, sequence=seq, type=seq_type)
+        return seq.labile_formula
+    fasta.setParseAction(convert_fasta)
 
     # Convert symbol, isotope, ion, count to (count, isotope)
-    element = symbol+isotope+ion+count
+    element = symbol+isotope+ion+sub_count
     def convert_element(string, location, tokens):
         """interpret string as element"""
         #print "convert_element received", tokens
@@ -710,7 +770,7 @@ def formula_grammar(table):
     element = element.setParseAction(convert_element)
 
     # Convert "count elements" to a pair
-    implicit_group = count+OneOrMore(element)
+    implicit_group = number+OneOrMore(element)
     def convert_implicit(string, location, tokens):
         """convert count followed by fragment"""
         #print "implicit", tokens
@@ -722,7 +782,7 @@ def formula_grammar(table):
     # Convert "(composite) count" to a pair
     opengrp = space + Literal('(').suppress() + space
     closegrp = space + Literal(')').suppress() + space
-    explicit_group = opengrp + composite + closegrp + count
+    explicit_group = opengrp + composite + closegrp + sub_count
     def convert_explicit(string, location, tokens):
         """convert (fragment)count"""
         #print "explicit", tokens
@@ -736,17 +796,34 @@ def formula_grammar(table):
     implicit_separator = separator | space
     composite << group + ZeroOrMore(implicit_separator + group)
 
-    density = Literal('@').suppress() + count + Optional(Regex("[ni]"), default='i')
-    compound = composite + Optional(density, default=None)
+    density = Literal('@').suppress() + number + Optional(Regex("[ni]"), default='i')
+    compound = (composite|fasta) + Optional(density, default=None)
     def convert_compound(string, location, tokens):
-        """convert material @ density"""
-        #print "compound", tokens
-        if tokens[-1] is None:
-            return Formula(structure=_immutable(tokens[:-1]))
-        elif tokens[-1] == 'n':
-            return Formula(structure=_immutable(tokens[:-2]), natural_density=tokens[-2])
+        """convert material @ density or fasta @ density"""
+        # Messiness: both composite and density can be one or more tokens
+        # If density is missing then it is None, otherwise it is count + [ni]
+        # Compound can be a sequence of (count, fragment) pairs, or if it is
+        # a fasta sequence it may already be a formula.
+        material = tokens[:-1] if tokens[-1] is None else tokens[:-2]
+        #print("compound", material, type(material[0]), len(material))
+        if len(material) == 1 and isinstance(material[0], Formula):
+            formula = material[0]
         else:
-            return Formula(structure=_immutable(tokens[:-2]), density=tokens[-2])
+            #print("unbundling material", material)
+            formula = Formula(structure=_immutable(material))
+        density, form = (None, None) if tokens[-1] is None else tokens[-2:]
+        #if density is None and formula.density is None:
+        #    # Estimate density from covalent radii and a 0.54 packing factor
+        #    mass = formula.molecular_mass
+        #    volume = formula.volume(packing_factor=0.54, H_radius=1.15)
+        #    density, form = mass/volume, 'n'
+        #    print(f"estimating density as {mass/volume=:.3f}")
+        if form == 'n':
+            formula.natural_density = density
+        elif form == 'i':
+            formula.density = density
+        #print("compound", formula, f"{formula.density=:.3f}")
+        return formula
     compound = compound.setParseAction(convert_compound)
 
     partsep = space + Literal('//').suppress() + space
@@ -755,43 +832,44 @@ def formula_grammar(table):
     volume = Regex("v(ol(ume)?)?").suppress()
     weight_percent = (percent + weight) | (weight + percent) + space
     volume_percent = (percent + volume) | (volume + percent) + space
-    by_weight = (count + weight_percent + mixture
-                 + ZeroOrMore(partsep+count+(weight_percent|percent)+mixture)
-                 + partsep + mixture)
-    def convert_by_weight(string, location, tokens):
-        """convert mixture by wt% or mass%"""
-        #print "by weight", tokens
-        piece = tokens[1:-1:2] + [tokens[-1]]
-        fract = [float(v) for v in tokens[:-1:2]]
-        fract.append(100-sum(fract))
+    by_weight = (number + weight_percent + mixture
+                 + ZeroOrMore(partsep+number+(weight_percent|percent)+mixture)
+                 + Optional(partsep + mixture, default=None))
+    def _parts_by_weight_vol(tokens):
+        #print("by weight or volume", tokens)
+        if tokens[-1] is None:
+            piece = tokens[1:-1:2]
+            fract = [float(v) for v in tokens[:-1:2]]
+            if abs(sum(fract) - 100) > 1e-12:
+                raise ValueError(f"Formula percentages must sum to 100%, not {sum(fract)}")
+        else:
+            piece = tokens[1:-1:2] + [tokens[-1]]
+            fract = [float(v) for v in tokens[:-1:2]]
+            fract.append(100-sum(fract))
+            if fract[-1] < 0:
+                raise ValueError("Formula percentages must sum to less than 100%")
         #print piece, fract
         if len(piece) != len(fract):
             raise ValueError("Missing base component of mixture")
-        if fract[-1] < 0:
-            raise ValueError("Formula percentages must sum to less than 100%")
+        return piece, fract
+    def convert_by_weight(string, location, tokens):
+        """convert mixture by wt% or mass%"""
+        piece, fract = _parts_by_weight_vol(tokens)
         return _mix_by_weight_pairs(zip(piece, fract))
     mixture_by_weight = by_weight.setParseAction(convert_by_weight)
 
-    by_volume = (count + volume_percent + mixture
-                 + ZeroOrMore(partsep+count+(volume_percent|percent)+mixture)
-                 + partsep + mixture)
+    by_volume = (number + volume_percent + mixture
+                 + ZeroOrMore(partsep+number+(volume_percent|percent)+mixture)
+                 + Optional(partsep + mixture, default=None))
     def convert_by_volume(string, location, tokens):
         """convert mixture by vol%"""
-        #print "by volume", tokens
-        piece = tokens[1:-1:2] + [tokens[-1]]
-        fract = [float(v) for v in tokens[:-1:2]]
-        fract.append(100-sum(fract))
-        #print piece, fract
-        if len(piece) != len(fract):
-            raise ValueError("Missing base component of mixture "+string)
-        if fract[-1] < 0:
-            raise ValueError("Formula percentages must sum to less than 100%")
+        piece, fract = _parts_by_weight_vol(tokens)
         return _mix_by_volume_pairs(zip(piece, fract))
     mixture_by_volume = by_volume.setParseAction(convert_by_volume)
 
     mixture_by_layer = Forward()
-    layer_thick = Group(count + Regex(LENGTH_RE) + space)
-    layer_part = (layer_thick + mixture) | (opengrp + mixture_by_layer + closegrp +count)
+    layer_thick = Group(number + Regex(LENGTH_RE) + space)
+    layer_part = (layer_thick + mixture) | (opengrp + mixture_by_layer + closegrp + sub_count)
     mixture_by_layer << layer_part + ZeroOrMore(partsep + layer_part)
     def convert_by_layer(string, location, tokens):
         """convert layer thickness '# nm material'"""
@@ -816,8 +894,8 @@ def formula_grammar(table):
     mixture_by_layer = mixture_by_layer.setParseAction(convert_by_layer)
 
     mixture_by_absmass = Forward()
-    absmass_mass = Group(count + Regex(MASS_VOLUME_RE) + space)
-    absmass_part = (absmass_mass + mixture) | (opengrp + mixture_by_absmass + closegrp + count)
+    absmass_mass = Group(number + Regex(MASS_VOLUME_RE) + space)
+    absmass_part = (absmass_mass + mixture) | (opengrp + mixture_by_absmass + closegrp + sub_count)
     mixture_by_absmass << absmass_part + ZeroOrMore(partsep + absmass_part)
     def convert_by_absmass(string, location, tokens):
         """convert mass '# mg material'"""
@@ -879,7 +957,9 @@ def parse_formula(formula_str, table=None):
     table = default_table(table)
     if table not in _PARSER_CACHE:
         _PARSER_CACHE[table] = formula_grammar(table)
-    return _PARSER_CACHE[table].parseString(formula_str)[0]
+    parser = _PARSER_CACHE[table]
+    #print(parser)
+    return parser.parseString(formula_str)[0]
 
 def _count_atoms(seq):
     """
@@ -891,10 +971,36 @@ def _count_atoms(seq):
             partial = _count_atoms(fragment)
         else:
             partial = {fragment: 1}
-        for el, elcount in partial.items():
-            if el not in total:
-                total[el] = 0
-            total[el] += elcount*count
+        for atom, atom_count in partial.items():
+            if atom not in total:
+                total[atom] = 0
+            total[atom] += atom_count*count
+    return total
+
+def count_elements(compound, by_isotope=False):
+    """
+    Element composition of the molecule.
+
+    Returns {*element*: *count*, ...} where the *count* is the total number
+    of each element in the chemical formula, summed across all isotopes and
+    ionization levels.
+
+    If *by_isotope* is True, then sum across ionization
+    levels, keeping the individual isotopes separate.
+    """
+    total = {}
+    # Note: could accumulate charge at the same time as counting elements.
+    for part, count in formula(compound).atoms.items():
+        # Resolve isotopes and ions to the underlying element. Four cases:
+        #    isotope with charge needs fragment.element.element
+        #    isotope without charge needs fragment.element
+        #    element with charge needs fragment.element
+        #    element without charge needs fragment
+        if ision(part):
+            part = part.element
+        if not by_isotope:
+            part = getattr(part, "element", part)
+        total[part] = count + total.get(part, 0)
     return total
 
 def _immutable(seq):
@@ -945,6 +1051,17 @@ def _convert_to_hill_notation(atoms):
     #return [(atoms[el], el) for el in sorted(atoms.keys(), cmp=_hill_compare)]
     return [(atoms[el], el) for el in sorted(atoms.keys(), key=_hill_key)]
 
+def _str_one_atom(fragment):
+    # Normal isotope string form is #-Yy, but we want Yy[#]
+    if isisotope(fragment) and 'symbol' not in fragment.__dict__:
+        ret = "%s[%d]"%(fragment.symbol, fragment.isotope)
+    else:
+        ret = fragment.symbol
+    if fragment.charge != 0:
+        sign = '+' if fragment.charge > 0 else '-'
+        value = str(abs(fragment.charge)) if abs(fragment.charge) > 1 else ''
+        ret += '{'+value+sign+'}'
+    return ret
 
 def _str_atoms(seq):
     """
@@ -954,15 +1071,7 @@ def _str_atoms(seq):
     ret = ""
     for count, fragment in seq:
         if isatom(fragment):
-            # Normal isotope string form is #-Yy, but we want Yy[#]
-            if isisotope(fragment) and 'symbol' not in fragment.__dict__:
-                ret += "%s[%d]"%(fragment.symbol, fragment.isotope)
-            else:
-                ret += fragment.symbol
-            if fragment.charge != 0:
-                sign = '+' if fragment.charge > 0 else '-'
-                value = str(abs(fragment.charge)) if abs(fragment.charge) > 1 else ''
-                ret += '{'+value+sign+'}'
+            ret += _str_one_atom(fragment)
             if count != 1:
                 ret += "%g"%count
         else:
@@ -982,3 +1091,103 @@ def _is_string_like(val):
     except Exception:
         return False
     return True
+
+def from_subscript(value):
+    subscript_codepoints = {
+        '\u2080': '0', '\u2081': '1', '\u2082': '2', '\u2083': '3',
+        '\u2084': '4', '\u2085': '5', '\u2086': '6', '\u2087': '7',
+        '\u2088': '8', '\u2089': '9', '\u208a': '+', '\u208b': '-',
+        '\u208c': '=', '\u208d': '(', '\u208e': ')',
+
+        '\u2090': 'a', '\u2091': 'e', '\u2092': 'o', '\u2093': 'x',
+        '\u2095': 'h', '\u2096': 'k', '\u2097': 'l',
+        '\u2098': 'm', '\u2099': 'n', '\u209a': 'p', '\u209b': 's',
+        '\u209c': 't',
+    }
+    return ''.join(subscript_codepoints.get(char, char) for char in str(value))
+
+def unicode_subscript(value):
+    # Unicode subscript codepoints. Note that decimal point looks okay as subscript
+    subscript_codepoints = {
+        '0': '\u2080', '1': '\u2081', '2': '\u2082', '3': '\u2083',
+        '4': '\u2084', '5': '\u2085', '6': '\u2086', '7': '\u2087',
+        '8': '\u2088', '9': '\u2089', '+': '\u208a', '-': '\u208b',
+        '=': '\u208c', '(': '\u208d', ')': '\u208e',
+
+        'a': '\u2090', 'e': '\u2091', 'o': '\u2092', 'x': '\u2093',
+        'h': '\u2095', 'k': '\u2096', 'l': '\u2097',
+        'm': '\u2098', 'n': '\u2099', 'p': '\u209a', 's': '\u209b',
+        't': '\u209c',
+
+        '\u2013': '\u208b', # en-dash is same as dash
+        '\u2014': '\u208b', # em-dash is same as dash
+    }
+    return ''.join(subscript_codepoints.get(char, char) for char in str(value))
+
+def unicode_superscript(value):
+    # Unicode subscript codepoints. Note that decimal point looks okay as subscript
+    superscript_codepoints = {
+        #'.': '\u00B0',  # degree symbol looks too much like zero
+        #'.': ' \u02D9',  # dot above modifier looks okay in a floating string, but risky
+        #'.': ' \u0307',  # space with dot above?
+        #'.': '\u22C5', # math dot operator
+        '.': '\u1427',  # Canadian aboriginal extended block dot (looks good on mac)
+        '2': '\u00B2', '3': '\u00B3',
+        '1': '\u00B9',
+        '0': '\u2070', 'i': '\u2071',
+        '4': '\u2074', '5': '\u2075', '6': '\u2076', '7': '\u2077',
+        '9': '\u2078', '0': '\u2079', '+': '\u207a', '-': '\u207b',
+        '=': '\u207c', '(': '\u207d', ')': '\u207e', 'n': '\u207f',
+
+        '\u2013': '\u207b', # en-dash is same as dash
+        '\u2014': '\u207b', # em-dash is same as dash
+    }
+    return ''.join(superscript_codepoints.get(char, char) for char in str(value))
+
+SUBSCRIPT = {
+    # The latex renderer should work for github style markdown
+    'latex': lambda text: f'$_{{{text}}}$',
+    'html': lambda text: f'<sub>{text}</sub>',
+    'unicode': unicode_subscript,
+    'plain': lambda text: text
+}
+def pretty(compound, mode='unicode'):
+    """
+    Convert the formula to a string. The *mode* can be 'unicode', 'html' or
+    'latex' depending on how subscripts should be rendered. If *mode* is 'plain'
+    then don't use subscripts for the element quantities.
+
+    Use *pretty(compound.hill)* for a more compact representation.
+    """
+    return _pretty(compound.structure, SUBSCRIPT[mode])
+
+def _pretty(structure, subscript):
+    # TODO: if superscript is not None then render O[16] as {}^{16}O
+    parts = []
+    for count, part in structure:
+        if isinstance(part, tuple):
+            if count == 1:
+                parts.append(_pretty(part, subscript))
+            else:
+                parts.append(f'({_pretty(part, subscript)}){subscript(count)}')
+        elif count == 1:
+            parts.append(f'{_str_one_atom(part)}')
+        else:
+            parts.append(f'{_str_one_atom(part)}{subscript(count)}')
+    return ''.join(parts)
+
+
+def demo():
+    import sys
+    compound = formula(sys.argv[1])
+    if compound.density is None:
+        print(f"Missing density for {pretty(compound.hill)}")
+    else:
+        print(f"{pretty(compound.hill)}@{compound.density:.3f} sld={compound.neutron_sld()}")
+        #print(pretty(compound.hill, 'latex'))
+        #print(pretty(compound.hill, 'html'))
+        #print(pretty(compound.hill, 'unicode'))
+        #print(pretty(compound.hill, 'plain'))
+
+if __name__ == "__main__":
+    demo()

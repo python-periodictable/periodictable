@@ -1,6 +1,10 @@
 from periodictable import H, O, Fe, helium, elements, data_files
 
 def test():
+    ## Uncomment to print the package path on the CI infrastructure
+    #import periodictable
+    #print(f"Path to imported periodictable in test dir is {periodictable.__file__}")
+    #print(fail_test)
     # Check that we can access element properties
     assert H.name == "hydrogen"
     assert H.symbol == "H"
@@ -22,8 +26,8 @@ def test():
 
     # Check that "for el in elements" works and for iso in el works
     els = tuple(el for el in elements)
-    assert els[0].number == 0
-    assert els[1].number == 1
+    assert els[0].number == 1
+    assert els[1].number == 2
     isotopes = tuple(iso for iso in O)
     assert isotopes[0].isotope == 12  # 12 is the first oxygen isotope listed
 

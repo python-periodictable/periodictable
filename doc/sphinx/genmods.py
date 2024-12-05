@@ -55,7 +55,6 @@ modules=[
     #('__init__', 'Top level namespace'),
     ('core', 'Core table'),
     ('formulas', 'Chemical formula operations'),
-    #('chemicals', 'Chemical database'),
     ('covalent_radius', 'Covalent radius'),
     ('constants', 'Fundamental constants'),
     ('crystal_structure', 'Crystal structure'),
@@ -69,6 +68,7 @@ modules=[
     ('cromermann', 'X-ray scattering factor f0 calculations'),
     ('plot', 'Element plotter'),
     ('util', 'Utility functions'),
+    ('mass_2001', 'Deprecated mass/abundance values'),
 ]
 package='periodictable'
 package_name='Reference'

@@ -2,8 +2,16 @@ from __future__ import division
 from copy import deepcopy
 from pickle import loads, dumps
 
-from periodictable import Ca, C, O, H, Fe, Ni, Si, D, Na, Cl, Co, Ti
+from periodictable import Ca, C, O, H, Fe, Ni, Si, D, Na, Cl, Co, Ti, S
 from periodictable import formula, mix_by_weight, mix_by_volume
+from periodictable.formulas import count_elements, pretty
+
+def check_parse_fails(s):
+    try:
+        formula(s)
+    except Exception as exc:
+        return True
+    raise Exception(f'formula("{s}") should fail to parse')
 
 def test():
     ikaite = formula()
@@ -32,6 +40,18 @@ def test():
     assert str(ikaite.hill) == "CH12CaO9"
     assert formula([(0.75, Fe), (0.25, Ni)]) == formula("Fe0.75Ni0.25")
 
+    # Unicode, latex and html subscripts
+    assert formula([(0.75, Fe), (0.25, Ni)]) == formula("Fe₀.₇₅Ni₀.₂₅")
+    assert ikaite == formula("CaCO₃(H₂O)₆")
+    assert ikaite == formula("CaCO₃6H₂O") # with subscripts we know it isn't O36
+    assert pretty(ikaite, 'unicode') == "CaCO₃(H₂O)₆"
+    assert pretty(ikaite, 'html') == "CaCO<sub>3</sub>(H<sub>2</sub>O)<sub>6</sub>"
+    assert pretty(ikaite, 'latex') == "CaCO$_{3}$(H$_{2}$O)$_{6}$"
+    # Only allow subscripts in the post position
+    assert check_parse_fails("₃H₂O")
+    assert check_parse_fails("H₂O@₁")
+    assert check_parse_fails("₁wt% NaCl@2.3 // H₂O@1n")
+
     # Test composition
     #print formula("CaCO3") + 6*formula("H2O")
     assert ikaite == formula("CaCO3") + 6*formula("H2O")
@@ -42,6 +62,14 @@ def test():
 
     # Check atom count
     assert formula("Fe2O4+3H2O").atoms == {Fe: 2, O: 7, H: 6}
+
+    # Check element count. The formula includes element, charged element,
+    # isotope and charged isotope. The "3" in front forces recursion into a
+    # formula tree.
+    f = formula("3HDS{6+}O{2-}3O[16]{2-}")
+    assert count_elements(f) == {S: 3, O: 12, H: 6}
+    assert str(formula(count_elements(f)).hill) == "H6O12S3"
+    assert count_elements(f, by_isotope=True) == {S: 3, O: 9, O[16]:3, H: 3, D: 3}
 
     # Check charge
     assert formula("P{5+}O{2-}4").charge == -3
@@ -163,8 +191,6 @@ def test():
 
     # layers and mixtures
     check_formula(formula('1mm Fe // 1mm Ni'), formula('50%vol Fe // Ni'))
-    check_formula(formula('50%vol Co // Ti'), formula('2mL Co // 2mL Ti'))
-    check_formula(formula('50%wt Co // Ti'), formula('2g Co // 2g Ti'))
     # The relative quantities change whenenver the mass is updated.
     #print(formula('2mL Co // 2mL Ti').structure)
     #print(formula('2g Co // 2g Ti').structure)
@@ -173,19 +199,28 @@ def test():
     check_formula(formula('50wt% Co // Ti'), formula('2g Co // 2g Ti'))
     check_formula(formula('2mL Co // 2mL Ti'), formula(((1.5922467977437773, Co), (1, Ti))))
     check_formula(formula('2g Co // 2g Ti'), formula(((1, Co), (1.2311862870035726, Ti))))
+
     check_formula(formula('5g NaCl // 50mL H2O@1'), formula('5g NaCl // 50g H2O'))
-    check_formula(formula('5g NaCl // 50mL H2O@1'),
-                  formula(((1, Na), (1, Cl), (32.43950556758257, ((2, H), (1, O))))), tol=1e-5)
+    check_formula(
+        formula('5g NaCl // 50mL H2O@1'),
+        formula(((1, Na), (1, Cl), (32.43950556758257, ((2, H), (1, O))))), tol=1e-5)
     assert abs(formula('1mm Fe // 1mm Ni').thickness - 0.002) < 0.002*1e014
     assert abs(formula('2g Co // 2g Ti').total_mass - 4) < 4*1e-14
     check_mass(formula('2mL Co // 2mL Ti'), mass=2*(Co.density+Ti.density))
-    check_mass(formula("50 g (49 mL H2O@1 // 1 g NaCl) // 20 mL D2O@1n"),
-               mass=50 + 20*D2O.density)
-    check_mass(formula("50 mL (45 mL H2O@1 // 5 g NaCl)@1.0707 // 20 mL D2O@1n"),
-               mass=50*1.0707 + 20*D2O.density)
+    check_mass(
+        formula("50 g (49 mL H2O@1 // 1 g NaCl) // 20 mL D2O@1n"),
+        mass=50 + 20*D2O.density)
+    check_mass(
+        formula("50 mL (45 mL H2O@1 // 5 g NaCl)@1.0707 // 20 mL D2O@1n"),
+        mass=50*1.0707 + 20*D2O.density)
 
     # fasta
-    check_formula(formula('aa:A'), formula('C3H4H[1]NO'))
+    check_formula(formula('aa:A'), formula('C3H4H[1]3NO2'))
+    check_formula(formula('aa:RELEEL'), formula('C33H42H[1]13N9O13'))
+    check_formula(formula('aa:RELEEL'), formula('aa:RE-LEE L *UNUSED'))
+    check_formula(
+        formula('30%vol CCl4@1.2 //10% aa:RE-LE EL @1.8 // H2O@1'),
+        formula('30%vol CCl4@1.2 //10% C33H42H[1]13N9O13 @1.8 // H2O@1'))
 
 def check_mass(f1, mass, tol=1e-14):
     """Check that the total mass of f1 is as expected."""

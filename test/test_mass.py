@@ -1,5 +1,4 @@
 import periodictable
-from periodictable.constants import neutron_mass
 
 def test():
     # Constants defined in the tables. These may be updated from time to time.
@@ -16,7 +15,6 @@ def test():
     assert abs(periodictable.Pb[206].abundance - Pb_206_abundance) < 1e-14
     assert abs(periodictable.Pb[209].abundance - Pb_209_abundance) < 1e-14
     assert periodictable.Pb.mass == Pb_mass
-    assert periodictable.n.mass == neutron_mass
 
     # Check abundance totals to 0% or 100%
     for el in periodictable.elements:
@@ -28,7 +26,6 @@ def test():
                 abundance += iso.abundance
         assert abs(abundance-100) < 1e-4 or abundance==0,\
             "total abundance for %s is %.15g%%"%(el.symbol,abundance)
-
 
     # Check average mass corresponds to abundance information
     for el in periodictable.elements:

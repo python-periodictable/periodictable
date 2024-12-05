@@ -1,9 +1,11 @@
+from math import sqrt, pi
+
 import numpy as np
+
 import periodictable
 from periodictable import elements, formula, nsf
 from periodictable.nsf import neutron_scattering, neutron_sld
-from periodictable.constants import avogadro_number as N_A
-from math import sqrt, pi
+from periodictable.constants import avogadro_number as N_A, neutron_mass
 
 def test():
     H,He,D,O = elements.H,elements.He,elements.D,elements.O
@@ -39,17 +41,14 @@ def test():
             ## Printing suppressed for the release version
             #print("%2s %.3f % 7.3f % 7.3f"%(el.symbol,err,b_c,el.neutron.b_c))
 
-    # Check neutron_sld and neutron_xs against NIST calculator
-    # Note that we are using different tables, so a general comparison with
-    # NIST numbers is not possible, but ^30Si and ^18O are the same in both.
+    # Isotopic formula.
     M = formula('Si[30]O[18]2',density=2.2)
     sld,xs,depth = neutron_scattering(M,wavelength=4.75)
     sld2 = neutron_sld(M,wavelength=4.75)
     assert all(abs(v-w)<1e-10 for v,w in zip(sld,sld2))
     #_summarize(M)
     #_summarize(formula('O2',density=1.14))
-    # Alan's numbers:
-    assert abs(sld[0] - 3.27) < 0.01
+    assert abs(sld[0] - 3.33) < 0.01
     assert abs(sld[1] - 0) < 0.01
     #assert abs(xs[2] - 0.00292) < 0.00001   # TODO fix test
     assert abs(xs[1] - 0.00569) < 0.00001
@@ -121,8 +120,8 @@ def test():
     assert abs(depth-depth2)<1e-14
 
     # Test energy <=> velocity <=> wavelength
-    # PAK: value changes with updated neutron and atomic mass constants [2023-08]
-    assert abs(nsf.neutron_wavelength_from_velocity(2200) - 1.7981972619684314) < 1e-14
+    # PAK: value changes with updated neutron and atomic mass constants [2024-10]
+    assert abs(nsf.neutron_wavelength_from_velocity(2200) - 1.7981972755018132) < 1e-14
     assert abs(nsf.neutron_wavelength(25) - 1.8) < 0.1
     assert abs(nsf.neutron_energy(nsf.neutron_wavelength(25)) - 25) < 1e-14
 
@@ -132,6 +131,19 @@ def test():
     assert all(abs(v-w)<1e-14 for v,w in zip(sld,sld2))
     assert all(abs(v-w)<1e-14 for v,w in zip(xs,xs2))
     assert abs(depth-depth2)<1e-14
+
+def test_bare_neutron():
+    n = elements.n
+    assert n == elements[0]
+    assert n == periodictable.neutron
+    n_iso = elements[0][1]
+    assert n.mass == neutron_mass
+    assert n_iso.mass == neutron_mass
+    assert n.neutron.b_c == -37.0
+    assert n.density is None
+    assert n.number_density is None
+    assert n.neutron.scattering()[0] is None
+
 
 def test_formula():
     density = 2.52
@@ -257,8 +269,7 @@ def test_energy_dependent():
     # Note: abundance uses mole fraction. DOI:10.1351/PAC-REP-10-06-02
     Lu = elements.Lu
     Lu_175_abundance, Lu_176_abundance = 97.401, 2.599
-    Lu_equiv = "Lu[175]%g+Lu[176]%g"%(Lu_175_abundance, Lu_176_abundance)
-
+    Lu_equiv = f"Lu[175]{Lu_175_abundance:g}+Lu[176]{Lu_176_abundance:g}"
     # Note: skipping incoherent xs in returned value
 
     # Multiple wavelength energy dependent
@@ -314,8 +325,8 @@ def test_energy_dependent():
     calc = neutron_composite_sld(materials, wavelength=wavelength[0])
     sld2 = calc(weights, density=Lu.density)
     assert all(np.isscalar(v) for v in sld1 + sld2)
-    assert (abs((sld1[0]-sld2[0])/sld1[0]) < 1e-14)
-    assert (abs((sld1[1]-sld2[1])/sld1[1]) < 1e-14)
+    assert (abs((sld1[0]-sld2[0])/sld1[0]) < 1e-14).all()
+    assert (abs((sld1[1]-sld2[1])/sld1[1]) < 1e-14).all()
 
     # Check against Alex Grutter spreadsheet values computed from Lynn&Seeger
     wavelength = neutron_wavelength(80) # look at 80 meV in the table
@@ -324,8 +335,8 @@ def test_energy_dependent():
     # reconstruct density from the given number density
     density = elements.Gd.mass*number_density*1e21/NA
     sld2 = neutron_sld("Gd", wavelength=wavelength, density=density)
-    assert (abs((sld1[0]-sld2[0])/sld1[0]) < 1e-14)
-    assert (abs((sld1[1]-sld2[1])/sld1[1]) < 1e-14)
+    assert (abs((sld1[0]-sld2[0])/sld1[0]) < 1e-14).all()
+    assert (abs((sld1[1]-sld2[1])/sld1[1]) < 1e-14).all()
 
 def time_composite():
     from periodictable.nsf import neutron_composite_sld

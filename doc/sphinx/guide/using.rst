@@ -29,7 +29,7 @@ Access particular elements as symbols:
     B absorption 767.0
     >>> print("Ni f1/f2 for Cu K-alpha X-rays f'=%.5f f''=%.5f"
     ...       % Ni.xray.scattering_factors(wavelength=Cu.K_alpha))
-    Ni f1/f2 for Cu K-alpha X-rays f'=25.02293 f''=0.52493
+    Ni f1/f2 for Cu K-alpha X-rays f'=25.02293 f''=0.52491
 
 Access isotopes using mass number subscripts:
 
@@ -56,15 +56,12 @@ Import all elements:
     >>> print(periodictable.H.mass)
     1.008
 
-Deuterium and tritium are special isotopes named D and T
-some neutron information is available as 'n':
+Deuterium and tritium are special isotopes named D and T:
 
 .. doctest::
 
     >>> print("D mass %s"%D.mass)
     D mass 2.01410177784
-    >>> print("neutron mass %s"%n.mass)
-    neutron mass 1.0086649159
 
 Process all the elements:
 
@@ -73,7 +70,6 @@ Process all the elements:
     >>> import periodictable
     >>> for el in periodictable.elements: # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ...     print("%s %s"%(el.symbol,el.name))
-    n neutron
     H hydrogen
     He helium
        ...
@@ -86,7 +82,6 @@ Another example for processing all elements:
     >>> from periodictable import elements
     >>> for el in elements: # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ...     print("%s %s"%(el.symbol,el.number))
-    n 0
     H 1
     He 2
        ...

@@ -75,7 +75,8 @@ def init(table, reload=False):
         return
     table.properties.append('covalent_radius')
 
-    table[0].covalent_radius = 0.20
+    # neutron covalent radius of 0.20 A ? Not sure where that value came from
+    # table[0].covalent_radius = 0.20
     Element.covalent_radius_units = 'angstrom'
     Element.covalent_radius = None
     Element.covalent_radius_uncertainty = None

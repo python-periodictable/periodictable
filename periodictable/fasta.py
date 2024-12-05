@@ -4,12 +4,12 @@
 Biomolecule support.
 
 :class:`Molecule` lets you define biomolecules with labile hydrogen atoms
-specified using H[1] in the chemical formula.  The biomolecule object
-creates forms with natural isotope ratio, all hydrogen and all deuterium.
-Density can be provided as natural density or cell volume.  A %D2O contrast
-match value is computed for matching the molecule SLD in the presence of
-labile hydrogens.  :meth:`Molecule.D2Osld` computes the neutron SLD for
-the solvated molecule in a %D2O solvent.
+specified using H[1] in the chemical formula.  The biomolecule object creates
+forms with natural isotope ratio, all hydrogen and all deuterium. Density can be
+provided as natural density or cell volume.  A %D2O contrast match value is
+computed for matching the molecule SLD in the presence of labile hydrogens.
+:meth:`Molecule.D2Osld` computes the neutron SLD for the solvated molecule in a
+%D2O solvent.
 
 :class:`Sequence` lets you read amino acid and DNA/RNA sequences from FASTA
 files.
@@ -26,23 +26,56 @@ Tables for common molecules are provided[1]:
 
 Neutron SLD for water at 20C is also provided as *H2O_SLD* and *D2O_SLD*.
 
-For unmodified protein need to add 2*H[1] and O for terminations.
+For unmodified protein an H and an OH are added for terminations.
 
 Assumes that proteins were created in an environment with the usual H/D isotope
-ratio on the non-swappable hydrogens.
+ratio on the nonlabile hydrogen.
 
-[1] Perkins, S.J., 1985. Chapter 6 X-Ray and Neutron Solution Scattering,
-in: New Comprehensive Biochemistry. Elsevier, pp. 143-265.
+The value of residue volumes differs from that used by the bio scattering
+calculators from ISIS and ORSO, which will lead to different values for SLD.
+There are small differences for the number of hydrogen in His and Cys residues,
+where one table considers them present but labile and the other considers them
+absent.
+
+DNA and RNA residues from the source[1] included sodium in the chemical formula,
+but these have been removed and will not appear in the sequence. Volumes for DNA
+and RNA residues come from Buckin (1989) as reported in Durchlag (1997), with
+correction for phosphorylation and dehydration. The correction value of 30.39
+comes from comparison of the volume given in Harroun (2006) to the volumes of
+the RNA ACGU and DNA T nucleosides given in Buckin (1989) after correcting for
+units. Harroun doesn't give volumes for DNA AGC nucleosides despite them being
+different (especially guanosine). This code uses the values from Buckin for
+these as well, rather than the RNA nucleoside values given in Harroun. Note that
+the computed density for equal parts AGCT is 1.67, compared to the measured
+average of 1.70 given in Arrighi (1970).
+
+[1] Perkins, S.J. (1988). Chapter 6 X-Ray and Neutron Solution Scattering, in:
+New Comprehensive Biochemistry. Elsevier, pp. 143-265.
 https://doi.org/10.1016/S0167-7306(08)60575-X
-"""
-from __future__ import division
 
+[2] Buckin, V. A., B. I. Kankiya, and R. L. Kazaryan (1989). Hydration of
+nucleosides in dilute aqueous solutions: ultrasonic velocity and density
+measurements. Biophysical chemistry 34.3 211-223.
+https://doi.org/10.1016/0301-4622(89)80060-2
+
+[3] Durchschlag, H. and Zipper, P. (1997). Calculation of partial specific
+volumes and other volumetric properties of small molecules and polymers. Journal
+of Applied Chemistry 30 803-807. https://doi.org/10.1107/S0021889897003348
+
+[4] Harroun, T.A., Wignall, G.D., Katsaras, J. (2006). Neutron Scattering for
+Biology. In: Neutron Scattering in Biology. Springer, Berlin, Heidelberg.
+https://doi.org/10.1007/3-540-29111-3_1
+
+[5] Arrighi, F.E., Mandel, M., Bergendahl, J. et al. (1970). Buoyant densities
+of DNA of mammals. Biochem Genet 4, 367–376. https://doi.org/10.1007/BF00485753
+"""
 import warnings
 
 from .formulas import formula as parse_formula
 from .nsf import neutron_sld
 from .xsf import xray_sld
 from .core import default_table
+from .constants import avogadro_number
 
 # CRUFT 1.5.2: retaining fasta.isotope_substitution for compatibility
 def isotope_substitution(formula, source, target, portion=1):
@@ -63,7 +96,7 @@ def isotope_substitution(formula, source, target, portion=1):
     return formula.replace(source, target, portion=portion)
 
 # TODO: allow Molecule to be used as compound in formulas.formula()
-class Molecule(object):
+class Molecule:
     """
     Specify a biomolecule by name, chemical formula, cell volume and charge.
 
@@ -197,6 +230,10 @@ class Sequence(Molecule):
             return Sequence(name, seq, type=type)
 
     def __init__(self, name, sequence, type='aa'):
+        # TODO: duplicated in Molecule.__init__
+        # TODO: fasta does not work with table substitution
+        elements = default_table()
+
         codes = CODE_TABLES[type]
         sequence = sequence.split('*', 1)[0]  # stop at first '*'
         sequence = sequence.replace(' ', '')  # ignore spaces
@@ -206,6 +243,8 @@ class Sequence(Molecule):
         structure = []
         for p in parts:
             structure.extend(list(p.labile_formula.structure))
+        # Add H + OH terminators to the sequence
+        structure.extend(((2, elements.H[1]), (1, elements.O)))
         formula = parse_formula(structure).hill
 
         Molecule.__init__(
@@ -302,6 +341,10 @@ def _set_amino_acid_average(target, codes, name=None):
         name = "/".join(AMINO_ACID_CODES[c].name for c in codes)
     molecule = Molecule(name, formula, cell_volume=cell_volume, charge=charge)
     AMINO_ACID_CODES[target] = molecule
+
+# TODO: importing fasta does work, computing the neutron SLD for each molecule.
+# This triggers nsf.init() which defines the neutron data for each isotope.
+# Further, this does not allow private tables for fasta calculations.
 
 # FASTA code table
 def _(code, V, formula, name):
@@ -409,25 +452,37 @@ __doc__ += "\n\n*LIPIDS*::\n\n  " + "\n  ".join(
     "%s: %s"%(k, v.formula) for k, v in sorted(LIPIDS.items()))
 
 def _(code, formula, V, name):
-    molecule = Molecule(name, formula, cell_volume=V)
+    """
+    Convert RNA/DNA table values into Molecule.
+
+    Measured volumes from isolated mers reported in Durchschlag 1997, converted
+    from mL/mol, with an addition of 30.39 to account for phosphorylation and
+    dehydration in sequence. The value of 30.39 comes from comparison of the
+    volume given in Harroun (2006) to the volumes of the RNA + T nucleosides
+    given in Buckin (1989) after correcting for units. Harroun (2006) doesn't
+    give volumes for AGC in the DNA nucleosides despite them being different in
+    the Buckin source (especially guanosine).
+    """
+    cell_volume = V * 1e24/avogadro_number + 30.39
+    molecule = Molecule(name, formula, cell_volume=cell_volume)
     molecule.code = code
     return code, molecule
 RNA_BASES = dict((
-    # code, formula, volume, name
-    _("A",  "C10H8H[1]3N5O6PNa", 299, "adenosine"),
-    _("T",   "C9H8H[1]2N2O8PNa", 284, "uridine"), # Use H[1] for U in RNA
-    _("G",  "C10H7H[1]4N5O7PNa", 304, "guanosine"),
-    _("C",   "C9H8H[1]3N3O7PNa", 288, "cytidine"),
+    # code, formula, volume (mL/mol), name
+    _("A",  "C10H8H[1]3N5O6P", 170.8, "adenosine"),
+    _("T",   "C9H8H[1]2N2O8P", 151.7, "uridine"), # Use H[1] for U in RNA
+    _("G",  "C10H7H[1]4N5O7P", 178.2, "guanosine"),
+    _("C",   "C9H8H[1]3N3O7P", 153.7, "cytidine"),
     ))
 __doc__ += "\n\n*RNA_BASES*::\n\n  " + "\n  ".join(
     "%s:%s"%(k, v.name) for k, v in sorted(RNA_BASES.items()))
 
 DNA_BASES = dict((
-    # code, formula, volume, %D2O matchpoint, name
-    _("A",  "C10H9H[1]2N5O5PNa", 289, "adenosine"),
-    _("T", "C10H11H[1]1N2O7PNa", 301, "thymidine"),
-    _("G",  "C10H8H[1]3N5O6PNa", 294, "guanosine"),
-    _("C",   "C9H9H[1]2N3O6PNa", 278, "cytidine"),
+    # code, formula, volume (mL/mol), name
+    _("A",  "C10H9H[1]2N5O5P", 169.8, "adenosine"),
+    _("T", "C10H11H[1]1N2O7P", 167.6, "thymidine"),
+    _("G",  "C10H8H[1]3N5O6P", 173.7, "guanosine"),
+    _("C",   "C9H9H[1]2N3O6P", 153.4, "cytidine"),
     ))
 __doc__ += "\n\n*DNA_BASES*::\n\n  " + "\n  ".join(
     "%s:%s"%(k, v.name) for k, v in sorted(DNA_BASES.items()))
@@ -491,9 +546,25 @@ def fasta_table():
 
 beta_casein = "RELEELNVPGEIVESLSSSEESITRINKKIEKFQSEEQQQTEDELQDKIHPFAQTQSLVYPFPGPIPNSLPQNIPPLTQTPVVVPPFLQPEVMGVSKVKEAMAPKHKEMPFPKYPVEPFTESQSLTLTDVENLHLPLPLLQSWMHQPHQPLPPTVMFPPQSVLSLSQSKVLPVPQKAVPYPQRDMPIQAFLLYQEPVLGPVRGPFPIIV"
 
+## Uncomment to show package path on CI infrastructure
+#def doctestpath():
+#    """
+#    Checking import path for doctests::
+#
+#        >>> import periodictable
+#        >>> print(f"Path to imported periodictable in docstr is {periodictable.__file__}")
+#        some path printed here
+#    """
+
 def test():
     from periodictable.constants import avogadro_number
+    from .formulas import formula
     elements = default_table()
+
+    ## Uncomment to show package path on CI infrastructure
+    #import periodictable
+    #print(f"Path to imported periodictable in package is {periodictable.__file__}")
+    #print(fail_test)
 
     # Beta casein results checked against Duncan McGillivray's spreadsheet
     # name        Hmass   Dmass   vol     den   #el   xray  Hsld  Dsld
@@ -501,11 +572,18 @@ def test():
     # beta casein 23561.9 23880.9 30872.9  1.27 12614 11.55  1.68  2.75
     # ... updated for new mass table [2023-08]
     #   same      23562.3 23881.2   same   1.27 same         1.68  2.75
+
     seq = Sequence("beta casein", beta_casein)
     density = seq.mass/avogadro_number/seq.cell_volume*1e24
-    #print(seq.mass, seq.Dmass, density, seq.sld, seq.Dsld)
-    assert abs(seq.mass - 23562.3) < 0.1
-    assert abs(seq.Dmass - 23881.2) < 0.1
+    # print(seq.formula)
+    # print(seq.mass, seq.Dmass, density, seq.sld, seq.Dsld)
+
+    # Sequence now includes terminators: H[1]-...-OH[1], so adjust the masses
+    # slightly from the spreadsheet values.
+    H2O = formula("H2O@1n")
+    D2O = formula("D2O@1n")
+    assert abs(seq.mass - (23562.3 + H2O.mass)) < 0.1
+    assert abs(seq.Dmass - (23881.2 + D2O.mass)) < 0.1
     assert abs(seq.cell_volume - 30872.9) < 0.1
     assert abs(density - 1.267) < 0.01
     assert abs(seq.sld - 1.68) < 0.01
