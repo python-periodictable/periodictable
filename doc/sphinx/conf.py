@@ -65,7 +65,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Periodic Table'
-copyright = '2009, Paul Kienzle'
+copyright = '2024, Paul Kienzle'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
