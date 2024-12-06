@@ -16,8 +16,10 @@ build:
   commands:
     - pip install matplotlib sphinx
     - make -j 4 -C doc/sphinx SPHINXOPTS="-W --keep-going" html
+    - ls doc/sphinx/_build/html
     - mkdir -p $READTHEDOCS_OUTPUT/html
     - cp -rp doc/sphinx/_build/html/ $READTHEDOCS_OUTPUT/html/
+    - ls $READTHEDOCS_OUTPUT/html
 
 # Build documentation in the "doc/" directory with Sphinx
 #sphinx:
