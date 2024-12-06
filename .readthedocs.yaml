@@ -14,8 +14,9 @@ build:
     # rust: "1.70"
     # golang: "1.20"
   commands:
-    - pip install matplotlib
+    - pip install matplotlib sphinx
     - make -j 4 -C doc/sphinx SPHINXOPTS="-W --keep-going" html
+  
 # Build documentation in the "doc/" directory with Sphinx
 #sphinx:
   #configuration: doc/sphinx/conf.py
