@@ -817,16 +817,16 @@ def neutron_scattering(compound, *, density=None,
 
     The scattering potential can be expressed as a scattering length
     density (SLD).  This is the number density of the scatterers
-    (per $\AA^3$) times their scattering lengths, scaled to
-    $10^6/\AA^2$ (with $1/\AA^2$ = $10^{5} \mathrm{fm}/\AA^3$).
+    (per |Ang^3|) times their scattering lengths, scaled to
+    |1e-6/Ang^2| (with |1/Ang^2| = $10^{5}$ fm/|Ang^3|).
     Following the convention of Sears (1992), we define sld as
     $\rho = \rho_{\rm re} - i \rho_{\rm im}$.
 
     .. math::
 
-        \rho_{\rm re} (10^6 / \AA^2) &= 10 N \mathrm{Re}(b_c) \\
-        \rho_{\rm im} (10^6 / \AA^2) &= -10 N \mathrm{Im}(b_c) \\
-        \rho_{\rm inc} (10^6 / \AA^2) &= 10 N b_i
+        \rho_{\rm re} (10^6 / Å^2) &= 10 N \mathrm{Re}(b_c) \\
+        \rho_{\rm im} (10^6 / Å^2) &= -10 N \mathrm{Im}(b_c) \\
+        \rho_{\rm inc} (10^6 / Å^2) &= 10 N b_i
 
     Similarly, the macroscopic scattering cross section for the sample includes
     number density:
@@ -871,39 +871,39 @@ def neutron_scattering(compound, *, density=None,
 
     .. math::
 
-        \rho_{\rm re}\,(\mu/\AA^2) &= (N/\AA^3)
+        \rho_{\rm re}\,(\mu/Å^2) &= (N/Å^3)
             \, (\mathrm{Re}(b_c)\,{\rm fm})
-            \, (10^{-5} \AA/{\rm\,fm})
+            \, (10^{-5} Å/{\rm\,fm})
             \, (10^6\,\mu) \\
-        \rho_{\rm im}\,(\mu/\AA^2) &= (N/\AA^3)
+        \rho_{\rm im}\,(\mu/Å^2) &= (N/Å^3)
             \, (\sigma_a\,{\rm barn})
-            \, (10^{-8}\,\AA^2/{\rm barn}) / (2 \lambda\, \AA)
+            \, (10^{-8}\,Å^2/{\rm barn}) / (2 \lambda\, Å)
             \, (10^6\,\mu) \\
-            &= (N/\AA^3)
+            &= (N/Å^3)
             \, (-\mathrm{Im}(b_c)\,{\rm fm})
-            \, (10^{-5} \AA/{\rm\,fm})
+            \, (10^{-5} Å/{\rm\,fm})
             \, (10^6\,\mu) \\
-        \rho_{\rm inc}\,(\mu/\AA^2) &= (N/\AA^3)
+        \rho_{\rm inc}\,(\mu/Å^2) &= (N/Å^3)
             \, \sqrt{(\sigma_i\, {\rm barn})/(4 \pi)
                 \, (100\, {\rm fm}^2/{\rm barn})}
-            \, (10^{-5}\, \AA/{\rm fm})
+            \, (10^{-5}\, Å/{\rm fm})
             \, (10^6\, \mu) \\
-        \Sigma_{\rm coh}\,(1/{\rm cm}) &= (N/\AA^3)
+        \Sigma_{\rm coh}\,(1/{\rm cm}) &= (N/Å^3)
             \, (\sigma_c\, {\rm barn})
-            \, (10^{-8}\, \AA^2/{\rm barn})
-            \, (10^8\, \AA/{\rm cm}) \\
-        \Sigma_{\rm inc}\,(1/{\rm cm}) &= (N/\AA^3)
+            \, (10^{-8}\, Å^2/{\rm barn})
+            \, (10^8\, Å/{\rm cm}) \\
+        \Sigma_{\rm inc}\,(1/{\rm cm}) &= (N/Å^3)
             \,(\sigma_i\, {\rm barn})
-            \, (10^{-8}\, \AA^2/{\rm barn})
-            \, (10^8\, \AA/{\rm cm}) \\
-        \Sigma_{\rm abs}\,(1/{\rm cm}) &= (N/\AA^3)
+            \, (10^{-8}\, Å^2/{\rm barn})
+            \, (10^8\, Å/{\rm cm}) \\
+        \Sigma_{\rm abs}\,(1/{\rm cm}) &= (N/Å^3)
             \,(\sigma_a\,{\rm barn})
-            \, (10^{-8}\, \AA^2/{\rm barn})
-            \, (10^8\, \AA/{\rm cm}) \\
-        \Sigma_{\rm s}\,(1/{\rm cm}) &= (N/\AA^3)
+            \, (10^{-8}\, Å^2/{\rm barn})
+            \, (10^8\, Å/{\rm cm}) \\
+        \Sigma_{\rm s}\,(1/{\rm cm}) &= (N/Å^3)
             \,(\sigma_s\,{\rm barn})
-            \, (10^{-8}\, \AA^2/{\rm barn})
-            \, (10^8\, \AA/{\rm cm}) \\
+            \, (10^{-8}\, Å^2/{\rm barn})
+            \, (10^8\, Å/{\rm cm}) \\
         t_u\,({\rm cm}) &= 1/(\Sigma_{\rm s}\, 1/{\rm cm}
             \,+\, \Sigma_{\rm abs}\, 1/{\rm cm})
     """
@@ -1860,7 +1860,7 @@ def absorption_comparison_table(table=None, tol=None):
 
         \sigma_a = -2 \lambda \mathrm{Im}(b_c) \cdot 1000
 
-    The wavelength $\lambda = 1.798 \AA$ is the neutron wavelength at which
+    The wavelength $\lambda = 1.798$ |Ang| is the neutron wavelength at which
     the absorption is tallied. The factor of 1000 transforms from
     |Ang|\ |cdot|\ fm to barn.
 
