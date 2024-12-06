@@ -13,7 +13,3 @@
 .. |g/cm^3| replace:: g\ |cdot|\ cm\ :sup:`-3`
 .. |fm^2| replace:: fm\ :sup:`2`
 .. |Js| replace:: J\ |cdot|\ s
-
-.. only:: html
-
-  :math:`\renewcommand\AA{\text{Å}}`

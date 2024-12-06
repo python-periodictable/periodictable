@@ -19,7 +19,6 @@ build:
     #- ls doc/sphinx/_build/html
     - mkdir -p $READTHEDOCS_OUTPUT
     - cp -rp doc/sphinx/_build/html $READTHEDOCS_OUTPUT/html
-    - ls $READTHEDOCS_OUTPUT/html
 
 # Build documentation in the "doc/" directory with Sphinx
 #sphinx:
