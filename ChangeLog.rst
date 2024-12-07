@@ -23,6 +23,11 @@ Known issues
 Change history
 ==============
 
+2024-12-06 R2.0.1
+-----------------
+
+* Documentation tweaks
+
 2024-12-03 R2.0.0
 -----------------
 
