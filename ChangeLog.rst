@@ -23,6 +23,14 @@ Known issues
 Change history
 ==============
 
+2024-12-17 R2.0.2
+-----------------
+
+Modified:
+
+* Revert bound coherent scattering length updates for C-12, O-16, Sn-119,
+  Pb-207 from R2.0.0 and instead update nat-C, nat-O, nat-Sn, and nat-Pb.
+
 2024-12-06 R2.0.1
 -----------------
 
@@ -45,11 +53,14 @@ Modified:
 * Update physical constants to CODATA 2022. Values have changed by as much
   as 1e-7 (relative) in Avogadro number, Planck constant, J/eV, electron radius,
   electron mass, neutron mass and atomic mass constant.
-* Updated bound coherent scattering length for H-1, H-2, He-4, C-12,
-  O-16, O-17, O-18, Sn-119, Sm-154, Eu-153, Ir-191, Ir-193, Pb-207, Bi-209
+* Updated bound coherent scattering length for H-1, H-2, He-4, C-12†,
+  O-16†, O-17, O-18, Sn-119†, Sm-154, Eu-153, Ir-191, Ir-193, Pb-207†, Bi-209
 * Neutron b_c changed for Zn-70 from 6.9 to 6.0 (fixes a typo in the table)
 * Updated total cross section for He, Kr, Xe
 * Use log-log interpolation for X-ray f''
+
+† Some scattering length updates were reverted in R2.0.2. They should have
+been updates to the element in natural abundance rather than the isotope.
 
 Breaking changes:
 

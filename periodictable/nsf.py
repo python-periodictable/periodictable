@@ -123,8 +123,7 @@ The following newer measurements from the literature are included:
     Kr total 7.68(13) => 7.685(26) [5]
     Xe total --- => 4.344(17) [5]
 
-    [1] Snow (2020) 10.1103/PhysRevD.101.062004
-        (using average of gravity reflectometer and interferometer measurements)
+    [1] Snow (2020) 10.1103/PhysRevD.101.062004 [average of values in Table 1]
     [2] Fischer (2012) 10.1088/0953-8984/24/50/505105
     [3] Haun (2020) 10.1103/PhysRevLett.124.012501
     [4] Kohlmann (2016) 10.1515/zkri-2016-1984
