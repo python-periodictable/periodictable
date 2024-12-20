@@ -29,7 +29,7 @@ There are several web interfaces to this package:
 
 * `NIST Center for Neutron Research (NCNR) <https://www.ncnr.nist.gov/resources/activation>`_
 * `Forschungs-Neutronenquelle Heinz Maier-Leibnitz (FRM II) <https://webapps.frm2.tum.de/intranet/activation/>`_
-* `SLD Calulator <https://sld-calculator.appspot.com/>`_
+* `SLD Calculator <https://sld-calculator.appspot.com/>`_
 
 Documentation is `available online <https://periodictable.readthedocs.io>`_.
 
