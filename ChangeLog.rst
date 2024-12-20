@@ -23,7 +23,7 @@ Known issues
 Change history
 ==============
 
-2024-12-17 R2.0.2
+2024-12-19 R2.0.2
 -----------------
 
 Modified:
