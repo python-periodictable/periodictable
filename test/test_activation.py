@@ -64,27 +64,25 @@ def test():
     #     "Co-60":    [1.55042700053951E-01,	1.55040373560730E-01,	1.54986873850802E-01],
     #     "Co-61":    [1.36469792582999E-09,	8.96670432174800E-10,	5.71936948464344E-14],
     # }
-    # Results from R2.0.0-pre
-    results = {
-        "Co-60m+":	[5.08746786932552e+03,	9.69014499692868e+01,	2.64477047705988e-38],
-        "Co-61":	[7.30866736559643e-09,	4.80170831653643e-09,	3.05646958051663e-13],
-        "Co-60":	[1.55056574647797e-01,	1.55054247452235e-01,	1.55000731593431e-01],
-        "Co-61":	[1.36478223029061e-09,	8.96645839472098e-10,	5.70749106813738e-14],
-    }
+    # Results from R2.1.0-pre, with halflife updated to NUBASE2020
+    results = [
+        ("Co-60m+", [5.08870610591228E+03,	9.57100873523175E+01,	1.95440969864725E-38]),
+        ("Co-61", [7.29613649387052E-09,	4.79211894136011E-09,	3.03056972241711E-13]),
+        ("Co-60", [1.54971558843742E-01,	1.54969234199432E-01,	1.54915777003567E-01]),
+        ("Co-61", [1.36558180150732E-09,	8.96917213990930E-10,	5.67216754320407E-14]),
+    ]
     #print(list(sample.activity.keys()))
     #print(" ".join(k for k in dir(list(sample.activity.keys())[0]) if k[0] != '_'))
     #print(list(sample.activity.keys())[0].__dict__)
-    for product, activity in sample.activity.items():
+    for k, (product, activity) in enumerate(sample.activity.items()):
         #print(product)
         #print(dir(product))
         # Uncomment to show new table values
-        activity_str = ",\t".join(f"{Ia:.14E}" for Ia in activity)
-        #print(f'        "{product.daughter}":\t[{activity_str}],')
-        assert product.daughter in results, f"Missing {product.daughter}"
-        # TODO: include duplicate decay paths in test, or identical daughters
+        #activity_str = ",\t".join(f"{Ia:.14E}" for Ia in activity)
+        #print(f'        ("{product.daughter}", [{activity_str}]),')
+        assert product.daughter == results[k][0], f"Expected {product.daughter} but got {results[k][0]}"
         # Test that results haven't changed since last update
-        if product.daughter != "Co-61":
-            assert np.allclose(results[product.daughter], activity, atol=0, rtol=1e-12)
+        assert np.allclose(results[k][1], activity, atol=0, rtol=1e-12)
 
     # 129-I has a long half-life (16 My) so any combination of exposure
     # fluence and mass that causes significant activation will yield a product
