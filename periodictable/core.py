@@ -62,11 +62,24 @@ __all__ = ['delayed_load', 'define_elements', 'get_data_path',
            'Ion', 'Isotope', 'Element', 'PeriodicTable',
            'isatom', 'iselement', 'isisotope', 'ision']
 
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Union, TypeVar
+from collections.abc import Sequence, Callable, Iterator
+
+if TYPE_CHECKING:
+    from .nsf import Neutron
+    from .activation import ActivationResult
+    from .xsf import Xray
+    from .magnetic_ff import MagneticFormFactor
+
 from . import constants
+
+Atom = Union["Element", "Isotope", "Ion"]
+AtomVar = TypeVar('AtomVar', bound=Atom)
 
 PUBLIC_TABLE_NAME = "public"
 
-def delayed_load(all_props, loader, element=True, isotope=False, ion=False):
+def delayed_load(all_props: Sequence[str], loader: Callable[[], None], element=True, isotope=False, ion=False):
     """
     Delayed loading of an element property table.  When any of property
     is first accessed the loader will be called to load the associated
@@ -208,7 +221,10 @@ class PeriodicTable:
            *nuclear* and *X-ray* scattering cross sections.
            See section :ref:`Adding properties <extending>` for details.
     """
-    def __init__(self, table):
+    properties: list[str]
+    """Properties loaded into the table"""
+
+    def __init__(self, table: str):
         # type: (str) -> None
         if table in PRIVATE_TABLES:
             raise ValueError("Periodic table '%s' is already defined"%table)
@@ -220,22 +236,23 @@ class PeriodicTable:
                               ions=tuple(sorted(ions+uncommon_ions)), table=table)
             self._element[element.number] = element
             setattr(self, symbol, element)
+            PeriodicTable.__annotations__[symbol] = Element
 
         # There are two specially named isotopes D and T
-        self.D = self.H.add_isotope(2)
+        self.D: Isotope = self.H.add_isotope(2)
         self.D.name = 'deuterium'
         self.D.symbol = 'D'
-        self.T = self.H.add_isotope(3)
+        self.T: Isotope = self.H.add_isotope(3)
         self.T.name = 'tritium'
         self.T.symbol = 'T'
 
-    def __getitem__(self, Z):
+    def __getitem__(self, Z: int) -> "Element":
         """
         Retrieve element Z.
         """
         return self._element[Z]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator["Element"]:
         """
         Process the elements in Z order
         """
@@ -245,7 +262,7 @@ class PeriodicTable:
         for _, el in elements[1:]:
             yield el
 
-    def symbol(self, input):
+    def symbol(self, input: str) -> "Element":
         """
         Lookup the an element in the periodic table using its symbol.  Symbols
         are included for 'D' and 'T', deuterium and tritium.
@@ -273,7 +290,7 @@ class PeriodicTable:
                 return value
         raise ValueError("unknown element "+input)
 
-    def name(self, input):
+    def name(self, input: str) -> "Element":
         """
         Lookup an element given its name.
 
@@ -303,7 +320,7 @@ class PeriodicTable:
             return self.T
         raise ValueError("unknown element "+input)
 
-    def isotope(self, input):
+    def isotope(self, input: str) -> Union["Element", "Isotope"]:
         """
         Lookup the element or isotope in the periodic table. Elements
         are assumed to be given by the standard element symbols. Isotopes
@@ -363,7 +380,7 @@ class PeriodicTable:
         # If we can't parse the string as an element or isotope, raise an error
         raise ValueError("unknown element "+input)
 
-    def list(self, *props, **kw):
+    def list(self, *props, **kw) -> None:
         """
         Print a list of elements with the given set of properties.
 
@@ -389,6 +406,7 @@ class PeriodicTable:
             ...
             Bk: 247.00 u  14.00 g/cm^3
         """
+        #TODO: accept template strings
         #TODO: override signature in sphinx with
         #    .. method:: list(prop1, prop2, ..., format='')
         format = kw.pop('format', None)
@@ -412,20 +430,65 @@ class PeriodicTable:
                 #    print "format", format, "args", L
                 #    raise
 
-class IonSet:
-    def __init__(self, element_or_isotope):
-        self.element_or_isotope = element_or_isotope
-        self.ionset = {}
-    def __getitem__(self, charge):
-        if charge not in self.ionset:
-            if charge not in self.element_or_isotope.ions:
-                raise ValueError("%(charge)d is not a valid charge for %(symbol)s"
-                                 % dict(charge=charge,
-                                        symbol=self.element_or_isotope.symbol))
-            self.ionset[charge] = Ion(self.element_or_isotope, charge)
-        return self.ionset[charge]
+class _AtomBase:
+    """
+    Attributes common to element, isotope and ion.
 
-class Ion:
+    This class is defined only for type hinting. Some of the attributes are accessible
+    as properties. Those not defined in isotope or ion are delegated to the base element
+    through attribute access magic.
+    """
+    # attributes delegated to Element class
+    table: str
+    name: str
+    symbol: str
+    number: int
+    ions: list[int]
+    ion: "IonSet" # TODO: could be IonSet["Element"] or IonSet["Isotope"]
+    charge: int # element (=0), isotope (delegate to element), ion (!= 0)
+
+    #element: Union["Element", "Isotope"] # ion or isotope
+
+    # mass.py
+    mass: float # element, isotope, ion
+    mass_units: str # element, isotope, ion
+    _mass_unc: float # Not yet official, but the data is loaded for some tables
+    #abundance: float  # isotope only
+    #abundance_units: str # isotope only
+
+    # covalent_radius.py
+    covalent_radius: float # element
+    covalent_radius_uncertainty: float # element
+    covalent_radius_units: str # element
+
+    # crystal_structure.py
+    crystal_structure: dict[str, Any]|None # element
+
+    # density.py
+    density: float
+    density_units: str
+    interatomic_distance: float
+    number_density: float
+    number_density_units: str
+    density_caveat: str|None
+
+    # nsf.py
+    neutron: "Neutron" # element and isotope
+
+    # activation.py
+    #neutron_activation: tuple["ActivationResult"]|None  # isotope only
+
+    # xsf.py
+    K_alpha: float|None # element
+    K_beta1: float|None # element
+    K_alpha_units: str # element
+    K_beta1_units: str # element
+    xray: "Xray" # element
+
+    # magnetic_ff.py
+    magnetic_ff: dict[int, "MagneticFormFactor"]|None # element
+
+class Ion(_AtomBase):
     """
     Periodic table entry for an individual ion.
 
@@ -434,20 +497,25 @@ class Ion:
     properties (*charge*). Properties not specific to the ion (i.e., *charge*)
     are retrieved from the associated element.
     """
+    element: Union["Element", "Isotope"]
+    # charge: int # inherited from _AtomBase
+
+    # TODO: abundance and activation need to be defined for charged isotopes.
+
     def __init__(self, element, charge):
         self.element = element
         self.charge = charge
     def __getattr__(self, attr):
         return getattr(self.element, attr)
     @property
-    def mass(self):
+    def mass(self) -> float:
         return getattr(self.element, 'mass') - constants.electron_mass*self.charge
-    def __str__(self):
+    def __str__(self) -> str:
         sign = '+' if self.charge > 0 else '-'
         value = '%d'%abs(self.charge) if abs(self.charge) > 1 else ''
         charge_str = '{'+value+sign+'}' if self.charge != 0 else ''
         return str(self.element)+charge_str
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self.element)+'.ion[%d]'%self.charge
     def __reduce__(self):
         try:
@@ -460,7 +528,24 @@ class Ion:
                                self.element.number,
                                self.charge)
 
-class Isotope:
+class IonSet:
+    element_or_isotope: Union["Element", "Isotope"]
+    ionset: dict[int, "Ion"]
+
+    def __init__(self, element_or_isotope: Union["Element", "Isotope"]):
+        self.element_or_isotope = element_or_isotope
+        self.ionset = {}
+
+    def __getitem__(self, charge: int) -> Ion:
+        if charge not in self.ionset:
+            if charge not in self.element_or_isotope.ions:
+                raise ValueError("%(charge)d is not a valid charge for %(symbol)s"
+                                 % dict(charge=charge,
+                                        symbol=self.element_or_isotope.symbol))
+            self.ionset[charge] = Ion(self.element_or_isotope, charge)
+        return self.ionset[charge]
+
+class Isotope(_AtomBase):
     """
     Periodic table entry for an individual isotope.
 
@@ -470,25 +555,35 @@ class Isotope:
     Properties not specific to the isotope (e.g., *x-ray scattering factors*)
     are retrieved from the associated element.
     """
+    element: "Element"
+    ion: IonSet # TODO: should be IonSet["Isotope"]
+
+    # mass.py
+    abundance: float  # isotope only
+    abundance_units: str # isotope only
+
+    # activation.py
+    neutron_activation: tuple["ActivationResult"]|None  # isotope only
+
     def __init__(self, element, isotope_number):
         self.element = element
         self.isotope = isotope_number
         self.ion = IonSet(self)
     def __getattr__(self, attr):
         return getattr(self.element, attr)
-    def __str__(self):
+    def __str__(self) -> str:
         # Deuterium and Tritium are special
         if 'symbol' in self.__dict__:
             return self.symbol
         return "%d-%s"%(self.isotope, self.element.symbol)
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s[%d]"%(self.element.symbol, self.isotope)
     def __reduce__(self):
         return _make_isotope, (self.element.table,
                                self.element.number,
                                self.isotope)
 
-class Element:
+class Element(_AtomBase):
     """
     Periodic table entry for an element.
 
@@ -496,13 +591,14 @@ class Element:
     Individual isotopes can be referenced as element[*isotope_number*].
     Individual ionization states can be referenced by element.ion[*charge*].
     """
-    table = PUBLIC_TABLE_NAME
-    charge = 0
+    table: str = PUBLIC_TABLE_NAME
+    charge: int = 0
+
     def __init__(self, name, symbol, Z, ions, table):
         self.name = name
         self.symbol = symbol
         self.number = Z
-        self._isotopes = {} # The actual isotopes
+        self._isotopes: dict[int, "Isotope"] = {} # The actual isotopes
         self.ions = ions
         self.ion = IonSet(self)
         # Remember the table name for pickle dump/load
@@ -510,12 +606,12 @@ class Element:
             self.table = table
 
     @property
-    def isotopes(self):
+    def isotopes(self) -> list[int]:
         """List of all isotopes"""
         # Note: may want to return the iterator rather than the list...
         return list(sorted(self._isotopes.keys()))
 
-    def add_isotope(self, number):
+    def add_isotope(self, number: int) -> "Isotope":
         """
         Add an isotope for the element.
 
@@ -529,13 +625,13 @@ class Element:
             self._isotopes[number] = Isotope(self, number)
         return self._isotopes[number]
 
-    def __getitem__(self, number):
+    def __getitem__(self, number: int) -> "Isotope":
         try:
             return self._isotopes[number]
         except KeyError:
             raise KeyError("%s is not an isotope of %s"%(number, self.symbol))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator["Isotope"]:
         """
         Process the isotopes in order
         """
@@ -546,34 +642,33 @@ class Element:
     # that lists of elements print nicely.  Since elements are
     # effectively singletons, the symbol name is the representation
     # of the instance.
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.symbol
 
     def __reduce__(self):
         return _make_element, (self.table, self.number)
 
-def isatom(val):
+def isatom(val: Any) -> bool:
     """Return true if value is an element, isotope or ion"""
     return isinstance(val, (Element, Isotope, Ion))
 
-def isisotope(val):
+def isisotope(val: Any) -> bool:
     """Return true if value is an isotope or isotope ion."""
     if ision(val):
         val = val.element
     return isinstance(val, Isotope)
 
-def ision(val):
+def ision(val: Any) -> bool:
     """Return true if value is a specific ion of an element or isotope"""
     return isinstance(val, Ion)
 
-def iselement(val):
+def iselement(val: Any) -> bool:
     """Return true if value is an element or ion in natural abundance"""
     if ision(val):
         val = val.element
     return isinstance(val, Element)
 
-def change_table(atom, table):
-    # type: (Union[Element,Isotope,Ion])
+def change_table[T: AtomVar](atom: T, table: str) -> T:
     """Search for the same element, isotope or ion from a different table"""
     if ision(atom):
         if isisotope(atom):
@@ -587,19 +682,19 @@ def change_table(atom, table):
             return table[atom.number]
 
 PRIVATE_TABLES = {}
-def _get_table(name):
+def _get_table(name: str) -> PeriodicTable:
     try:
         return PRIVATE_TABLES[name]
     except KeyError:
         raise ValueError("Periodic table '%s' is not initialized"%name)
 
-def _make_element(table, Z):
+def _make_element(table: str, Z: int) -> Element:
     return _get_table(table)[Z]
-def _make_isotope(table, Z, n):
+def _make_isotope(table: str, Z: int, n: int) -> Isotope:
     return _get_table(table)[Z][n]
-def _make_ion(table, Z, c):
+def _make_ion(table: str, Z: int, c: int) -> Ion:
     return _get_table(table)[Z].ion[c]
-def _make_isotope_ion(table, Z, n, c):
+def _make_isotope_ion(table: str, Z: int, n: int, c: int) -> Ion:
     return _get_table(table)[Z][n].ion[c]
 
 
@@ -729,7 +824,7 @@ element_base = {
 }
 # pylint: enable=bad-whitespace
 
-def default_table(table=None):
+def default_table(table: PeriodicTable|None=None) -> PeriodicTable:
     """
     Return the default table unless a specific table has been requested.
 
@@ -741,7 +836,7 @@ def default_table(table=None):
     """
     return table if table is not None else PUBLIC_TABLE
 
-def define_elements(table, namespace):
+def define_elements(table: PeriodicTable, namespace: dict[str, Any]) -> list[str]:
     """
     Define external variables for each element in namespace. Elements
     are defined both by name and by symbol.
@@ -779,7 +874,7 @@ def define_elements(table, namespace):
     return list(names.keys())
 
 
-def get_data_path(data):
+def get_data_path(data: Path|str) -> str:
     """
     Locate the directory for the tables for the named extension.
 
@@ -823,4 +918,4 @@ def get_data_path(data):
 
 # Make a common copy of the table for everyone to use --- equivalent to
 # a singleton without incurring any complexity.
-PUBLIC_TABLE = PeriodicTable(PUBLIC_TABLE_NAME)
+PUBLIC_TABLE: PeriodicTable = PeriodicTable(PUBLIC_TABLE_NAME)

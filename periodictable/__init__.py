@@ -77,6 +77,126 @@ mass.init(elements)
 density.init(elements)
 del mass, density
 
+# For type hinting with vscode we need an explicit list of elements.
+hydrogen = H = elements.symbol("H")
+helium = He = elements.symbol("He")
+lithium = Li = elements.symbol("Li")
+beryllium = Be = elements.symbol("Be")
+boron = B = elements.symbol("B")
+carbon = C = elements.symbol("C")
+nitrogen = N = elements.symbol("N")
+oxygen = O = elements.symbol("O")
+fluorine = F = elements.symbol("F")
+neon = Ne = elements.symbol("Ne")
+sodium = Na = elements.symbol("Na")
+magnesium = Mg = elements.symbol("Mg")
+aluminum = Al = elements.symbol("Al")
+silicon = Si = elements.symbol("Si")
+phosphorus = P = elements.symbol("P")
+sulfur = S = elements.symbol("S")
+chlorine = Cl = elements.symbol("Cl")
+argon = Ar = elements.symbol("Ar")
+potassium = K = elements.symbol("K")
+calcium = Ca = elements.symbol("Ca")
+scandium = Sc = elements.symbol("Sc")
+titanium = Ti = elements.symbol("Ti")
+vanadium = V = elements.symbol("V")
+chromium = Cr = elements.symbol("Cr")
+manganese = Mn = elements.symbol("Mn")
+iron = Fe = elements.symbol("Fe")
+cobalt = Co = elements.symbol("Co")
+nickel = Ni = elements.symbol("Ni")
+copper = Cu = elements.symbol("Cu")
+zinc = Zn = elements.symbol("Zn")
+gallium = Ga = elements.symbol("Ga")
+germanium = Ge = elements.symbol("Ge")
+arsenic = As = elements.symbol("As")
+selenium = Se = elements.symbol("Se")
+bromine = Br = elements.symbol("Br")
+krypton = Kr = elements.symbol("Kr")
+rubidium = Rb = elements.symbol("Rb")
+strontium = Sr = elements.symbol("Sr")
+yttrium = Y = elements.symbol("Y")
+zirconium = Zr = elements.symbol("Zr")
+niobium = Nb = elements.symbol("Nb")
+molybdenum = Mo = elements.symbol("Mo")
+technetium = Tc = elements.symbol("Tc")
+ruthenium = Ru = elements.symbol("Ru")
+rhodium = Rh = elements.symbol("Rh")
+palladium = Pd = elements.symbol("Pd")
+silver = Ag = elements.symbol("Ag")
+cadmium = Cd = elements.symbol("Cd")
+indium = In = elements.symbol("In")
+tin = Sn = elements.symbol("Sn")
+antimony = Sb = elements.symbol("Sb")
+tellurium = Te = elements.symbol("Te")
+iodine = I = elements.symbol("I")
+xenon = Xe = elements.symbol("Xe")
+cesium = Cs = elements.symbol("Cs")
+barium = Ba = elements.symbol("Ba")
+lanthanum = La = elements.symbol("La")
+cerium = Ce = elements.symbol("Ce")
+praseodymium = Pr = elements.symbol("Pr")
+neodymium = Nd = elements.symbol("Nd")
+promethium = Pm = elements.symbol("Pm")
+samarium = Sm = elements.symbol("Sm")
+europium = Eu = elements.symbol("Eu")
+gadolinium = Gd = elements.symbol("Gd")
+terbium = Tb = elements.symbol("Tb")
+dysprosium = Dy = elements.symbol("Dy")
+holmium = Ho = elements.symbol("Ho")
+erbium = Er = elements.symbol("Er")
+thulium = Tm = elements.symbol("Tm")
+ytterbium = Yb = elements.symbol("Yb")
+lutetium = Lu = elements.symbol("Lu")
+hafnium = Hf = elements.symbol("Hf")
+tantalum = Ta = elements.symbol("Ta")
+tungsten = W = elements.symbol("W")
+rhenium = Re = elements.symbol("Re")
+osmium = Os = elements.symbol("Os")
+iridium = Ir = elements.symbol("Ir")
+platinum = Pt = elements.symbol("Pt")
+gold = Au = elements.symbol("Au")
+mercury = Hg = elements.symbol("Hg")
+thallium = Tl = elements.symbol("Tl")
+lead = Pb = elements.symbol("Pb")
+bismuth = Bi = elements.symbol("Bi")
+polonium = Po = elements.symbol("Po")
+astatine = At = elements.symbol("At")
+radon = Rn = elements.symbol("Rn")
+francium = Fr = elements.symbol("Fr")
+radium = Ra = elements.symbol("Ra")
+actinium = Ac = elements.symbol("Ac")
+thorium = Th = elements.symbol("Th")
+protactinium = Pa = elements.symbol("Pa")
+uranium = U = elements.symbol("U")
+neptunium = Np = elements.symbol("Np")
+plutonium = Pu = elements.symbol("Pu")
+americium = Am = elements.symbol("Am")
+curium = Cm = elements.symbol("Cm")
+berkelium = Bk = elements.symbol("Bk")
+californium = Cf = elements.symbol("Cf")
+einsteinium = Es = elements.symbol("Es")
+fermium = Fm = elements.symbol("Fm")
+mendelevium = Md = elements.symbol("Md")
+nobelium = No = elements.symbol("No")
+lawrencium = Lr = elements.symbol("Lr")
+rutherfordium = Rf = elements.symbol("Rf")
+dubnium = Db = elements.symbol("Db")
+seaborgium = Sg = elements.symbol("Sg")
+bohrium = Bh = elements.symbol("Bh")
+hassium = Hs = elements.symbol("Hs")
+meitnerium = Mt = elements.symbol("Mt")
+darmstadtium = Ds = elements.symbol("Ds")
+roentgenium = Rg = elements.symbol("Rg")
+copernicium = Cn = elements.symbol("Cn")
+nihonium = Nh = elements.symbol("Nh")
+flerovium = Fl = elements.symbol("Fl")
+moscovium = Mc = elements.symbol("Mc")
+livermorium = Lv = elements.symbol("Lv")
+tennessine = Ts = elements.symbol("Ts")
+oganesson = Og = elements.symbol("Og")
+
 # Add element name and symbol (e.g. nickel and Ni) to the public attributes.
 __all__ += core.define_elements(elements, globals())
 
@@ -91,6 +211,7 @@ core.delayed_load(['covalent_radius',
                    'covalent_radius_units',
                    'covalent_radius_uncertainty'],
                   _load_covalent_radius)
+del _load_covalent_radius
 
 def _load_crystal_structure():
     """
@@ -102,6 +223,7 @@ def _load_crystal_structure():
     from . import crystal_structure
     crystal_structure.init(elements)
 core.delayed_load(['crystal_structure'], _load_crystal_structure)
+del _load_crystal_structure
 
 def _load_neutron():
     """
@@ -114,6 +236,7 @@ def _load_neutron():
     from . import nsf
     nsf.init(elements)
 core.delayed_load(['neutron'], _load_neutron, isotope=True)
+del _load_neutron
 
 def _load_neutron_activation():
     """
@@ -127,6 +250,7 @@ def _load_neutron_activation():
     activation.init(elements)
 core.delayed_load(['neutron_activation'], _load_neutron_activation,
                   element=False, isotope=True)
+del _load_neutron_activation
 
 def _load_xray():
     """
@@ -138,6 +262,7 @@ def _load_xray():
     from . import xsf
     xsf.init(elements)
 core.delayed_load(['xray'], _load_xray, ion=True)
+del _load_xray
 
 def _load_emission_lines():
     """
@@ -149,6 +274,7 @@ def _load_emission_lines():
     xsf.init_spectral_lines(elements)
 core.delayed_load(['K_alpha', 'K_beta1', 'K_alpha_units', 'K_beta1_units'],
                   _load_emission_lines)
+del _load_emission_lines
 
 def _load_magnetic_ff():
     """
@@ -161,6 +287,7 @@ def _load_magnetic_ff():
     from . import magnetic_ff
     magnetic_ff.init(elements)
 core.delayed_load(['magnetic_ff'], _load_magnetic_ff)
+del _load_magnetic_ff
 
 
 # Data needed for setup.py when bundling the package into an exe
@@ -173,9 +300,11 @@ def data_files():
     """
     import os
     import glob
+    from .core import get_data_path
+
     def _finddata(ext, patterns):
         files = []
-        path = core.get_data_path(ext)
+        path = get_data_path(ext)
         for p in patterns:
             files += glob.glob(os.path.join(path, p))
         return files

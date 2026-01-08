@@ -45,11 +45,12 @@ __id__ = "$Id: cromermann.py 1051 2010-01-30 01:01:43Z juhas $"
 import os
 
 import numpy
+from numpy.typing import ArrayLike
 
 from . import core
 
 
-def getCMformula(symbol):
+def getCMformula(symbol: str) -> "CromerMannFormula":
     """
     Obtain Cromer-Mann formula and coefficients for a specified element.
 
@@ -63,7 +64,7 @@ def getCMformula(symbol):
     return _cmformulas[symbol]
 
 
-def fxrayatq(symbol, Q, charge=None):
+def fxrayatq(symbol: str, Q: ArrayLike, charge: int=None) -> ArrayLike:
     """
     Return x-ray scattering factors of an element at a given Q.
 
@@ -81,7 +82,7 @@ def fxrayatq(symbol, Q, charge=None):
     return rv
 
 
-def fxrayatstol(symbol, stol, charge=None):
+def fxrayatstol(symbol: str, stol: ArrayLike, charge: int=None) -> ArrayLike:
     """
     Calculate x-ray scattering factors at specified sin(theta)/lambda
 
@@ -135,7 +136,11 @@ class CromerMannFormula:
     # obtained from tables/f0_WaasKirf.dat and the associated reference
     # D. Waasmaier, A. Kirfel, Acta Cryst. (1995). A51, 416-413
     # http://dx.doi.org/10.1107/S0108767394013292
-    stollimit = 6
+    stollimit: float = 6
+    a: numpy.ndarray
+    b: numpy.ndarray
+    c: float
+    symbol: str
 
     def __init__(self, symbol, a, b, c):
         """
@@ -148,7 +153,7 @@ class CromerMannFormula:
         self.b = numpy.asarray(b, dtype=float)
         self.c = float(c)
 
-    def atstol(self, stol):
+    def atstol(self, stol: ArrayLike) -> ArrayLike:
         """
         Calculate x-ray scattering factors at specified sin(theta)/lambda
 
@@ -173,7 +178,7 @@ class CromerMannFormula:
 # class CromerMannFormula
 
 
-def _update_cmformulas():
+def _update_cmformulas() -> None:
     """
     Update the static dictionary of CromerMannFormula instances.
     """
@@ -200,6 +205,6 @@ def _update_cmformulas():
                 _cmformulas[cmf.symbol] = cmf
                 symbol = None
 
-_cmformulas = {}
+_cmformulas: dict[str, CromerMannFormula] = {}
 
 # End of file

@@ -70,15 +70,19 @@ https://doi.org/10.1007/3-540-29111-3_1
 of DNA of mammals. Biochem Genet 4, 367–376. https://doi.org/10.1007/BF00485753
 """
 import warnings
+from pathlib import Path
+# Warning: name clash with Sequence
+from collections.abc import Iterator
+from typing import IO
 
-from .formulas import formula as parse_formula
+from .formulas import formula as parse_formula, Formula, FormulaInput
 from .nsf import neutron_sld
 from .xsf import xray_sld
-from .core import default_table
+from .core import default_table, Atom
 from .constants import avogadro_number
 
 # CRUFT 1.5.2: retaining fasta.isotope_substitution for compatibility
-def isotope_substitution(formula, source, target, portion=1):
+def isotope_substitution(formula: Formula, source: Atom, target: Atom, portion: float=1):
     """
     Substitute one atom/isotope in a formula with another in some proportion.
 
@@ -147,7 +151,26 @@ class Molecule:
     Change 1.5.3: drop *Hmass* and *Hsld*. Move *formula* to *labile_formula*.
     Move *Hnatural* to *formula*.
     """
-    def __init__(self, name, formula, cell_volume=None, density=None, charge=0):
+    name: str
+    cell_volume: float
+    sld: float
+    Dsld: float
+    mass: float
+    Dmass: float
+    D2Omatch: float
+    charge: int
+    natural_formula: Formula
+    labile_formula: Formula
+    formula: Formula
+
+    def __init__(
+            self,
+            name: str,
+            formula: FormulaInput,
+            cell_volume: float|None=None,
+            density: float|None=None,
+            charge: int=0,
+            ):
         # TODO: fasta does not work with table substitution
         elements = default_table()
 
@@ -181,7 +204,8 @@ class Molecule:
         # with sld and mass, which are computed with H-substitution.
         self.formula = self.labile_formula
 
-    def D2Osld(self, volume_fraction=1., D2O_fraction=0.):
+    # TODO: are sld values float or complex?
+    def D2Osld(self, volume_fraction: float=1., D2O_fraction: float=0.) -> float:
         """
         Neutron SLD of the molecule in a deuterated solvent.
 
@@ -207,8 +231,10 @@ class Sequence(Molecule):
 
     Note: rna sequence files treat T as U and dna sequence files treat U as T.
     """
+    sequence: str
+
     @staticmethod
-    def loadall(filename, type=None):
+    def loadall(filename: Path|str, type: str=None) -> Iterator["Sequence"]:
         """
         Iterate over sequences in FASTA file, loading each in turn.
 
@@ -220,7 +246,7 @@ class Sequence(Molecule):
                 yield Sequence(name, seq, type=type)
 
     @staticmethod
-    def load(filename, type=None):
+    def load(filename: Path|str, type=None) -> "Sequence":
         """
         Load the first FASTA sequence from a file.
         """
@@ -229,7 +255,7 @@ class Sequence(Molecule):
             name, seq = next(read_fasta(fh))
             return Sequence(name, seq, type=type)
 
-    def __init__(self, name, sequence, type='aa'):
+    def __init__(self, name: str, sequence: str, type: str='aa'):
         # TODO: duplicated in Molecule.__init__
         # TODO: fasta does not work with table substitution
         elements = default_table()
@@ -251,7 +277,7 @@ class Sequence(Molecule):
             self, name, formula, cell_volume=cell_volume, charge=charge)
         self.sequence = sequence
 
-def _guess_type_from_filename(filename, type):
+def _guess_type_from_filename(filename: str, type: str) -> str:
     if type is None:
         if filename.endswith('.fna'):
             type = 'dna'
@@ -271,7 +297,7 @@ H2O_SLD = neutron_sld("H2O@0.9982n")[0]
 #: real portion of D2O sld at 20 C
 #: Change 1.5.2: Use correct density in SLD calculation
 D2O_SLD = neutron_sld("D2O@0.9982n")[0]
-def D2Omatch(Hsld, Dsld):
+def D2Omatch(Hsld: float, Dsld: float) -> float:
     """
     Find the D2O% concentration of solvent such that neutron SLD of the
     material matches the neutron SLD of the solvent.
@@ -298,7 +324,7 @@ def D2Omatch(Hsld, Dsld):
     return 100 * (H2O_SLD - Hsld) / (Dsld - Hsld + H2O_SLD - D2O_SLD)
 
 
-def read_fasta(fp):
+def read_fasta(fp: IO[str]) -> Iterator[str]:
     """
     Iterate over the sequences in a FASTA file.
 
@@ -319,7 +345,7 @@ def read_fasta(fp):
         yield (name, ''.join(seq))
 
 
-def _code_average(bases, code_table):
+def _code_average(bases, code_table) -> tuple[Formula, float, int]:
     """
     Compute average over possible nucleotides, assuming equal weight if
     precise nucleotide is not known
@@ -335,7 +361,10 @@ def _code_average(bases, code_table):
         formula, cell_volume, charge = (1/n) * formula, cell_volume/n, charge/n
     return formula, cell_volume, charge
 
-def _set_amino_acid_average(target, codes, name=None):
+def _set_amino_acid_average(target: str, codes: str, name: str=None) -> None:
+    """
+    Fill in partial unknowns for amino acids, such as "B" for aspartic acid or asparagine.
+    """
     formula, cell_volume, charge = _code_average(codes, AMINO_ACID_CODES)
     if name is None:
         name = "/".join(AMINO_ACID_CODES[c].name for c in codes)
@@ -347,7 +376,7 @@ def _set_amino_acid_average(target, codes, name=None):
 # Further, this does not allow private tables for fasta calculations.
 
 # FASTA code table
-def _(code, V, formula, name):
+def _(code: str, V: float, formula: str, name: str) -> tuple[str, Molecule]:
     if formula[-1] == '-':
         charge = -1
         formula = formula[:-1]
@@ -361,7 +390,7 @@ def _(code, V, formula, name):
     return code, molecule
 
 # pylint: disable=bad-whitespace
-AMINO_ACID_CODES = dict((
+AMINO_ACID_CODES: dict[str, Molecule] = dict((
     #code, volume, formula,        name
     _("A",  91.5, "C3H4H[1]NO",    "alanine"),
     #B: D or N
@@ -399,10 +428,10 @@ _set_amino_acid_average('-', '', name='gap')
 __doc__ += "\n\n*AMINO_ACID_CODES*::\n\n    " + "\n    ".join(
     "%s: %s"%(k, v.name) for k, v in sorted(AMINO_ACID_CODES.items()))
 
-def _(formula, V, name):
+def _(formula: str, V: float, name: str) -> tuple[str, Molecule]:
     molecule = Molecule(name, formula, cell_volume=V)
     return name, molecule
-NUCLEIC_ACID_COMPONENTS = dict((
+NUCLEIC_ACID_COMPONENTS: dict[str, Molecule] = dict((
     # formula, volume, name
     _("NaPO3",      60, "phosphate"),
     _("C5H6H[1]O3",   125, "ribose"),
@@ -416,7 +445,7 @@ NUCLEIC_ACID_COMPONENTS = dict((
 __doc__ += "\n\n*NUCLEIC_ACID_COMPONENTS*::\n\n  " + "\n  ".join(
     "%s: %s"%(k, v.formula) for k, v in sorted(NUCLEIC_ACID_COMPONENTS.items()))
 
-CARBOHYDRATE_RESIDUES = dict((
+CARBOHYDRATE_RESIDUES: dict[str: Molecule] = dict((
     # formula, volume, name
     _("C6H7H[1]3O5",    171.9, "Glc"),
     _("C6H7H[1]3O5",    166.8, "Gal"),
@@ -434,7 +463,7 @@ CARBOHYDRATE_RESIDUES = dict((
 __doc__ += "\n\n*CARBOHYDRATE_RESIDUES*::\n\n  " + "\n  ".join(
     "%s: %s"%(k, v.formula) for k, v in sorted(CARBOHYDRATE_RESIDUES.items()))
 
-LIPIDS = dict((
+LIPIDS: dict[str, Molecule] = dict((
     # formula, volume, name
     _("CH2", 27, "methylene"),
     _("CD2", 27, "methylene-D"),
@@ -451,7 +480,7 @@ LIPIDS = dict((
 __doc__ += "\n\n*LIPIDS*::\n\n  " + "\n  ".join(
     "%s: %s"%(k, v.formula) for k, v in sorted(LIPIDS.items()))
 
-def _(code, formula, V, name):
+def _(code: str, formula: str, V: float, name: str) -> tuple[str, Molecule]:
     """
     Convert RNA/DNA table values into Molecule.
 
@@ -467,7 +496,7 @@ def _(code, formula, V, name):
     molecule = Molecule(name, formula, cell_volume=cell_volume)
     molecule.code = code
     return code, molecule
-RNA_BASES = dict((
+RNA_BASES: dict[str, Molecule] = dict((
     # code, formula, volume (mL/mol), name
     _("A",  "C10H8H[1]3N5O6P", 170.8, "adenosine"),
     _("T",   "C9H8H[1]2N2O8P", 151.7, "uridine"), # Use H[1] for U in RNA
@@ -477,7 +506,7 @@ RNA_BASES = dict((
 __doc__ += "\n\n*RNA_BASES*::\n\n  " + "\n  ".join(
     "%s:%s"%(k, v.name) for k, v in sorted(RNA_BASES.items()))
 
-DNA_BASES = dict((
+DNA_BASES: dict[str, Molecule] = dict((
     # code, formula, volume (mL/mol), name
     _("A",  "C10H9H[1]2N5O5P", 169.8, "adenosine"),
     _("T", "C10H11H[1]1N2O7P", 167.6, "thymidine"),
@@ -487,7 +516,7 @@ DNA_BASES = dict((
 __doc__ += "\n\n*DNA_BASES*::\n\n  " + "\n  ".join(
     "%s:%s"%(k, v.name) for k, v in sorted(DNA_BASES.items()))
 
-def _(code, bases, name):
+def _(code: str, bases: str, name: str) -> tuple[tuple[str,Molecule], tuple[str,Molecule]]:
     D, V, _ = _code_average(bases, RNA_BASES)
     rna = Molecule(name, D.hill, cell_volume=V)
     rna.code = code
@@ -495,6 +524,7 @@ def _(code, bases, name):
     dna = Molecule(name, D.hill, cell_volume=V)
     rna.code = code
     return (code,rna), (code,dna)
+# TODO: define types for the RNA and DNA code dictionaries.
 RNA_CODES,DNA_CODES = [dict(v) for v in zip(
     #code, nucleotides,  name
     _("A", "A",    "adenosine"),
@@ -519,13 +549,13 @@ RNA_CODES,DNA_CODES = [dict(v) for v in zip(
 # pylint: enable=bad-whitespace
 
 
-CODE_TABLES = {
+CODE_TABLES: dict[str, dict[str, Molecule]] = {
     'aa': AMINO_ACID_CODES,
     'dna': DNA_CODES,
     'rna': RNA_CODES,
 }
 
-def fasta_table():
+def fasta_table() -> None:
     elements = default_table()
 
     rows = []

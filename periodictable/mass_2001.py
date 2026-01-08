@@ -55,11 +55,11 @@ http://physics.nist.gov/cuu/index.html
        and High-Energy Physics, Amsterdam, The Netherlands.
 """
 
-from .core import Element, Isotope
+from .core import Element, Isotope, PeriodicTable
 from .mass import mass, abundance
 from .util import parse_uncertainty
 
-def init(table, reload=False):
+def init(table: PeriodicTable, reload: bool=False) -> None:
     """Add mass attribute to period table elements and isotopes"""
     if 'mass' in table.properties and not reload:
         return

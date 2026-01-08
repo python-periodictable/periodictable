@@ -188,10 +188,12 @@ The following newer measurements from the literature are included:
 
 import numpy as np
 from numpy import sqrt, pi, asarray, inf
-from .core import Element, Isotope, default_table
+from numpy.typing import NDArray, ArrayLike
+from .core import Element, Isotope, PeriodicTable, default_table
 from .constants import (avogadro_number, planck_constant, electron_volt,
                         neutron_mass, atomic_mass_constant)
-from .util import parse_uncertainty
+
+DoubleArray = NDArray[np.float64]
 
 __all__ = ['init', 'Neutron',
            'neutron_energy', 'neutron_wavelength',
@@ -223,7 +225,7 @@ ENERGY_FACTOR = (
 VELOCITY_FACTOR = (
     1e10 * planck_constant / (neutron_mass * atomic_mass_constant))
 
-def neutron_wavelength(energy):
+def neutron_wavelength(energy: ArrayLike) -> NDArray:
     r"""
     Convert neutron energy to wavelength.
 
@@ -249,7 +251,8 @@ def neutron_wavelength(energy):
     """
     return sqrt(ENERGY_FACTOR / asarray(energy))
 
-def neutron_wavelength_from_velocity(velocity):
+# TODO: why is neutron_wavelength_from_velocity not using asarray() ?
+def neutron_wavelength_from_velocity(velocity: float) -> float:
     r"""
     Convert neutron velocity to wavelength.
 
@@ -273,7 +276,7 @@ def neutron_wavelength_from_velocity(velocity):
     """
     return VELOCITY_FACTOR / velocity
 
-def neutron_energy(wavelength):
+def neutron_energy(wavelength: ArrayLike) -> NDArray:
     r"""
     Convert neutron wavelength to energy.
 
@@ -419,44 +422,45 @@ class Neutron:
 
     .. Note:: 1 barn = 100 |fm^2|
     """
-    b_c = None
-    b_c_units = "fm"
-    b_c_i = None
-    b_c_i_units = "fm"
-    b_c_complex = None
-    b_c_complex_units = "fm"
-    bp = None
-    bp_i = None
-    bp_units = "fm"
-    bm = None
-    bm_i = None
-    bm_units = "fm"
-    coherent = None
-    coherent_units = "barn"
-    incoherent = None
-    incoherent_units = "barn"
-    total = None
-    total_units = "barn"
-    absorption = None
-    absorption_units = "barn"
-    abundance = 0.
-    abundance_units = "%"
-    is_energy_dependent = False
-    nsf_table = None
+    b_c: float|None = None
+    b_c_units: str = "fm"
+    b_c_i: float|None = None
+    b_c_i_units: str = "fm"
+    b_c_complex: complex|None = None
+    b_c_complex_units: str = "fm"
+    bp: float|None = None
+    bp_i: float|None = None
+    bp_units: str = "fm"
+    bm: float|None = None
+    bm_i: float|None = None
+    bm_units: str = "fm"
+    coherent: float|None = None
+    coherent_units: str = "barn"
+    incoherent: float|None = None
+    incoherent_units: str = "barn"
+    total: float|None = None
+    total_units: str = "barn"
+    absorption: float|None = None
+    absorption_units: str = "barn"
+    abundance: float = 0.
+    abundance_units: str = "%"
+    is_energy_dependent: bool = False
+    nsf_table: tuple[DoubleArray, DoubleArray]|None = None
+
     def __init__(self):
         self._number_density = None
-    def __str__(self):
+    def __str__(self) -> str:
         return ("b_c=%.3g coh=%.3g inc=%.3g abs=%.3g"
                 % (self.b_c, self.coherent, self.incoherent, self.absorption))
 
-    def has_sld(self):
+    def has_sld(self) -> bool:
         """Returns *True* if sld is defined for this element/isotope."""
         # TODO: use NaN for missing information
         #return np.isnan(self.b_c * self._number_density)
         return self.b_c is not None and self._number_density is not None
 
     # PAK 2021-04-05: allow energy dependent b_c
-    def scattering_by_wavelength(self, wavelength):
+    def scattering_by_wavelength(self, wavelength: ArrayLike) -> tuple[NDArray, NDArray]:
         r"""
         Return scattering length and total cross section for each wavelength.
 
@@ -486,7 +490,7 @@ class Neutron:
         sigma_s = _4PI_100*abs(b_c)**2 # 1 barn = 1 fm^2 1e-2 barn/fm^2
         return b_c, sigma_s
 
-    def sld(self, *, wavelength=ABSORPTION_WAVELENGTH):
+    def sld(self, *, wavelength: ArrayLike=ABSORPTION_WAVELENGTH) -> NDArray:
         r"""
         Returns scattering length density for the element at natural
         abundance and density.
@@ -507,7 +511,7 @@ class Neutron:
             return None, None, None
         return self.scattering(wavelength=wavelength)[0]
 
-    def scattering(self, *, wavelength=ABSORPTION_WAVELENGTH):
+    def scattering(self, *, wavelength: ArrayLike=ABSORPTION_WAVELENGTH) -> tuple[NDArray, NDArray, NDArray]:
         r"""
         Returns neutron scattering information for the element at natural
         abundance and density.
@@ -540,7 +544,7 @@ class Neutron:
         b_c, sigma_s = self.scattering_by_wavelength(wavelength)
         return _calculate_scattering(number_density, wavelength, b_c, sigma_s)
 
-def energy_dependent_init(table):
+def energy_dependent_init(table: PeriodicTable) -> None:
     from .nsf_tables import ENERGY_DEPENDENT_TABLES
 
     for (el_name, iso_num), values in ENERGY_DEPENDENT_TABLES.items():
@@ -562,7 +566,7 @@ def energy_dependent_init(table):
     table.Lu.neutron.nsf_table = wavelength, bc_nat
     #table.Lu.neutron.total = 0.  # zap total cross section
 
-def init(table, reload=False):
+def init(table: PeriodicTable, reload: bool=False) -> None:
     """
     Loads the Rauch table from the neutron data book.
     """
@@ -663,9 +667,18 @@ def init(table, reload=False):
 # TODO: split incoherent into spin and isotope incoherence (eq 17-19 of Sears)
 # TODO: require parsed compound rather than including formula() keywords in api
 # Note: docs and function prototype are reproduced in __init__
-def neutron_scattering(compound, *, density=None,
-                       wavelength=None, energy=None,
-                       natural_density=None, table=None):
+# CRUFT: deprecated circular import with periodictable.formulas
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .formulas import FormulaInput
+def neutron_scattering(
+        compound: "FormulaInput", *,
+        density: float|None=None,
+        wavelength: ArrayLike|None=None,
+        energy: ArrayLike|None=None,
+        natural_density: float|None=None,
+        table: PeriodicTable|None=None,
+        ) -> tuple[NDArray, NDArray, NDArray]:
     r"""
     Computes neutron scattering cross sections for molecules.
 
@@ -907,8 +920,8 @@ def neutron_scattering(compound, *, density=None,
         t_u\,({\rm cm}) &= 1/(\Sigma_{\rm s}\, 1/{\rm cm}
             \,+\, \Sigma_{\rm abs}\, 1/{\rm cm})
     """
-
     from . import formulas
+
     compound = formulas.formula(
         compound, density=density, natural_density=natural_density, table=table)
     assert compound.density is not None, "scattering calculation needs density"

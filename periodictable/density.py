@@ -41,10 +41,10 @@ Data were taken mostly from [#Lide1999]_. These values are reproduced in [#ILL]_
 .. [#ILL] The ILL Neutron Data Booklet, Second Edition.
 """
 
-from .core import Element, Isotope
+from .core import Element, Isotope, Atom, PeriodicTable
 from .constants import avogadro_number
 
-def density(iso_el):
+def density(iso_el: Atom) -> float:
 
     """
     Element density for natural abundance. For isotopes, return
@@ -68,7 +68,7 @@ def density(iso_el):
         return iso_el.element._density * (iso_el.mass/iso_el.element.mass)
     return iso_el._density
 
-def interatomic_distance(element):
+def interatomic_distance(element: Atom) -> float:
     r"""
     Estimated interatomic distance from atomic weight and density. The
     distance between isotopes is assumed to match that between atoms in
@@ -105,7 +105,7 @@ def interatomic_distance(element):
         return None
     return (element.mass/(element.density*avogadro_number*1e-24))**(1./3.)
 
-def number_density(element):
+def number_density(element: Atom) -> float:
     r"""
     Estimate the number density from atomic weight and density. The density
     for isotopes is assumed to match that of between atoms in natural abundance.
@@ -138,7 +138,7 @@ def number_density(element):
         return None
     return (element.density/element.mass)*avogadro_number
 
-def init(table, reload=False):
+def init(table: PeriodicTable, reload: bool=False) -> None:
     if 'density' in table.properties and not reload:
         return
     table.properties.append('density')

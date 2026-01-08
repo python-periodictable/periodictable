@@ -61,10 +61,10 @@ but they are not yet part of the public interface.
     materials (IUPAC Technical Report). Pure and Applied Chemistry, 93(1), 155-166.
     https://doi.org/10.1515/pac-2018-0916
 """
-from .core import Element, Isotope, default_table
+from .core import Element, Isotope, PeriodicTable, default_table
 from .util import parse_uncertainty
 
-def mass(isotope):
+def mass(isotope: Element|Isotope) -> float:
     """
     Atomic weight.
 
@@ -77,7 +77,7 @@ def mass(isotope):
     """
     return isotope._mass
 
-def abundance(isotope):
+def abundance(isotope: Element|Isotope) -> float:
     """
     Natural abundance.
 
@@ -89,7 +89,7 @@ def abundance(isotope):
     """
     return isotope._abundance
 
-def init(table, reload=False):
+def init(table: PeriodicTable, reload: bool=False) -> None:
     """Add mass attribute to period table elements and isotopes"""
     if 'mass' in table.properties and not reload:
         return
@@ -182,7 +182,7 @@ def init(table, reload=False):
     #print(f"Li6:Li7 ratio changed from {Li_ratio:.1f} to {new_Li_ratio:.1f}")
 
 
-def print_natural_mass(table=None):
+def print_natural_mass(table: PeriodicTable|None=None) -> None:
     from uncertainties import ufloat as U
     table = default_table(table)
     for el in table:
@@ -201,7 +201,7 @@ def print_natural_mass(table=None):
             #print(f"{el.number}-{el}: {delta:fS}")
             #print("%d-%s: %s (from sum: %s)"%(el.number, el, str(el_mass), str(iso_sum)))
 
-def print_abundance(table=None):
+def print_abundance(table: PeriodicTable|None=None) -> None:
     table = default_table(table)
     for el in table:
         abundance = ["%8s %g"%(iso, iso.abundance/100) for iso in el if iso.abundance>0]
@@ -209,7 +209,7 @@ def print_abundance(table=None):
             print("\n".join(abundance))
             print()
 
-def check_abundance(table=None):
+def check_abundance(table: PeriodicTable|None=None) -> None:
     table = default_table(table)
     for el in table:
         abundance = [iso.abundance for iso in el if iso.abundance>0]

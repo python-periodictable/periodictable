@@ -5,7 +5,7 @@ Helper functions
 """
 from math import sqrt
 
-def parse_uncertainty(s):
+def parse_uncertainty(s: str) -> tuple[float, float]:
     """
     Given a floating point value plus uncertainty return the pair (val, unc).
 
@@ -53,7 +53,7 @@ def parse_uncertainty(s):
     # Plain value with no uncertainty
     return float(s), 0
 
-def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None):
+def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None) -> float:
     r"""
     Compute cell volume from lattice parameters.
 

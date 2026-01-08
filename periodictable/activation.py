@@ -224,19 +224,20 @@ Code original developed for spreadsheet by Les Slaback of NIST.
 
 from math import exp, log, expm1
 import os
+from collections.abc import Callable, Sequence
 
-from .formulas import formula as build_formula
+from .formulas import formula as build_formula, Formula, FormulaInput
 from . import core
 
 LN2 = log(2)
 
-def table_abundance(iso):
+def table_abundance(iso: core.Isotope) -> float:
     """
     Isotopic abundance in % from the periodic table package.
     """
     return iso.abundance
 
-def IAEA1987_isotopic_abundance(iso):
+def IAEA1987_isotopic_abundance(iso: core.Isotope) -> float:
     """
     Isotopic abundance in % from the IAEA, as provided in the activation.dat table.
 
@@ -269,7 +270,15 @@ class Sample:
 
         Name of the sample (defaults to formula).
     """
-    def __init__(self, formula, mass, name=None):
+    formula: Formula
+    mass: float
+    name: str
+    activity: dict["ActivationResult", list[float]]
+    environment: "ActivationEnvironment"
+    exposure: float
+    rest_time: tuple[float]
+
+    def __init__(self, formula: FormulaInput, mass: float, name: str|None=None):
         self.formula = build_formula(formula)
         self.mass = mass               # cell F19
         self.name = name if name else str(self.formula) # cell F20
@@ -280,9 +289,13 @@ class Sample:
         self.exposure = 0.
         self.rest_times = ()
 
-    def calculate_activation(self, environment, exposure=1,
-                             rest_times=(0, 1, 24, 360),
-                             abundance=table_abundance):
+    def calculate_activation(
+            self,
+            environment: "ActivationEnvironment",
+            exposure: float=1,
+            rest_times: tuple[float]=(0, 1, 24, 360),
+            abundance: Callable[[core.Isotope], float]=table_abundance,
+            ):
         """
         Calculate sample activation (uCi) after exposure to a neutron flux.
 
@@ -313,7 +326,7 @@ class Sample:
                         A = activity(el[iso], iso_mass, environment, exposure, rest_times)
                         self._accumulate(A)
 
-    def decay_time(self, target, tol=1e-10):
+    def decay_time(self, target: float, tol: float=1e-10):
         """
         After determining the activation, compute the number of hours required to achieve
         a total activation level after decay.
@@ -358,12 +371,12 @@ class Sample:
         # for time adjustment we used to stablize the fit.
         return max(t+guess, 0.0)
 
-    def _accumulate(self, activity):
+    def _accumulate(self, activity: list[float]):
         for el, activity_el in activity.items():
             el_total = self.activity.get(el, [0]*len(self.rest_times))
             self.activity[el] = [T+v for T, v in zip(el_total, activity_el)]
 
-    def show_table(self, cutoff=0.0001, format="%.4g"):
+    def show_table(self, cutoff: float=0.0001, format: str="%.4g"):
         """
         Tabulate the daughter products.
 
@@ -428,7 +441,13 @@ class Sample:
             print(cformat%tuple(footer))
             print(cformat%tuple(separator))
 
-def find_root(x, f, df, max=20, tol=1e-10):
+def find_root(
+        x: float,
+        f: Callable[[float], float],
+        df: Callable[[float], float],
+        max: int=20,
+        tol: float=1e-10,
+        ):
     r"""
     Find zero of a function.
 
@@ -447,7 +466,9 @@ def find_root(x, f, df, max=20, tol=1e-10):
     return x, fx
 
 
-def sorted_activity(activity_pair):
+def sorted_activity(
+        activity_pair: Sequence[tuple["ActivationResult", list[float]]]
+        ) -> list[tuple["ActivationResult", list[float]]]:
     """Interator over activity pairs sorted by isotope then daughter product."""
     return sorted(activity_pair, key=lambda x: (x[0].isotope, x[0].daughter))
 
@@ -522,6 +543,11 @@ class ActivationEnvironment:
         exploring for possible products.
 
     """
+    fluence: float
+    CD_ratio: float
+    fast_ratio: float
+    location: str
+
     def __init__(self, fluence=1e5, Cd_ratio=0., fast_ratio=0., location=""):
         self.fluence = fluence     # cell F13
         self.Cd_ratio = Cd_ratio   # cell F15
@@ -567,7 +593,13 @@ BOOL_COLUMNS = [13]
 FLOAT_COLUMNS = [6, 11, 14, 15, 16, 17, 19, 20, 21]
 UNITS_TO_HOURS = {'y': 8760, 'd': 24, 'h': 1, 'm': 1/60, 's': 1/3600}
 
-def activity(isotope, mass, env, exposure, rest_times):
+def activity(
+        isotope: core.Isotope,
+        mass: float,
+        env: ActivationEnvironment,
+        exposure: float,
+        rest_times: Sequence[float],
+        ):
     """
     Compute isotope specific daughter products after the given exposure time and
     rest period.
@@ -881,6 +913,26 @@ class ActivationResult:
         A2 = K [1 - exp(-L1*t) * L2/(L2-L1) + exp(-L2*t) * L1/(L2-L1)]
 
     """
+    isotope: core.Isotope
+    abundance: float
+    symbol: str
+    A: int
+    Z: int
+    reaction: str
+    comments: str
+    daughter: str
+    isomer: str
+    Thalf_hrs: float
+    Thalf_str: str
+    Thalf_parent: float|None
+    fast: bool
+    thermalXS: float
+    resonance: float
+    thermalXS_parent: float
+    resonance_parent: float
+    percentIT: float|None
+    gT: float|None
+
     def __init__(self, **kw):
         self.__dict__ = kw
     def __repr__(self):
