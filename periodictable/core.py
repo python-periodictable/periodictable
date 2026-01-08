@@ -668,7 +668,10 @@ def iselement(val: Any) -> bool:
         val = val.element
     return isinstance(val, Element)
 
-def change_table[T: AtomVar](atom: T, table: str) -> T:
+# CRUFT: the following is not supported in python 3.11
+#def change_table[T: AtomVar](atom: T, table: str) -> T:
+T = TypeVar('T')
+def change_table(atom: T, table: str) -> T:
     """Search for the same element, isotope or ion from a different table"""
     if ision(atom):
         if isisotope(atom):
