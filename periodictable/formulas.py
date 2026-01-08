@@ -707,7 +707,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
 
     :Returns:
         *parser* : pyparsing.ParserElement.
-            The ``parser.parseString()`` method returns a list of
+            The ``parser.parse_string()`` method returns a list of
             pairs (*count, fragment*), where fragment is an *isotope*,
             an *element* or a list of pairs (*count, fragment*).
 
@@ -727,34 +727,34 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
 
     # Lookup the element in the element table
     symbol = Regex("[A-Z][a-z]?")
-    symbol = symbol.setParseAction(lambda s, l, t: table.symbol(t[0]))
+    symbol = symbol.set_parse_action(lambda s, l, t: table.symbol(t[0]))
 
     # Translate isotope
     openiso = Literal('[').suppress()
     closeiso = Literal(']').suppress()
     isotope = Optional(~White()+openiso+Regex("[1-9][0-9]*")+closeiso,
                        default='0')
-    isotope = isotope.setParseAction(lambda s, l, t: int(t[0]) if t[0] else 0)
+    isotope = isotope.set_parse_action(lambda s, l, t: int(t[0]) if t[0] else 0)
 
     # Translate ion
     openion = Literal('{').suppress()
     closeion = Literal('}').suppress()
     ion = Optional(~White() +openion +Regex("([1-9][0-9]*)?[+-]") +closeion,
                    default='0+')
-    ion = ion.setParseAction(lambda s, l, t: int(t[0][-1]+(t[0][:-1] if len(t[0]) > 1 else '1')))
+    ion = ion.set_parse_action(lambda s, l, t: int(t[0][-1]+(t[0][:-1] if len(t[0]) > 1 else '1')))
 
     # Translate counts
     # TODO: regex should reject a bare '.' if we want to allow dots between formula parts
     fract = Regex("(0|[1-9][0-9]*|)([.][0-9]*)")
-    fract = fract.setParseAction(lambda s, l, t: float(t[0]) if t[0] else 1)
+    fract = fract.set_parse_action(lambda s, l, t: float(t[0]) if t[0] else 1)
     whole = Regex("(0|[1-9][0-9]*)")
-    whole = whole.setParseAction(lambda s, l, t: int(t[0]) if t[0] else 1)
+    whole = whole.set_parse_action(lambda s, l, t: int(t[0]) if t[0] else 1)
     number = Optional(~White()+(fract|whole), default=1)
     # TODO use unicode ₀₁₉ in the code below?
     sub_fract = Regex("(\u2080|[\u2081-\u2089][\u2080-\u2089]*|)([.][\u2080-\u2089]*)")
-    sub_fract = sub_fract.setParseAction(lambda s, l, t: float(from_subscript(t[0])) if t[0] else 1)
+    sub_fract = sub_fract.set_parse_action(lambda s, l, t: float(from_subscript(t[0])) if t[0] else 1)
     sub_whole = Regex("(\u2080|[\u2081-\u2089][\u2080-\u2089]*)")
-    sub_whole = sub_whole.setParseAction(lambda s, l, t: int(from_subscript(t[0])) if t[0] else 1)
+    sub_whole = sub_whole.set_parse_action(lambda s, l, t: int(from_subscript(t[0])) if t[0] else 1)
     sub_count = Optional(~White()+(fract|whole|sub_fract|sub_whole), default=1)
 
     # Fasta code
@@ -770,7 +770,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
             raise ValueError(f"Invalid fasta sequence type '{seq_type}:'")
         seq = fasta.Sequence(name=None, sequence=seq, type=seq_type)
         return seq.labile_formula
-    fasta.setParseAction(convert_fasta)
+    fasta.set_parse_action(convert_fasta)
 
     # Convert symbol, isotope, ion, count to (count, isotope)
     element = symbol+isotope+ion+sub_count
@@ -783,7 +783,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
         if ion != 0:
             symbol = symbol.ion[ion]
         return (count, symbol)
-    element = element.setParseAction(convert_element)
+    element = element.set_parse_action(convert_element)
 
     # Convert "count elements" to a pair
     implicit_group = number+OneOrMore(element)
@@ -793,7 +793,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
         count = tokens[0]
         fragment = tokens[1:]
         return fragment if count == 1 else (count, fragment)
-    implicit_group = implicit_group.setParseAction(convert_implicit)
+    implicit_group = implicit_group.set_parse_action(convert_implicit)
 
     # Convert "(composite) count" to a pair
     opengrp = space + Literal('(').suppress() + space
@@ -805,7 +805,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
         count = tokens[-1]
         fragment = tokens[:-1]
         return fragment if count == 1 else (count, fragment)
-    explicit_group = explicit_group.setParseAction(convert_explicit)
+    explicit_group = explicit_group.set_parse_action(convert_explicit)
 
     # Build composite from a set of groups
     group = implicit_group | explicit_group
@@ -840,7 +840,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
             formula.density = density
         #print("compound", formula, f"{formula.density=:.3f}")
         return formula
-    compound = compound.setParseAction(convert_compound)
+    compound = compound.set_parse_action(convert_compound)
 
     partsep = space + Literal('//').suppress() + space
     percent = Literal('%').suppress()
@@ -872,7 +872,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
         """convert mixture by wt% or mass%"""
         piece, fract = _parts_by_weight_vol(tokens)
         return _mix_by_weight_pairs(zip(piece, fract))
-    mixture_by_weight = by_weight.setParseAction(convert_by_weight)
+    mixture_by_weight = by_weight.set_parse_action(convert_by_weight)
 
     by_volume = (number + volume_percent + mixture
                  + ZeroOrMore(partsep+number+(volume_percent|percent)+mixture)
@@ -881,7 +881,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
         """convert mixture by vol%"""
         piece, fract = _parts_by_weight_vol(tokens)
         return _mix_by_volume_pairs(zip(piece, fract))
-    mixture_by_volume = by_volume.setParseAction(convert_by_volume)
+    mixture_by_volume = by_volume.set_parse_action(convert_by_volume)
 
     mixture_by_layer = Forward()
     layer_thick = Group(number + Regex(LENGTH_RE) + space)
@@ -907,7 +907,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
         result = _mix_by_volume_pairs(zip(piece, vfract))
         result.thickness = total
         return result
-    mixture_by_layer = mixture_by_layer.setParseAction(convert_by_layer)
+    mixture_by_layer = mixture_by_layer.set_parse_action(convert_by_layer)
 
     mixture_by_absmass = Forward()
     absmass_mass = Group(number + Regex(MASS_VOLUME_RE) + space)
@@ -941,7 +941,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
         result = _mix_by_weight_pairs(zip(piece, mfract))
         result.total_mass = total
         return result
-    mixture_by_absmass = mixture_by_absmass.setParseAction(convert_by_absmass)
+    mixture_by_absmass = mixture_by_absmass.set_parse_action(convert_by_absmass)
 
     ungrouped_mixture = (mixture_by_weight | mixture_by_volume
                          | mixture_by_layer | mixture_by_absmass)
@@ -955,13 +955,13 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
             formula.density = tokens[-2]
         # elif tokens[-1] is None
         return formula
-    grouped_mixture = grouped_mixture.setParseAction(convert_mixture)
+    grouped_mixture = grouped_mixture.set_parse_action(convert_mixture)
 
     mixture << (compound | grouped_mixture)
     formula = (compound | ungrouped_mixture | grouped_mixture)
     grammar = Optional(formula, default=Formula()) + StringEnd()
 
-    grammar.setName('Chemical Formula')
+    grammar.set_name('Chemical Formula')
     return grammar
 
 _PARSER_CACHE: dict[PeriodicTable, ParserElement] = {}
