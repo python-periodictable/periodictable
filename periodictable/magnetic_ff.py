@@ -18,7 +18,9 @@ from numpy.typing import ArrayLike
 
 from .core import PeriodicTable
 
-def formfactor_0(j0: tuple[float], q: ArrayLike) -> numpy.ndarray:
+JnCoeff = tuple[float, float, float, float, float, float, float]
+
+def formfactor_0(j0: JnCoeff, q: ArrayLike) -> numpy.ndarray:
     """
     Returns the scattering potential for form factor *j0* at the given *q*.
     """
@@ -27,7 +29,7 @@ def formfactor_0(j0: tuple[float], q: ArrayLike) -> numpy.ndarray:
     A, a, B, b, C, c, D = j0
     return A * exp(-a*s_sq) + B * exp(-b*s_sq) + C * exp(-c*s_sq) + D
 
-def formfactor_n(jn: tuple[float], q: ArrayLike):
+def formfactor_n(jn: JnCoeff, q: ArrayLike):
     """
     Returns the scattering potential for form factor *jn* at the given *q*.
     """
@@ -72,12 +74,16 @@ class MagneticFormFactor:
 
     """
 
-    M: tuple[float]
+    j0: JnCoeff
+    j2: JnCoeff
+    j4: JnCoeff
+    j6: JnCoeff
+    J: JnCoeff
 
-    def _getM(self):
+    @property
+    def M(self) -> JnCoeff:
+        """j0"""
         return self.j0
-
-    M = property(_getM, doc="j0")
 
     def j0_Q(self, Q: ArrayLike) -> ArrayLike:
         """Returns *j0* scattering potential at *Q* |1/Ang|"""
@@ -112,13 +118,16 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
         return
 
     # Function for interpreting ionization state and form factor tuple
-    def add_form_factor(jn: str, symbol: str, charge: int, values: tuple[float]) -> None:
+    def add_form_factor(jn: str, symbol: str, charge: int, values: tuple[float, ...]) -> None:
         # Add the magnetic form factor info to the element
         el = table.symbol(symbol.capitalize())
+        # Make sure element has a magnetic_ff dict
         if not hasattr(el, 'magnetic_ff'):
             el.magnetic_ff = {}
+        # Make sure dict has an entry for charge
         if charge not in el.magnetic_ff:
             el.magnetic_ff[charge] = MagneticFormFactor()
+        # Set coefficients for magnetic_ff[charge].jn
         setattr(el.magnetic_ff[charge], jn, values)
 
     # Transformed from fortran with:

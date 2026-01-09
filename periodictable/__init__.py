@@ -36,7 +36,7 @@ from . import core
 from . import mass
 from . import density
 
-_LAZY_MODULES = []
+_LAZY_MODULES: list[str] = []
 _LAZY_LOAD = {
     'formula': 'formulas',
     'mix_by_weight': 'formulas',

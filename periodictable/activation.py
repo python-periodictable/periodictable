@@ -225,6 +225,7 @@ Code original developed for spreadsheet by Les Slaback of NIST.
 from math import exp, log, expm1
 import os
 from collections.abc import Callable, Sequence
+from typing import cast
 
 from .formulas import formula as build_formula, Formula, FormulaInput
 from . import core
@@ -235,7 +236,7 @@ def table_abundance(iso: core.Isotope) -> float:
     """
     Isotopic abundance in % from the periodic table package.
     """
-    return iso.abundance
+    return iso.abundance if iso.abundance else 0.
 
 def IAEA1987_isotopic_abundance(iso: core.Isotope) -> float:
     """
@@ -247,10 +248,10 @@ def IAEA1987_isotopic_abundance(iso: core.Isotope) -> float:
 
     IAEA 273: Handbook on Nuclear Activation Data, 1987.
     """
-    try:
-        return iso.neutron_activation[0].abundance
-    except AttributeError:
-        return 0
+    activation = getattr(iso, "neutron_activation", None)
+    if activation is not None:
+        return activation[0].abundance
+    return 0.
 
 class Sample:
     """
@@ -276,7 +277,7 @@ class Sample:
     activity: dict["ActivationResult", list[float]]
     environment: "ActivationEnvironment"
     exposure: float
-    rest_time: tuple[float]
+    rest_times: tuple[float, ...]
 
     def __init__(self, formula: FormulaInput, mass: float, name: str|None=None):
         self.formula = build_formula(formula)
@@ -285,7 +286,7 @@ class Sample:
         self.activity = {}
 
         # The following are set in calculation_activation
-        self.environment = None  # type: "ActivationEnvironment"
+        #self.environment = None
         self.exposure = 0.
         self.rest_times = ()
 
@@ -293,7 +294,7 @@ class Sample:
             self,
             environment: "ActivationEnvironment",
             exposure: float=1,
-            rest_times: tuple[float]=(0, 1, 24, 360),
+            rest_times: tuple[float, ...]=(0, 1, 24, 360),
             abundance: Callable[[core.Isotope], float]=table_abundance,
             ):
         """
@@ -317,13 +318,14 @@ class Sample:
         self.rest_times = rest_times
         for el, frac in self.formula.mass_fraction.items():
             if core.isisotope(el):
-                A = activity(el, self.mass*frac, environment, exposure, rest_times)
+                A = activity(cast(core.Isotope, el), self.mass*frac, environment, exposure, rest_times)
                 self._accumulate(A)
             else:
-                for iso in el.isotopes:
-                    iso_mass = self.mass*frac*abundance(el[iso])*0.01
+                for iso_num in el.isotopes:
+                    iso: core.Isotope = cast(core.Element, el)[iso_num]
+                    iso_mass = self.mass*frac*abundance(iso)*0.01
                     if iso_mass:
-                        A = activity(el[iso], iso_mass, environment, exposure, rest_times)
+                        A = activity(iso, iso_mass, environment, exposure, rest_times)
                         self._accumulate(A)
 
     def decay_time(self, target: float, tol: float=1e-10):
@@ -371,7 +373,7 @@ class Sample:
         # for time adjustment we used to stablize the fit.
         return max(t+guess, 0.0)
 
-    def _accumulate(self, activity: list[float]):
+    def _accumulate(self, activity: dict["ActivationResult", list[float]]):
         for el, activity_el in activity.items():
             el_total = self.activity.get(el, [0]*len(self.rest_times))
             self.activity[el] = [T+v for T, v in zip(el_total, activity_el)]
@@ -394,8 +396,8 @@ class Sample:
         # Track individual rows with more than 1 uCi of activation, and total activation
         # Replace any activation below the cutoff with '---'
         rows = []
-        total = [0]*len(self.rest_times)
-        for el, activity_el in sorted_activity(self.activity.items()):
+        total = [0.]*len(self.rest_times)
+        for el, activity_el in sorted_activity(self.activity):
             total = [t+a for t, a in zip(total, activity_el)]
             if all(a < cutoff for a in activity_el):
                 continue
@@ -467,10 +469,10 @@ def find_root(
 
 
 def sorted_activity(
-        activity_pair: Sequence[tuple["ActivationResult", list[float]]]
+        activity: dict["ActivationResult", list[float]],
         ) -> list[tuple["ActivationResult", list[float]]]:
     """Interator over activity pairs sorted by isotope then daughter product."""
-    return sorted(activity_pair, key=lambda x: (x[0].isotope, x[0].daughter))
+    return sorted(activity.items(), key=lambda x: (x[0].isotope, x[0].daughter))
 
 
 class ActivationEnvironment:
@@ -599,7 +601,7 @@ def activity(
         env: ActivationEnvironment,
         exposure: float,
         rest_times: Sequence[float],
-        ):
+        ) -> dict["ActivationResult", list[float]]:
     """
     Compute isotope specific daughter products after the given exposure time and
     rest period.
@@ -650,7 +652,7 @@ def activity(
     # included. Because 1-H => 2-H (act) is not in the table, is this why
     # there is no entry for 1-H => 3-H (2n).
 
-    result = {}
+    result: dict["ActivationResult", list[float]] = {}
     if not hasattr(isotope, 'neutron_activation'):
         return result
 
@@ -924,7 +926,7 @@ class ActivationResult:
     isomer: str
     Thalf_hrs: float
     Thalf_str: str
-    Thalf_parent: float|None
+    Thalf_parent: float
     fast: bool
     thermalXS: float
     resonance: float
@@ -1011,7 +1013,7 @@ def init(table, reload=False):
                 kw['Thalf_parent'] = parent.Thalf_hrs
             else:
                 #assert kw['Thalf_parent'] == 0
-                kw['Thalf_parent'] = None
+                kw['Thalf_parent'] = 0.  # Value not used if reaction is not 'b' or '2n'
             # Half-lives use My, Gy, Ty, Py
             value, units = float(kw['_Thalf']), kw['_Thalf_unit']
             if units == 'y':

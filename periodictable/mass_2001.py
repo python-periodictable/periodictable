@@ -65,18 +65,18 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
         return
     table.properties.append('mass')
     Element.mass = property(mass, doc=mass.__doc__)
+    Element.mass_units = "u"
     Isotope.mass = property(mass, doc=mass.__doc__)
     Isotope.abundance = property(abundance, doc=abundance.__doc__)
-    Element.mass_units = "u"
-    Element.abundance_units = "%"
+    Isotope.abundance_units = "%"
 
     for line in massdata.split('\n'):
         isotope, m, p, avg = line.split(',')
-        el, sym, iso = isotope.split('-')
-        el = table[int(el)]
+        z, sym, a = isotope.split('-')
+        el = table[int(z)]
         assert el.symbol == sym, \
             "Symbol %s does not match %s"%(sym, el.symbol)
-        iso = el.add_isotope(int(iso))
+        iso = el.add_isotope(int(a))
         el._mass, el._mass_unc = parse_uncertainty(avg)
         iso._mass, iso._mass_unc = parse_uncertainty(m)
         iso._abundance,iso._abundance_unc = parse_uncertainty(p) if p else (0,0)

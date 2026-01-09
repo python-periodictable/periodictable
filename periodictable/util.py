@@ -5,7 +5,7 @@ Helper functions
 """
 from math import sqrt
 
-def parse_uncertainty(s: str) -> tuple[float, float]:
+def parse_uncertainty(s: str) -> tuple[float, float]|tuple[None, None]:
     """
     Given a floating point value plus uncertainty return the pair (val, unc).
 

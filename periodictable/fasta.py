@@ -121,7 +121,8 @@ class Molecule:
     *density* is the natural density of the molecule. If None, density will
     be inferred from cell volume.
 
-    *charge* is the overall charge on the molecule.
+    *charge* is the overall charge on the molecule. Note that charge can be
+    fractional if the molecule is the average of a statistical ensemble.
 
     **Attributes**
 
@@ -158,10 +159,11 @@ class Molecule:
     mass: float
     Dmass: float
     D2Omatch: float
-    charge: int
+    charge: float # fractional to allow ensemble average molecules
     natural_formula: Formula
     labile_formula: Formula
     formula: Formula
+    code: str  # fasta code for dna/rna
 
     def __init__(
             self,
@@ -169,7 +171,7 @@ class Molecule:
             formula: FormulaInput,
             cell_volume: float|None=None,
             density: float|None=None,
-            charge: int=0,
+            charge: float=0,
             ):
         # TODO: fasta does not work with table substitution
         elements = default_table()
@@ -234,13 +236,13 @@ class Sequence(Molecule):
     sequence: str
 
     @staticmethod
-    def loadall(filename: Path|str, type: str=None) -> Iterator["Sequence"]:
+    def loadall(filename: Path|str, type: str|None=None) -> Iterator["Sequence"]:
         """
         Iterate over sequences in FASTA file, loading each in turn.
 
         Yields one FASTA sequence each cycle.
         """
-        type = _guess_type_from_filename(filename, type)
+        type = _guess_type_from_filename(str(filename), type)
         with open(filename, 'rt') as fh:
             for name, seq in read_fasta(fh):
                 yield Sequence(name, seq, type=type)
@@ -250,7 +252,7 @@ class Sequence(Molecule):
         """
         Load the first FASTA sequence from a file.
         """
-        type = _guess_type_from_filename(filename, type)
+        type = _guess_type_from_filename(str(filename), type)
         with open(filename, 'rt') as fh:
             name, seq = next(read_fasta(fh))
             return Sequence(name, seq, type=type)
@@ -277,7 +279,7 @@ class Sequence(Molecule):
             self, name, formula, cell_volume=cell_volume, charge=charge)
         self.sequence = sequence
 
-def _guess_type_from_filename(filename: str, type: str) -> str:
+def _guess_type_from_filename(filename: str, type: str|None) -> str:
     if type is None:
         if filename.endswith('.fna'):
             type = 'dna'
@@ -324,7 +326,7 @@ def D2Omatch(Hsld: float, Dsld: float) -> float:
     return 100 * (H2O_SLD - Hsld) / (Dsld - Hsld + H2O_SLD - D2O_SLD)
 
 
-def read_fasta(fp: IO[str]) -> Iterator[str]:
+def read_fasta(fp: IO[str]) -> Iterator[tuple[str, str]]:
     """
     Iterate over the sequences in a FASTA file.
 
@@ -332,26 +334,28 @@ def read_fasta(fp: IO[str]) -> Iterator[str]:
 
     Change 1.5.3: Now uses H[1] rather than T for labile hydrogen.
     """
-    name, seq = None, []
+    name = ""
+    seq: list[str] = []
     for line in fp:
         line = line.rstrip()
         if line.startswith(">"):
             if name:
-                yield (name, ''.join(seq))
+                yield name, ''.join(seq)
             name, seq = line, []
         else:
             seq.append(line)
     if name:
-        yield (name, ''.join(seq))
+        yield name, ''.join(seq)
 
-
-def _code_average(bases, code_table) -> tuple[Formula, float, int]:
+def _code_average(bases, code_table) -> tuple[Formula, float, float]:
     """
     Compute average over possible nucleotides, assuming equal weight if
-    precise nucleotide is not known
+    precise nucleotide is not known.
+
+    Note: averaging can lead to a fractional charge on the returned molecule.
     """
     n = len(bases)
-    formula, cell_volume, charge = parse_formula(), 0, 0
+    formula, cell_volume, charge = parse_formula(), 0., 0.
     for c in bases:
         base = code_table[c]
         formula += base.labile_formula
@@ -361,7 +365,7 @@ def _code_average(bases, code_table) -> tuple[Formula, float, int]:
         formula, cell_volume, charge = (1/n) * formula, cell_volume/n, charge/n
     return formula, cell_volume, charge
 
-def _set_amino_acid_average(target: str, codes: str, name: str=None) -> None:
+def _set_amino_acid_average(target: str, codes: str, name: str|None=None) -> None:
     """
     Fill in partial unknowns for amino acids, such as "B" for aspartic acid or asparagine.
     """
@@ -428,59 +432,66 @@ _set_amino_acid_average('-', '', name='gap')
 __doc__ += "\n\n*AMINO_ACID_CODES*::\n\n    " + "\n    ".join(
     "%s: %s"%(k, v.name) for k, v in sorted(AMINO_ACID_CODES.items()))
 
-def _(formula: str, V: float, name: str) -> tuple[str, Molecule]:
+# mypy doesn't like redefinitions
+def _1(formula: str, V: float, name: str) -> tuple[str, Molecule]:
     molecule = Molecule(name, formula, cell_volume=V)
     return name, molecule
 NUCLEIC_ACID_COMPONENTS: dict[str, Molecule] = dict((
     # formula, volume, name
-    _("NaPO3",      60, "phosphate"),
-    _("C5H6H[1]O3",   125, "ribose"),
-    _("C5H7O2",    115, "deoxyribose"),
-    _("C5H2H[1]2N5",  114, "adenine"),
-    _("C4H2H[1]N2O2",  99, "uracil"),
-    _("C5H4H[1]N2O2", 126, "thymine"),
-    _("C5HH[1]3N5O",  119, "guanine"),
-    _("C4H2H[1]2N3O", 103, "cytosine"),
+    _1("NaPO3",      60, "phosphate"),
+    _1("C5H6H[1]O3",   125, "ribose"),
+    _1("C5H7O2",    115, "deoxyribose"),
+    _1("C5H2H[1]2N5",  114, "adenine"),
+    _1("C4H2H[1]N2O2",  99, "uracil"),
+    _1("C5H4H[1]N2O2", 126, "thymine"),
+    _1("C5HH[1]3N5O",  119, "guanine"),
+    _1("C4H2H[1]2N3O", 103, "cytosine"),
     ))
 __doc__ += "\n\n*NUCLEIC_ACID_COMPONENTS*::\n\n  " + "\n  ".join(
     "%s: %s"%(k, v.formula) for k, v in sorted(NUCLEIC_ACID_COMPONENTS.items()))
 
-CARBOHYDRATE_RESIDUES: dict[str: Molecule] = dict((
+CARBOHYDRATE_RESIDUES: dict[str, Molecule] = dict((
     # formula, volume, name
-    _("C6H7H[1]3O5",    171.9, "Glc"),
-    _("C6H7H[1]3O5",    166.8, "Gal"),
-    _("C6H7H[1]3O5",    170.8, "Man"),
-    _("C6H7H[1]4O5",    170.8, "Man (terminal)"),
-    _("C8H10H[1]3NO5",  222.0, "GlcNAc"),
-    _("C8H10H[1]3NO5",  232.9, "GalNAc"),
-    _("C6H7H[1]3O4",    160.8, "Fuc (terminal)"),
-    _("C11H11H[1]5NO8", 326.3, "NeuNac (terminal)"),
+    _1("C6H7H[1]3O5",    171.9, "Glc"),
+    _1("C6H7H[1]3O5",    166.8, "Gal"),
+    _1("C6H7H[1]3O5",    170.8, "Man"),
+    _1("C6H7H[1]4O5",    170.8, "Man (terminal)"),
+    _1("C8H10H[1]3NO5",  222.0, "GlcNAc"),
+    _1("C8H10H[1]3NO5",  232.9, "GalNAc"),
+    _1("C6H7H[1]3O4",    160.8, "Fuc (terminal)"),
+    _1("C11H11H[1]5NO8", 326.3, "NeuNac (terminal)"),
     # Glycosaminoglycans
-    _("C14H15H[1]5NO11Na", 390.7, "hyaluronate"),  # GlcA.GlcNAc
-    _("C14H17H[1]5NO13SNa", 473.5, "keratan sulphate"), # Gal.GlcNAc.SO4
-    _("C14H15H[1]4NO14SNa", 443.5, "chondroitin sulphate"), # GlcA.GalNAc.SO4
+    _1("C14H15H[1]5NO11Na", 390.7, "hyaluronate"),  # GlcA.GlcNAc
+    _1("C14H17H[1]5NO13SNa", 473.5, "keratan sulphate"), # Gal.GlcNAc.SO4
+    _1("C14H15H[1]4NO14SNa", 443.5, "chondroitin sulphate"), # GlcA.GalNAc.SO4
     ))
 __doc__ += "\n\n*CARBOHYDRATE_RESIDUES*::\n\n  " + "\n  ".join(
     "%s: %s"%(k, v.formula) for k, v in sorted(CARBOHYDRATE_RESIDUES.items()))
 
 LIPIDS: dict[str, Molecule] = dict((
     # formula, volume, name
-    _("CH2", 27, "methylene"),
-    _("CD2", 27, "methylene-D"),
-    _("C10H18NO8P", 350, "phospholipid headgroup"),
-    _("C6H5O6", 240, "triglyceride headgroup"),
-    _("C36H72NO8P", 1089, "DMPC"),
-    _("C36H20D52NO8P", 1089, "DMPC-D52"),
-    _("C29H55H[1]3NO8P", 932, "DLPE"),
-    _("C27H45H[1]O", 636, "cholesteral"),
-    _("C45H78O2", 1168, "oleate"),
-    _("C57H104O6", 1617, "trioleate form"),
-    _("C39H77H[1]2N2O2P", 1166, "palmitate ester"),
+    _1("CH2", 27, "methylene"),
+    _1("CD2", 27, "methylene-D"),
+    _1("C10H18NO8P", 350, "phospholipid headgroup"),
+    _1("C6H5O6", 240, "triglyceride headgroup"),
+    _1("C36H72NO8P", 1089, "DMPC"),
+    _1("C36H20D52NO8P", 1089, "DMPC-D52"),
+    _1("C29H55H[1]3NO8P", 932, "DLPE"),
+    _1("C27H45H[1]O", 636, "cholesteral"),
+    _1("C45H78O2", 1168, "oleate"),
+    _1("C57H104O6", 1617, "trioleate form"),
+    _1("C39H77H[1]2N2O2P", 1166, "palmitate ester"),
     ))
 __doc__ += "\n\n*LIPIDS*::\n\n  " + "\n  ".join(
     "%s: %s"%(k, v.formula) for k, v in sorted(LIPIDS.items()))
 
-def _(code: str, formula: str, V: float, name: str) -> tuple[str, Molecule]:
+
+RNA_BASES: dict[str, Molecule] = {}
+RNA_CODES: dict[str, Molecule] = {}
+DNA_BASES: dict[str, Molecule] = {}
+DNA_CODES: dict[str, Molecule] = {}
+
+def _set_rna_dna_codes() -> None:
     """
     Convert RNA/DNA table values into Molecule.
 
@@ -492,61 +503,71 @@ def _(code: str, formula: str, V: float, name: str) -> tuple[str, Molecule]:
     give volumes for AGC in the DNA nucleosides despite them being different in
     the Buckin source (especially guanosine).
     """
-    cell_volume = V * 1e24/avogadro_number + 30.39
-    molecule = Molecule(name, formula, cell_volume=cell_volume)
-    molecule.code = code
-    return code, molecule
-RNA_BASES: dict[str, Molecule] = dict((
     # code, formula, volume (mL/mol), name
-    _("A",  "C10H8H[1]3N5O6P", 170.8, "adenosine"),
-    _("T",   "C9H8H[1]2N2O8P", 151.7, "uridine"), # Use H[1] for U in RNA
-    _("G",  "C10H7H[1]4N5O7P", 178.2, "guanosine"),
-    _("C",   "C9H8H[1]3N3O7P", 153.7, "cytidine"),
-    ))
+    rna_bases = (
+        ("A",  "C10H8H[1]3N5O6P", 170.8, "adenosine"),
+        ("T",   "C9H8H[1]2N2O8P", 151.7, "uridine"), # Use H[1] for U in RNA
+        ("G",  "C10H7H[1]4N5O7P", 178.2, "guanosine"),
+        ("C",   "C9H8H[1]3N3O7P", 153.7, "cytidine"),
+    )
+    dna_bases = (
+        ("A",  "C10H9H[1]2N5O5P", 169.8, "adenosine"),
+        ("T", "C10H11H[1]1N2O7P", 167.6, "thymidine"),
+        ("G",  "C10H8H[1]3N5O6P", 173.7, "guanosine"),
+        ("C",   "C9H9H[1]2N3O6P", 153.4, "cytidine"),
+    )
+
+    codes = (
+        #code, nucleotides,  name
+        ("A", "A",    "adenosine"),
+        ("C", "C",    "cytidine"),
+        ("G", "G",    "guanosine"),
+        ("T", "T",    "thymidine"),
+        ("U", "T",    "uridine"), # RNA_BASES["T"] is uridine
+        ("R", "AG",   "purine"),
+        ("Y", "CT",   "pyrimidine"),
+        ("K", "GT",   "ketone"),
+        ("M", "AC",   "amino"),
+        ("S", "CG",   "strong"),
+        ("W", "AT",   "weak"),
+        ("B", "CGT",  "not A"),
+        ("D", "AGT",  "not C"),
+        ("H", "ACT",  "not G"),
+        ("V", "ACG",  "not T"),
+        ("N", "ACGT", "any base"),
+        ("X", "",     "masked"),
+        ("-", "",     "gap"),
+        )
+
+    for code, formula, volume, name in rna_bases:
+        cell_volume = volume * 1e24/avogadro_number + 30.39
+        molecule = Molecule(name, formula, cell_volume=cell_volume)
+        molecule.code = code
+        RNA_BASES[code] = molecule
+
+    for code, formula, volume, name in dna_bases:
+        cell_volume = volume * 1e24/avogadro_number + 30.39
+        molecule = Molecule(name, formula, cell_volume=cell_volume)
+        molecule.code = code
+        DNA_BASES[code] = molecule
+
+    for code, bases, name in codes:
+        D, V, _ = _code_average(bases, RNA_BASES)
+        rna = Molecule(name, D.hill, cell_volume=V)
+        rna.code = code
+        D, V, _ = _code_average(bases, DNA_BASES)
+        dna = Molecule(name, D.hill, cell_volume=V)
+        dna.code = code
+        RNA_CODES[code] = rna
+        DNA_CODES[code] = dna
+
+_set_rna_dna_codes()
+# pylint: enable=bad-whitespace
+
 __doc__ += "\n\n*RNA_BASES*::\n\n  " + "\n  ".join(
     "%s:%s"%(k, v.name) for k, v in sorted(RNA_BASES.items()))
-
-DNA_BASES: dict[str, Molecule] = dict((
-    # code, formula, volume (mL/mol), name
-    _("A",  "C10H9H[1]2N5O5P", 169.8, "adenosine"),
-    _("T", "C10H11H[1]1N2O7P", 167.6, "thymidine"),
-    _("G",  "C10H8H[1]3N5O6P", 173.7, "guanosine"),
-    _("C",   "C9H9H[1]2N3O6P", 153.4, "cytidine"),
-    ))
 __doc__ += "\n\n*DNA_BASES*::\n\n  " + "\n  ".join(
     "%s:%s"%(k, v.name) for k, v in sorted(DNA_BASES.items()))
-
-def _(code: str, bases: str, name: str) -> tuple[tuple[str,Molecule], tuple[str,Molecule]]:
-    D, V, _ = _code_average(bases, RNA_BASES)
-    rna = Molecule(name, D.hill, cell_volume=V)
-    rna.code = code
-    D, V, _ = _code_average(bases, DNA_BASES)
-    dna = Molecule(name, D.hill, cell_volume=V)
-    rna.code = code
-    return (code,rna), (code,dna)
-# TODO: define types for the RNA and DNA code dictionaries.
-RNA_CODES,DNA_CODES = [dict(v) for v in zip(
-    #code, nucleotides,  name
-    _("A", "A",    "adenosine"),
-    _("C", "C",    "cytidine"),
-    _("G", "G",    "guanosine"),
-    _("T", "T",    "thymidine"),
-    _("U", "T",    "uridine"), # RNA_BASES["T"] is uridine
-    _("R", "AG",   "purine"),
-    _("Y", "CT",   "pyrimidine"),
-    _("K", "GT",   "ketone"),
-    _("M", "AC",   "amino"),
-    _("S", "CG",   "strong"),
-    _("W", "AT",   "weak"),
-    _("B", "CGT",  "not A"),
-    _("D", "AGT",  "not C"),
-    _("H", "ACT",  "not G"),
-    _("V", "ACG",  "not T"),
-    _("N", "ACGT", "any base"),
-    _("X", "",     "masked"),
-    _("-", "",     "gap"),
-    )]
-# pylint: enable=bad-whitespace
 
 
 CODE_TABLES: dict[str, dict[str, Molecule]] = {

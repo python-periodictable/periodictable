@@ -63,7 +63,7 @@ __all__ = ['delayed_load', 'define_elements', 'get_data_path',
            'isatom', 'iselement', 'isisotope', 'ision']
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union, TypeVar
+from typing import TYPE_CHECKING, cast, Any, Union, TypeVar
 from collections.abc import Sequence, Callable, Iterator
 
 if TYPE_CHECKING:
@@ -224,8 +224,130 @@ class PeriodicTable:
     properties: list[str]
     """Properties loaded into the table"""
 
-    def __init__(self, table: str):
-        # type: (str) -> None
+    # Tedious listing of available elements for typed table.El access
+    n: "Element"
+    H: "Element"
+    D: "Isotope"
+    T: "Isotope"
+    He: "Element"
+    Li: "Element"
+    Be: "Element"
+    B: "Element"
+    C: "Element"
+    N: "Element"
+    O: "Element"
+    F: "Element"
+    Ne: "Element"
+    Na: "Element"
+    Mg: "Element"
+    Al: "Element"
+    Si: "Element"
+    P: "Element"
+    S: "Element"
+    Cl: "Element"
+    Ar: "Element"
+    K: "Element"
+    Ca: "Element"
+    Sc: "Element"
+    Ti: "Element"
+    V: "Element"
+    Cr: "Element"
+    Mn: "Element"
+    Fe: "Element"
+    Co: "Element"
+    Ni: "Element"
+    Cu: "Element"
+    Zn: "Element"
+    Ga: "Element"
+    Ge: "Element"
+    As: "Element"
+    Se: "Element"
+    Br: "Element"
+    Kr: "Element"
+    Rb: "Element"
+    Sr: "Element"
+    Y: "Element"
+    Zr: "Element"
+    Nb: "Element"
+    Mo: "Element"
+    Tc: "Element"
+    Ru: "Element"
+    Rh: "Element"
+    Pd: "Element"
+    Ag: "Element"
+    Cd: "Element"
+    In: "Element"
+    Sn: "Element"
+    Sb: "Element"
+    Te: "Element"
+    I: "Element"
+    Xe: "Element"
+    Cs: "Element"
+    Ba: "Element"
+    La: "Element"
+    Ce: "Element"
+    Pr: "Element"
+    Nd: "Element"
+    Pm: "Element"
+    Sm: "Element"
+    Eu: "Element"
+    Gd: "Element"
+    Tb: "Element"
+    Dy: "Element"
+    Ho: "Element"
+    Er: "Element"
+    Tm: "Element"
+    Yb: "Element"
+    Lu: "Element"
+    Hf: "Element"
+    Ta: "Element"
+    W: "Element"
+    Re: "Element"
+    Os: "Element"
+    Ir: "Element"
+    Pt: "Element"
+    Au: "Element"
+    Hg: "Element"
+    Tl: "Element"
+    Pb: "Element"
+    Bi: "Element"
+    Po: "Element"
+    At: "Element"
+    Rn: "Element"
+    Fr: "Element"
+    Ra: "Element"
+    Ac: "Element"
+    Th: "Element"
+    Pa: "Element"
+    U: "Element"
+    Np: "Element"
+    Pu: "Element"
+    Am: "Element"
+    Cm: "Element"
+    Bk: "Element"
+    Cf: "Element"
+    Es: "Element"
+    Fm: "Element"
+    Md: "Element"
+    No: "Element"
+    Lr: "Element"
+    Rf: "Element"
+    Db: "Element"
+    Sg: "Element"
+    Bh: "Element"
+    Hs: "Element"
+    Mt: "Element"
+    Ds: "Element"
+    Rg: "Element"
+    Cn: "Element"
+    Nh: "Element"
+    Fl: "Element"
+    Mc: "Element"
+    Lv: "Element"
+    Ts: "Element"
+    Og: "Element"
+
+    def __init__(self, table: str) -> None:
         if table in PRIVATE_TABLES:
             raise ValueError("Periodic table '%s' is already defined"%table)
         PRIVATE_TABLES[table] = self
@@ -239,10 +361,10 @@ class PeriodicTable:
             PeriodicTable.__annotations__[symbol] = Element
 
         # There are two specially named isotopes D and T
-        self.D: Isotope = self.H.add_isotope(2)
+        self.D = self.H.add_isotope(2)
         self.D.name = 'deuterium'
         self.D.symbol = 'D'
-        self.T: Isotope = self.H.add_isotope(3)
+        self.T = self.H.add_isotope(3)
         self.T.name = 'tritium'
         self.T.symbol = 'T'
 
@@ -262,7 +384,7 @@ class PeriodicTable:
         for _, el in elements[1:]:
             yield el
 
-    def symbol(self, input: str) -> "Element":
+    def symbol(self, input: str) -> Union["Element", "Isotope"]:
         """
         Lookup the an element in the periodic table using its symbol.  Symbols
         are included for 'D' and 'T', deuterium and tritium.
@@ -290,7 +412,7 @@ class PeriodicTable:
                 return value
         raise ValueError("unknown element "+input)
 
-    def name(self, input: str) -> "Element":
+    def name(self, input: str) -> Union["Element", "Isotope"]:
         """
         Lookup an element given its name.
 
@@ -298,7 +420,7 @@ class PeriodicTable:
             *input* : string
                 Element name to be looked up in periodictable.
 
-        :Returns: Element
+        :Returns: Element (or Isotope for "D" and "T")
 
         :Raises:
             *ValueError* if element does not exist.
@@ -430,6 +552,13 @@ class PeriodicTable:
                 #    print "format", format, "args", L
                 #    raise
 
+# TODO: types for properties are not being handled correctly
+# I've left them as simple "name: float" for now so that the editor will see them.
+# Because I'm using delegation via __getattr__ the properties need to be listed in
+# _AtomBase, but I can't define them as properties there because it confuses the
+# delegation mechanism. Possible work-arounds are to build the delegation into the
+# property, or figure out how to define a property return type that is seen by the
+# static type analyzers without defining the property itself.
 class _AtomBase:
     """
     Attributes common to element, isotope and ion.
@@ -443,37 +572,41 @@ class _AtomBase:
     name: str
     symbol: str
     number: int
-    ions: list[int]
+    ions: tuple[int, ...]
     ion: "IonSet" # TODO: could be IonSet["Element"] or IonSet["Isotope"]
     charge: int # element (=0), isotope (delegate to element), ion (!= 0)
 
     #element: Union["Element", "Isotope"] # ion or isotope
 
     # mass.py
-    mass: float # element, isotope, ion
-    mass_units: str # element, isotope, ion
+    mass: float # property
+    _mass: float # internal
     _mass_unc: float # Not yet official, but the data is loaded for some tables
+    mass_units: str # element, isotope, ion
     #abundance: float  # isotope only
     #abundance_units: str # isotope only
 
     # covalent_radius.py
-    covalent_radius: float # element
-    covalent_radius_uncertainty: float # element
+    covalent_radius: float|None # element
+    covalent_radius_uncertainty: float|None # element
     covalent_radius_units: str # element
 
     # crystal_structure.py
     crystal_structure: dict[str, Any]|None # element
 
     # density.py
-    density: float
+    density: float # property
+    _density: float
     density_units: str
-    interatomic_distance: float
-    number_density: float
+    interatomic_distance: float # property
+    interatomic_distance_units: str
+    number_density: float # property
     number_density_units: str
     density_caveat: str|None
 
     # nsf.py
     neutron: "Neutron" # element and isotope
+    #nuclear_spin: str # isotope only
 
     # activation.py
     #neutron_activation: tuple["ActivationResult"]|None  # isotope only
@@ -486,7 +619,7 @@ class _AtomBase:
     xray: "Xray" # element
 
     # magnetic_ff.py
-    magnetic_ff: dict[int, "MagneticFormFactor"]|None # element
+    magnetic_ff: dict[int, "MagneticFormFactor"] # element
 
 class Ion(_AtomBase):
     """
@@ -502,10 +635,10 @@ class Ion(_AtomBase):
 
     # TODO: abundance and activation need to be defined for charged isotopes.
 
-    def __init__(self, element, charge):
+    def __init__(self, element: Union["Element", "Isotope"], charge: int):
         self.element = element
         self.charge = charge
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         return getattr(self.element, attr)
     @property
     def mass(self) -> float:
@@ -557,15 +690,23 @@ class Isotope(_AtomBase):
     """
     element: "Element"
     ion: IonSet # TODO: should be IonSet["Isotope"]
+    isotope: int
 
     # mass.py
-    abundance: float  # isotope only
+    # TODO: Do we still need to modify isotope.abundance during mass.init()?
+    @property
+    def abundance(self) -> float: return self._abundance
+    _abundance: float
+    _abundance_unc: float
     abundance_units: str # isotope only
 
     # activation.py
-    neutron_activation: tuple["ActivationResult"]|None  # isotope only
+    neutron_activation: tuple["ActivationResult"]  # isotope only
 
-    def __init__(self, element, isotope_number):
+    # nsf.py
+    nuclear_spin: str
+
+    def __init__(self, element: "Element", isotope_number: int):
         self.element = element
         self.isotope = isotope_number
         self.ion = IonSet(self)
@@ -594,7 +735,7 @@ class Element(_AtomBase):
     table: str = PUBLIC_TABLE_NAME
     charge: int = 0
 
-    def __init__(self, name, symbol, Z, ions, table):
+    def __init__(self, name: str, symbol: str, Z: int, ions: tuple[int, ...], table: "str"):
         self.name = name
         self.symbol = symbol
         self.number = Z
@@ -668,23 +809,22 @@ def iselement(val: Any) -> bool:
         val = val.element
     return isinstance(val, Element)
 
-# CRUFT: the following is not supported in python 3.11
-#def change_table[T: AtomVar](atom: T, table: str) -> T:
-T = TypeVar('T')
-def change_table(atom: T, table: str) -> T:
+def change_table(atom: AtomVar, table: PeriodicTable) -> Atom:
     """Search for the same element, isotope or ion from a different table"""
     if ision(atom):
         if isisotope(atom):
-            return table[atom.number][atom.isotope].ion[atom.charge]
+            iso = cast(Isotope, atom)
+            return table[iso.number][iso.isotope].ion[iso.charge]
         else:
             return table[atom.number].ion[atom.charge]
     else:
         if isisotope(atom):
-            return table[atom.number][atom.isotope]
+            iso = cast(Isotope, atom)
+            return table[iso.number][iso.isotope]
         else:
             return table[atom.number]
 
-PRIVATE_TABLES = {}
+PRIVATE_TABLES: dict[str, PeriodicTable] = {}
 def _get_table(name: str) -> PeriodicTable:
     try:
         return PRIVATE_TABLES[name]
@@ -702,128 +842,128 @@ def _make_isotope_ion(table: str, Z: int, n: int, c: int) -> Ion:
 
 
 # pylint: disable=bad-whitespace
-element_base = {
+element_base: dict[int, tuple[str, str, list[int], list[int]]] = {
     # number: name symbol common_ions uncommon_ions
     # ion info comes from Wikipedia: list of oxidation states of the elements.
-    0: ['neutron',     'n',  [],         []],
-    1: ['Hydrogen',    'H',  [-1, 1],    []],
-    2: ['Helium',      'He', [],         [1, 2]],  # +1,+2  http://periodic.lanl.gov/2.shtml
-    3: ['Lithium',     'Li', [1],        []],
-    4: ['Beryllium',   'Be', [2],        [1]],
-    5: ['Boron',       'B',  [3],        [-5, -1, 1, 2]],
-    6: ['Carbon',      'C',  [-4, -3, -2, -1, 1, 2, 3, 4], []],
-    7: ['Nitrogen',    'N',  [-3, 3, 5], [-2, -1, 1, 2, 4]],
-    8: ['Oxygen',      'O',  [-2],       [-1, 1, 2]],
-    9: ['Fluorine',    'F',  [-1],       []],
-    10: ['Neon',       'Ne', [],         []],
-    11: ['Sodium',     'Na', [1],        [-1]],
-    12: ['Magnesium',  'Mg', [2],        [1]],
-    13: ['Aluminum',   'Al', [3],        [-2, -1, 1, 2]],
-    14: ['Silicon',    'Si', [-4, 4],    [-3, -2, -1, 1, 2, 3]],
-    15: ['Phosphorus', 'P',  [-3, 3, 5], [-2, -1, 1, 2, 4]],
-    16: ['Sulfur',     'S',  [-2, 2, 4, 6],    [-1, 1, 3, 5]],
-    17: ['Chlorine',   'Cl', [-1, 1, 3, 5, 7], [2, 4, 6]],
-    18: ['Argon',      'Ar', [],         []],
-    19: ['Potassium',  'K',  [1],        [-1]],
-    20: ['Calcium',    'Ca', [2],        [1]],
-    21: ['Scandium',   'Sc', [3],        [1, 2]],
-    22: ['Titanium',   'Ti', [4],        [-2, -1, 1, 2, 3]],
-    23: ['Vanadium',   'V',  [5],        [-3, -1, 1, 2, 3, 4]],
-    24: ['Chromium',   'Cr', [3, 6],     [-4, -2, -1, 1, 2, 4, 5]],
-    25: ['Manganese',  'Mn', [2, 4, 7],  [-3, -2, -1, 1, 3, 5, 6]],
-    26: ['Iron',       'Fe', [2, 3, 6],  [-4, -2, -1, 1, 4, 5, 7]],
-    27: ['Cobalt',     'Co', [2, 3],     [-3, -1, 1, 4, 5]],
-    28: ['Nickel',     'Ni', [2],        [-2, -1, 1, 3, 4]],
-    29: ['Copper',     'Cu', [2],        [-2, 1, 3, 4]],
-    30: ['Zinc',       'Zn', [2],        [-2, 1]],
-    31: ['Gallium',    'Ga', [3],        [-5, -4, -2, -1, 1, 2]],
-    32: ['Germanium',  'Ge', [-4, 2, 4], [-3, -2, -1, 1, 3]],
-    33: ['Arsenic',    'As', [-3, 3, 5], [-2, -1, 1, 2, 4]],
-    34: ['Selenium',   'Se', [-2, 2, 4, 6], [-1, 1, 3, 5]],
-    35: ['Bromine',    'Br', [-1, 1, 3, 5], [4, 7]],
-    36: ['Krypton',    'Kr', [2],        []],
-    37: ['Rubidium',   'Rb', [1],        [-1]],
-    38: ['Strontium',  'Sr', [2],        [1]],
-    39: ['Yttrium',    'Y',  [3],        [1, 2]],
-    40: ['Zirconium',  'Zr', [4],        [-2, 1, 2, 3]],
-    41: ['Niobium',    'Nb', [5],        [-3, -1, 1, 2, 3, 4]],
-    42: ['Molybdenum', 'Mo', [4, 6],     [-4, -2, -1, 1, 2, 3, 5]],
-    43: ['Technetium', 'Tc', [4, 7],     [-3, -1, 1, 2, 3, 5, 6]],
-    44: ['Ruthenium',  'Ru', [3, 4],     [-4, -2, 1, 2, 5, 6, 7, 8]],
-    45: ['Rhodium',    'Rh', [3],        [-3, -1, 1, 2, 4, 5, 6]],
-    46: ['Palladium',  'Pd', [2, 4],     [1, 3, 5, 6]],
-    47: ['Silver',     'Ag', [1],        [-2, -1, 2, 3, 4]],
-    48: ['Cadmium',    'Cd', [2],        [-2, 1]],
-    49: ['Indium',     'In', [3],        [-5, -2, -1, 1, 2]],
-    50: ['Tin',        'Sn', [-4, 2, 4], [-3, -2, -1, 1, 3]],
-    51: ['Antimony',   'Sb', [-3, 3, 5], [-2, -1, 1, 2, 4]],
-    52: ['Tellurium',  'Te', [-2, 2, 4, 6], [-1, 1, 3, 5]],
-    53: ['Iodine',     'I',  [-1, 1, 3, 5, 7], [4, 6]],
-    54: ['Xenon',      'Xe', [2, 4, 6],  [8]],
-    55: ['Cesium',     'Cs', [1],        [-1]],
-    56: ['Barium',     'Ba', [2],        [1]],
-    57: ['Lanthanum',  'La', [3],        [1, 2]],
-    58: ['Cerium',     'Ce', [3, 4],     [2]],
-    59: ['Praseodymium', 'Pr', [3],      [2, 4, 5]],
-    60: ['Neodymium',  'Nd', [3],        [2, 4]],
-    61: ['Promethium', 'Pm', [3],        [2]],
-    62: ['Samarium',   'Sm', [3],        [2]],
-    63: ['Europium',   'Eu', [2, 3],     []],
-    64: ['Gadolinium', 'Gd', [3],        [1, 2]],
-    65: ['Terbium',    'Tb', [3],        [1, 2, 4]],
-    66: ['Dysprosium', 'Dy', [3],        [2, 4]],
-    67: ['Holmium',    'Ho', [3],        [2]],
-    68: ['Erbium',     'Er', [3],        [2]],
-    69: ['Thulium',    'Tm', [3],        [2]],
-    70: ['Ytterbium',  'Yb', [3],        [2]],
-    71: ['Lutetium',   'Lu', [3],        [2]],
-    72: ['Hafnium',    'Hf', [4],        [-2, 1, 2, 3]],
-    73: ['Tantalum',   'Ta', [5],        [-3, -1, 1, 2, 3, 4]],
-    74: ['Tungsten',   'W',  [4, 6],     [-4, -2, -1, 1, 2, 3, 5]],
-    75: ['Rhenium',    'Re', [4],        [-3, -1, 1, 2, 3, 5, 6, 7]],
-    76: ['Osmium',     'Os', [4],        [-4, -2, -1, 1, 2, 3, 5, 6, 7, 8]],
-    77: ['Iridium',    'Ir', [3, 4],     [-3, -1, 1, 2, 5, 6, 7, 8, 9]],
-    78: ['Platinum',   'Pt', [2, 4],     [-3, -2, -1, 1, 3, 5, 6]],
-    79: ['Gold',       'Au', [3],        [-3, -2, -1, 1, 2, 5]],
-    80: ['Mercury',    'Hg', [1, 2],     [-2, 4]],  # +4  doi:10.1002/anie.200703710
-    81: ['Thallium',   'Tl', [1, 3],     [-5, -2, -1, 2]],
-    82: ['Lead',       'Pb', [2, 4],     [-4, -2, -1, 1, 3]],
-    83: ['Bismuth',    'Bi', [3],        [-3, -2, -1, 1, 2, 4, 5]],
-    84: ['Polonium',   'Po', [-2, 2, 4], [5, 6]],
-    85: ['Astatine',   'At', [-1, 1],    [3, 5, 7]],
-    86: ['Radon',      'Rn', [2],        [6]],
-    87: ['Francium',   'Fr', [1],        []],
-    88: ['Radium',     'Ra', [2],        []],
-    89: ['Actinium',   'Ac', [3],        []],
-    90: ['Thorium',        'Th', [4],    [1, 2, 3]],
-    91: ['Protactinium',   'Pa', [5],    [3, 4]],
-    92: ['Uranium',        'U',  [6],    [1, 2, 3, 4, 5]],
-    93: ['Neptunium',      'Np', [5],    [2, 3, 4, 6, 7]],
-    94: ['Plutonium',      'Pu', [4],    [2, 3, 5, 6, 7]],
-    95: ['Americium',      'Am', [3],    [2, 4, 5, 6, 7]],
-    96: ['Curium',         'Cm', [3],    [4, 6]],
-    97: ['Berkelium',      'Bk', [3],    [4]],
-    98: ['Californium',    'Cf', [3],    [2, 4]],
-    99: ['Einsteinium',    'Es', [3],    [2, 4]],
-    100: ['Fermium',       'Fm', [3],    [2]],
-    101: ['Mendelevium',   'Md', [3],    [2]],
-    102: ['Nobelium',      'No', [2],    [3]],
-    103: ['Lawrencium',    'Lr', [3],    []],
-    104: ['Rutherfordium', 'Rf', [4],    []],
-    105: ['Dubnium',       'Db', [5],    []],
-    106: ['Seaborgium',    'Sg', [6],    []],
-    107: ['Bohrium',       'Bh', [7],    []],
-    108: ['Hassium',       'Hs', [8],    []],
-    109: ['Meitnerium',    'Mt', [],     []],
-    110: ['Darmstadtium',  'Ds', [],     []],
-    111: ['Roentgenium',   'Rg', [],     []],
-    112: ['Copernicium',   'Cn', [2],    []],
-    113: ['Nihonium',      'Nh', [],     []],
-    114: ['Flerovium',     'Fl', [],     []],
-    115: ['Moscovium',     'Mc', [],     []],
-    116: ['Livermorium',   'Lv', [],     []],
-    117: ['Tennessine',    'Ts', [],     []],
-    118: ['Oganesson',     'Og', [],     []],
+    0: ('neutron',     'n',  [],         []),
+    1: ('Hydrogen',    'H',  [-1, 1],    []),
+    2: ('Helium',      'He', [],         [1, 2]),  # +1,+2  http://periodic.lanl.gov/2.shtml
+    3: ('Lithium',     'Li', [1],        []),
+    4: ('Beryllium',   'Be', [2],        [1]),
+    5: ('Boron',       'B',  [3],        [-5, -1, 1, 2]),
+    6: ('Carbon',      'C',  [-4, -3, -2, -1, 1, 2, 3, 4], []),
+    7: ('Nitrogen',    'N',  [-3, 3, 5], [-2, -1, 1, 2, 4]),
+    8: ('Oxygen',      'O',  [-2],       [-1, 1, 2]),
+    9: ('Fluorine',    'F',  [-1],       []),
+    10: ('Neon',       'Ne', [],         []),
+    11: ('Sodium',     'Na', [1],        [-1]),
+    12: ('Magnesium',  'Mg', [2],        [1]),
+    13: ('Aluminum',   'Al', [3],        [-2, -1, 1, 2]),
+    14: ('Silicon',    'Si', [-4, 4],    [-3, -2, -1, 1, 2, 3]),
+    15: ('Phosphorus', 'P',  [-3, 3, 5], [-2, -1, 1, 2, 4]),
+    16: ('Sulfur',     'S',  [-2, 2, 4, 6],    [-1, 1, 3, 5]),
+    17: ('Chlorine',   'Cl', [-1, 1, 3, 5, 7], [2, 4, 6]),
+    18: ('Argon',      'Ar', [],         []),
+    19: ('Potassium',  'K',  [1],        [-1]),
+    20: ('Calcium',    'Ca', [2],        [1]),
+    21: ('Scandium',   'Sc', [3],        [1, 2]),
+    22: ('Titanium',   'Ti', [4],        [-2, -1, 1, 2, 3]),
+    23: ('Vanadium',   'V',  [5],        [-3, -1, 1, 2, 3, 4]),
+    24: ('Chromium',   'Cr', [3, 6],     [-4, -2, -1, 1, 2, 4, 5]),
+    25: ('Manganese',  'Mn', [2, 4, 7],  [-3, -2, -1, 1, 3, 5, 6]),
+    26: ('Iron',       'Fe', [2, 3, 6],  [-4, -2, -1, 1, 4, 5, 7]),
+    27: ('Cobalt',     'Co', [2, 3],     [-3, -1, 1, 4, 5]),
+    28: ('Nickel',     'Ni', [2],        [-2, -1, 1, 3, 4]),
+    29: ('Copper',     'Cu', [2],        [-2, 1, 3, 4]),
+    30: ('Zinc',       'Zn', [2],        [-2, 1]),
+    31: ('Gallium',    'Ga', [3],        [-5, -4, -2, -1, 1, 2]),
+    32: ('Germanium',  'Ge', [-4, 2, 4], [-3, -2, -1, 1, 3]),
+    33: ('Arsenic',    'As', [-3, 3, 5], [-2, -1, 1, 2, 4]),
+    34: ('Selenium',   'Se', [-2, 2, 4, 6], [-1, 1, 3, 5]),
+    35: ('Bromine',    'Br', [-1, 1, 3, 5], [4, 7]),
+    36: ('Krypton',    'Kr', [2],        []),
+    37: ('Rubidium',   'Rb', [1],        [-1]),
+    38: ('Strontium',  'Sr', [2],        [1]),
+    39: ('Yttrium',    'Y',  [3],        [1, 2]),
+    40: ('Zirconium',  'Zr', [4],        [-2, 1, 2, 3]),
+    41: ('Niobium',    'Nb', [5],        [-3, -1, 1, 2, 3, 4]),
+    42: ('Molybdenum', 'Mo', [4, 6],     [-4, -2, -1, 1, 2, 3, 5]),
+    43: ('Technetium', 'Tc', [4, 7],     [-3, -1, 1, 2, 3, 5, 6]),
+    44: ('Ruthenium',  'Ru', [3, 4],     [-4, -2, 1, 2, 5, 6, 7, 8]),
+    45: ('Rhodium',    'Rh', [3],        [-3, -1, 1, 2, 4, 5, 6]),
+    46: ('Palladium',  'Pd', [2, 4],     [1, 3, 5, 6]),
+    47: ('Silver',     'Ag', [1],        [-2, -1, 2, 3, 4]),
+    48: ('Cadmium',    'Cd', [2],        [-2, 1]),
+    49: ('Indium',     'In', [3],        [-5, -2, -1, 1, 2]),
+    50: ('Tin',        'Sn', [-4, 2, 4], [-3, -2, -1, 1, 3]),
+    51: ('Antimony',   'Sb', [-3, 3, 5], [-2, -1, 1, 2, 4]),
+    52: ('Tellurium',  'Te', [-2, 2, 4, 6], [-1, 1, 3, 5]),
+    53: ('Iodine',     'I',  [-1, 1, 3, 5, 7], [4, 6]),
+    54: ('Xenon',      'Xe', [2, 4, 6],  [8]),
+    55: ('Cesium',     'Cs', [1],        [-1]),
+    56: ('Barium',     'Ba', [2],        [1]),
+    57: ('Lanthanum',  'La', [3],        [1, 2]),
+    58: ('Cerium',     'Ce', [3, 4],     [2]),
+    59: ('Praseodymium', 'Pr', [3],      [2, 4, 5]),
+    60: ('Neodymium',  'Nd', [3],        [2, 4]),
+    61: ('Promethium', 'Pm', [3],        [2]),
+    62: ('Samarium',   'Sm', [3],        [2]),
+    63: ('Europium',   'Eu', [2, 3],     []),
+    64: ('Gadolinium', 'Gd', [3],        [1, 2]),
+    65: ('Terbium',    'Tb', [3],        [1, 2, 4]),
+    66: ('Dysprosium', 'Dy', [3],        [2, 4]),
+    67: ('Holmium',    'Ho', [3],        [2]),
+    68: ('Erbium',     'Er', [3],        [2]),
+    69: ('Thulium',    'Tm', [3],        [2]),
+    70: ('Ytterbium',  'Yb', [3],        [2]),
+    71: ('Lutetium',   'Lu', [3],        [2]),
+    72: ('Hafnium',    'Hf', [4],        [-2, 1, 2, 3]),
+    73: ('Tantalum',   'Ta', [5],        [-3, -1, 1, 2, 3, 4]),
+    74: ('Tungsten',   'W',  [4, 6],     [-4, -2, -1, 1, 2, 3, 5]),
+    75: ('Rhenium',    'Re', [4],        [-3, -1, 1, 2, 3, 5, 6, 7]),
+    76: ('Osmium',     'Os', [4],        [-4, -2, -1, 1, 2, 3, 5, 6, 7, 8]),
+    77: ('Iridium',    'Ir', [3, 4],     [-3, -1, 1, 2, 5, 6, 7, 8, 9]),
+    78: ('Platinum',   'Pt', [2, 4],     [-3, -2, -1, 1, 3, 5, 6]),
+    79: ('Gold',       'Au', [3],        [-3, -2, -1, 1, 2, 5]),
+    80: ('Mercury',    'Hg', [1, 2],     [-2, 4]),  # +4  doi:10.1002/anie.200703710
+    81: ('Thallium',   'Tl', [1, 3],     [-5, -2, -1, 2]),
+    82: ('Lead',       'Pb', [2, 4],     [-4, -2, -1, 1, 3]),
+    83: ('Bismuth',    'Bi', [3],        [-3, -2, -1, 1, 2, 4, 5]),
+    84: ('Polonium',   'Po', [-2, 2, 4], [5, 6]),
+    85: ('Astatine',   'At', [-1, 1],    [3, 5, 7]),
+    86: ('Radon',      'Rn', [2],        [6]),
+    87: ('Francium',   'Fr', [1],        []),
+    88: ('Radium',     'Ra', [2],        []),
+    89: ('Actinium',   'Ac', [3],        []),
+    90: ('Thorium',        'Th', [4],    [1, 2, 3]),
+    91: ('Protactinium',   'Pa', [5],    [3, 4]),
+    92: ('Uranium',        'U',  [6],    [1, 2, 3, 4, 5]),
+    93: ('Neptunium',      'Np', [5],    [2, 3, 4, 6, 7]),
+    94: ('Plutonium',      'Pu', [4],    [2, 3, 5, 6, 7]),
+    95: ('Americium',      'Am', [3],    [2, 4, 5, 6, 7]),
+    96: ('Curium',         'Cm', [3],    [4, 6]),
+    97: ('Berkelium',      'Bk', [3],    [4]),
+    98: ('Californium',    'Cf', [3],    [2, 4]),
+    99: ('Einsteinium',    'Es', [3],    [2, 4]),
+    100: ('Fermium',       'Fm', [3],    [2]),
+    101: ('Mendelevium',   'Md', [3],    [2]),
+    102: ('Nobelium',      'No', [2],    [3]),
+    103: ('Lawrencium',    'Lr', [3],    []),
+    104: ('Rutherfordium', 'Rf', [4],    []),
+    105: ('Dubnium',       'Db', [5],    []),
+    106: ('Seaborgium',    'Sg', [6],    []),
+    107: ('Bohrium',       'Bh', [7],    []),
+    108: ('Hassium',       'Hs', [8],    []),
+    109: ('Meitnerium',    'Mt', [],     []),
+    110: ('Darmstadtium',  'Ds', [],     []),
+    111: ('Roentgenium',   'Rg', [],     []),
+    112: ('Copernicium',   'Cn', [2],    []),
+    113: ('Nihonium',      'Nh', [],     []),
+    114: ('Flerovium',     'Fl', [],     []),
+    115: ('Moscovium',     'Mc', [],     []),
+    116: ('Livermorium',   'Lv', [],     []),
+    117: ('Tennessine',    'Ts', [],     []),
+    118: ('Oganesson',     'Og', [],     []),
 }
 # pylint: enable=bad-whitespace
 
@@ -861,21 +1001,12 @@ def define_elements(table: PeriodicTable, namespace: dict[str, Any]) -> list[str
     """
 
     # Build the dictionary of element symbols
-    names = {}
-    for el in table:
-        names[el.symbol] = el
-        names[el.name] = el
-    for el in [table.D, table.T, table.n]:
-        names[el.symbol] = el
-        names[el.name] = el
-
-    # Copy it to the namespace
-    for k, v in names.items():
-        namespace[k] = v
-
-    # return the keys
-    return list(names.keys())
-
+    names: list[str] = []
+    for atom in [*table, table.D, table.T, table.n]:
+        namespace[atom.symbol] = atom
+        namespace[atom.name] = atom
+        names.extend((atom.symbol, atom.name))
+    return names
 
 def get_data_path(data: Path|str) -> str:
     """

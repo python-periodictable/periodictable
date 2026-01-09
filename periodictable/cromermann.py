@@ -64,7 +64,7 @@ def getCMformula(symbol: str) -> "CromerMannFormula":
     return _cmformulas[symbol]
 
 
-def fxrayatq(symbol: str, Q: ArrayLike, charge: int=None) -> ArrayLike:
+def fxrayatq(symbol: str, Q: ArrayLike, charge: int|None=None) -> ArrayLike:
     """
     Return x-ray scattering factors of an element at a given Q.
 
@@ -82,7 +82,7 @@ def fxrayatq(symbol: str, Q: ArrayLike, charge: int=None) -> ArrayLike:
     return rv
 
 
-def fxrayatstol(symbol: str, stol: ArrayLike, charge: int=None) -> ArrayLike:
+def fxrayatstol(symbol: str, stol: ArrayLike, charge: int|None=None) -> ArrayLike:
     """
     Calculate x-ray scattering factors at specified sin(theta)/lambda
 

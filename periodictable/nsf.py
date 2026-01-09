@@ -186,6 +186,8 @@ The following newer measurements from the literature are included:
 #    Wiley InterScience. pp 126-146. doi:10.1107/97809553602060000584
 #
 
+from typing import TYPE_CHECKING, cast
+
 import numpy as np
 from numpy import sqrt, pi, asarray, inf
 from numpy.typing import NDArray, ArrayLike
@@ -450,8 +452,10 @@ class Neutron:
     def __init__(self):
         self._number_density = None
     def __str__(self) -> str:
-        return ("b_c=%.3g coh=%.3g inc=%.3g abs=%.3g"
-                % (self.b_c, self.coherent, self.incoherent, self.absorption))
+        if not self.has_sld():
+            return "unknown"
+        b_c, coh, inc, abs = self.b_c, self.coherent, self.incoherent, self.absorption
+        return f"b_c={cast(float, b_c):.3g} coh={cast(float, coh):.3g} inc={cast(float, inc):.3g} abs={cast(float, abs):.3g}"
 
     def has_sld(self) -> bool:
         """Returns *True* if sld is defined for this element/isotope."""
@@ -460,7 +464,7 @@ class Neutron:
         return self.b_c is not None and self._number_density is not None
 
     # PAK 2021-04-05: allow energy dependent b_c
-    def scattering_by_wavelength(self, wavelength: ArrayLike) -> tuple[NDArray, NDArray]:
+    def scattering_by_wavelength(self, wavelength: ArrayLike) -> tuple[ArrayLike, ArrayLike]|tuple[None, None]:
         r"""
         Return scattering length and total cross section for each wavelength.
 
@@ -479,10 +483,13 @@ class Neutron:
 
             *sigma_s* \: float(s) | barn
         """
+        if not self.has_sld():
+            return None, None
+
         # TODO: do vector conversion at the end rather than the beginning.
         if self.nsf_table is None:
             ones = 1 if np.isscalar(wavelength) else np.ones_like(wavelength)
-            return ones*self.b_c_complex, ones*self.total
+            return ones*cast(float, self.b_c_complex), ones*cast(float, self.total)
         #energy = neutron_energy(wavelength)
         #b_c = np.interp(energy, self.nsf_table[0], self.nsf_table[1])
         b_c = np.interp(wavelength, self.nsf_table[0], self.nsf_table[1])
@@ -490,7 +497,7 @@ class Neutron:
         sigma_s = _4PI_100*abs(b_c)**2 # 1 barn = 1 fm^2 1e-2 barn/fm^2
         return b_c, sigma_s
 
-    def sld(self, *, wavelength: ArrayLike=ABSORPTION_WAVELENGTH) -> NDArray:
+    def sld(self, *, wavelength: ArrayLike=ABSORPTION_WAVELENGTH) -> NDArray|None:
         r"""
         Returns scattering length density for the element at natural
         abundance and density.
@@ -508,10 +515,10 @@ class Neutron:
         """
         # TODO: deprecate in favour of neutron_scattering(el)
         if not self.has_sld():
-            return None, None, None
+            return None
         return self.scattering(wavelength=wavelength)[0]
 
-    def scattering(self, *, wavelength: ArrayLike=ABSORPTION_WAVELENGTH) -> tuple[NDArray, NDArray, NDArray]:
+    def scattering(self, *, wavelength: ArrayLike=ABSORPTION_WAVELENGTH) -> tuple[NDArray, NDArray, NDArray]|tuple[None, None, None]:
         r"""
         Returns neutron scattering information for the element at natural
         abundance and density.
@@ -563,7 +570,7 @@ def energy_dependent_init(table: PeriodicTable) -> None:
     bc_175 = Lu175.neutron.b_c_complex
     wavelength, bc_176 = Lu176.neutron.nsf_table
     bc_nat = (bc_175*Lu175.abundance + bc_176*Lu176.abundance)/100.0 # 1 fm = 1fm * %/100
-    table.Lu.neutron.nsf_table = wavelength, bc_nat
+    table.Lu.neutron.nsf_table = wavelength, cast(DoubleArray, bc_nat)
     #table.Lu.neutron.total = 0.  # zap total cross section
 
 def init(table: PeriodicTable, reload: bool=False) -> None:
@@ -668,7 +675,6 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
 # TODO: require parsed compound rather than including formula() keywords in api
 # Note: docs and function prototype are reproduced in __init__
 # CRUFT: deprecated circular import with periodictable.formulas
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .formulas import FormulaInput
 def neutron_scattering(
@@ -678,7 +684,7 @@ def neutron_scattering(
         energy: ArrayLike|None=None,
         natural_density: float|None=None,
         table: PeriodicTable|None=None,
-        ) -> tuple[NDArray, NDArray, NDArray]:
+        ) -> tuple[NDArray, NDArray, NDArray]|tuple[None, None, None]:
     r"""
     Computes neutron scattering cross sections for molecules.
 
@@ -932,9 +938,9 @@ def neutron_scattering(
     elif wavelength is None:
         wavelength = ABSORPTION_WAVELENGTH
 
-    # Sum over the quantities
-    molar_mass = num_atoms = 0
-    b_c = sigma_s = 0
+    # Sum over the quantities (note: formulas can have fractional atoms)
+    molar_mass, num_atoms = 0., 0.
+    b_c, sigma_s = 0., 0.
     is_energy_dependent = False
     for element, quantity in compound.atoms.items():
         # TODO: use NaN rather than None

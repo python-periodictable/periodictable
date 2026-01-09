@@ -64,7 +64,7 @@ but they are not yet part of the public interface.
 from .core import Element, Isotope, PeriodicTable, default_table
 from .util import parse_uncertainty
 
-def mass(isotope: Element|Isotope) -> float:
+def mass(atom: Element|Isotope) -> float:
     """
     Atomic weight.
 
@@ -75,9 +75,9 @@ def mass(isotope: Element|Isotope) -> float:
         *mass* : float | u
             Atomic weight of the element.
     """
-    return isotope._mass
+    return atom._mass
 
-def abundance(isotope: Element|Isotope) -> float:
+def abundance(atom: Isotope) -> float:
     """
     Natural abundance.
 
@@ -87,7 +87,7 @@ def abundance(isotope: Element|Isotope) -> float:
     :Returns:
         *abundance* : float | %
     """
-    return isotope._abundance
+    return atom._abundance
 
 def init(table: PeriodicTable, reload: bool=False) -> None:
     """Add mass attribute to period table elements and isotopes"""
@@ -95,27 +95,27 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
         return
     table.properties.append('mass')
     Element.mass = property(mass, doc=mass.__doc__)
+    Element.mass_units = "u"
     Isotope.mass = property(mass, doc=mass.__doc__)
     Isotope.abundance = property(abundance, doc=abundance.__doc__)
-    Element.mass_units = "u"
-    Element.abundance_units = "%"
+    Isotope.abundance_units = "%"
 
     # Parse isotope mass table where each line looks like:
     #     z-el-iso,isotope mass(unc)#?,abundance(unc),element mass(unc)
     # The abundance and element masses will be set from other tables, so
     # ignore them here.
     for line in isotope_mass.split('\n'):
-        isotope, m, p, avg = line.split(',')
-        z, sym, iso = isotope.split('-')
-        el = table[int(z)]
+        isotope, iso_mass, iso_abundance, el_mass = line.split(',')
+        zstr, sym, astr = isotope.split('-')
+        el = table[int(zstr)]
         assert el.symbol == sym, \
             "Symbol %s does not match %s"%(sym, el.symbol)
-        iso = el.add_isotope(int(iso))
+        iso = el.add_isotope(int(astr))
         # Note: new mass table doesn't include nominal values for transuranics
         # so use old masses here and override later with new masses.
-        el._mass, el._mass_unc = parse_uncertainty(avg)
+        el._mass, el._mass_unc = parse_uncertainty(el_mass)
         #el._mass, el._mass_unc = None, None
-        iso._mass, iso._mass_unc = parse_uncertainty(m)
+        iso._mass, iso._mass_unc = parse_uncertainty(iso_mass)
         #iso._abundance, iso._abundance_unc = parse_uncertainty(p)
         iso._abundance, iso._abundance_unc = 0, 0
 
@@ -130,16 +130,16 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
     # Parse element mass table where each line looks like:
     #    z  El  element mass(unc)|[low,high]|- note note ...
     for line in element_mass.split('\n'):
-        z, symbol, name, value = line.split()[:4]
-        #print(z, symbol, name, value)
-        el = table[int(z)]
-        if value != '-':
-            #v, dv = parse_uncertainty(value)
+        zstr, symbol, name, valstr = line.split()[:4]
+        #print(z, symbol, name, valstr)
+        el = table[int(zstr)]
+        if valstr != '-':
+            #v, dv = parse_uncertainty(valstr)
             #delta = abs(v-el._mass)/el._mass*100
             #from uncertainties import ufloat as U
             #if delta > 0.01:
             #    print(f"{el.number}-{el.symbol} mass changed by {delta:.2f}% to {U(v,dv):fS} from {U(el._mass,el._mass_unc):fS}")
-            el._mass, el._mass_unc = parse_uncertainty(value)
+            el._mass, el._mass_unc = parse_uncertainty(valstr)
 
     #Li_ratio = table.Li[7]._abundance/table.Li[6]._abundance
 
@@ -147,7 +147,7 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
     #    z  El element\n    iso mass(unc)|[low,high] note ...
     # Note: tables modified for Pb, Ar, and N to use 2013 values
     z = 0
-    value = {}
+    value: dict[int, tuple[float, float]] = {}
     for line in isotope_abundance.split('\n'):
         #print(line)
         # New element
@@ -725,7 +725,9 @@ isotope_abundance = """\
 # Coursey. J. S., Schwab. D. J., and Dragoset. R. A., NIST,
 #   Physics Laboratory, Office of Electronic Commerce in Scientific
 #   and Engineering Data.
-
+#
+# Column layout:
+#     z-el-iso,isotope mass(unc)#?,abundance(unc),element mass(unc)
 isotope_mass = """\
 1-H-1,1.0078250319000(100),99.9885(70),1.00794(7)
 1-H-2,2.0141017778400(200),0.0115(70),1.00794(7)
