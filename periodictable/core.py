@@ -63,7 +63,7 @@ __all__ = ['delayed_load', 'define_elements', 'get_data_path',
            'isatom', 'iselement', 'isisotope', 'ision']
 
 from pathlib import Path
-from typing import TYPE_CHECKING, cast, Any, Union, TypeVar
+from typing import TYPE_CHECKING, cast, Any, Union, TypeVar, List
 from collections.abc import Sequence, Callable, Iterator
 
 if TYPE_CHECKING:
@@ -221,7 +221,7 @@ class PeriodicTable:
            *nuclear* and *X-ray* scattering cross sections.
            See section :ref:`Adding properties <extending>` for details.
     """
-    properties: list[str]
+    properties: List[str]  # list method shadows builtin list, so using List instead
     """Properties loaded into the table"""
 
     # Tedious listing of available elements for typed table.El access
@@ -502,6 +502,7 @@ class PeriodicTable:
         # If we can't parse the string as an element or isotope, raise an error
         raise ValueError("unknown element "+input)
 
+    # TODO: list method shadows builtin list in "properties: list[str]" above
     def list(self, *props, **kw) -> None:
         """
         Print a list of elements with the given set of properties.
