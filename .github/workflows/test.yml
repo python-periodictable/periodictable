@@ -18,7 +18,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.14'
 
     - name: Build the wheel
       run: |
@@ -50,12 +50,11 @@ jobs:
     strategy:
       matrix:
         cfg:
-          #- { os: ubuntu-20.04, py: 2.7 }
           #- { os: ubuntu-20.04, py: 3.6 }
-          - { os: ubuntu-latest, py: 3.8 }
-          - { os: ubuntu-latest, py: 3.11, doc: 1 }
-          - { os: windows-latest, py: 3.11 }
-          - { os: macos-latest, py: 3.11 }
+          - { os: ubuntu-latest, py: 3.10 }
+          - { os: ubuntu-latest, py: 3.14, doc: 1 }
+          - { os: windows-latest, py: 3.14 }
+          - { os: macos-latest, py: 3.14 }
       fail-fast: false
 
     steps:
