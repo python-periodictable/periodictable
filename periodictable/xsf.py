@@ -528,7 +528,7 @@ def beta(compound, *, density=None, natural_density=None,
 
         n = 1 - \delta + i \beta
 
-    derivitive of the formula http://xdb.lbl.gov (section 1.7) using a more common
+    derivative of the formula http://xdb.lbl.gov (section 1.7) using a more common
     sign convention for the imaginary part of the index of refraction. Checked
     against http://henke.lbl.gov/optical_constants/getdb2.html.
     """
