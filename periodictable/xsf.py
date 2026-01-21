@@ -469,7 +469,7 @@ def delta(compound, *, density=None, natural_density=None,
                         energy=None, wavelength=None):
     """
     Calculates the δ component of the index of refraction for a given compound
-    
+
     :Parameters:
         *compound* : Formula initializer
             Chemical formula.
@@ -485,11 +485,11 @@ def delta(compound, *, density=None, natural_density=None,
     :Returns:
         *delta* : float or vector | unitless
             δ component of the index of refraction of the material at the given energy
-    
+
     :Notes:
 
     Formula taken from http://xdb.lbl.gov (section 1.7) and checked
-    against http://henke.lbl.gov/optical_constants/getdb2.html. 
+    against http://henke.lbl.gov/optical_constants/getdb2.html.
     """
     if energy is not None:
         wavelength = xray_wavelength(energy)
@@ -503,7 +503,7 @@ def beta(compound, *, density=None, natural_density=None,
                         energy=None, wavelength=None):
     """
     Calculates the β component of the index of refraction for a given compound
-    
+
     :Parameters:
         *compound* : Formula initializer
             Chemical formula.
@@ -519,7 +519,7 @@ def beta(compound, *, density=None, natural_density=None,
     :Returns:
         *beta* : float or vector | unitless
             β component of the index of refraction of the material at the given energy
-    
+
     :Notes:
 
     Formula taken from the equation
@@ -529,8 +529,8 @@ def beta(compound, *, density=None, natural_density=None,
         n = 1 - \delta + i \beta
 
     derivitive of the formula http://xdb.lbl.gov (section 1.7) using a more common
-    sign convention for the imaginary part of the index of refraction. Checked 
-    against http://henke.lbl.gov/optical_constants/getdb2.html. 
+    sign convention for the imaginary part of the index of refraction. Checked
+    against http://henke.lbl.gov/optical_constants/getdb2.html.
     """
     if energy is not None:
         wavelength = xray_wavelength(energy)
@@ -539,80 +539,6 @@ def beta(compound, *, density=None, natural_density=None,
                       density=density, natural_density=natural_density,
                       wavelength=wavelength)
     return wavelength**2/(2*pi)*(f2)*1e-6
-
-def n(compound, *, density=None, natural_density=None,
-                        energy=None, wavelength=None):
-    """
-    Calculates the real part (n) of the index of refraction for a given compound
-    
-    :Parameters:
-        *compound* : Formula initializer
-            Chemical formula.
-        *density* : float | |g/cm^3|
-            Mass density of the compound, or None for default.
-        *natural_density* : float | |g/cm^3|
-            Mass density of the compound at naturally occurring isotope abundance.
-        *wavelength* : float or vector | |Ang|
-            Wavelength of the X-ray.
-        *energy* : float or vector | keV
-            Energy of the X-ray, if *wavelength* is not specified.
-
-    :Returns:
-        *n* : float or vector | unitless
-            n component of the index of refraction of the material at the given energy
-    
-    :Notes:
-
-    Formula taken from the equation
-
-    .. math::
-
-        n = 1 - \delta
-
-    derivitive of the formula for δ from http://xdb.lbl.gov (section 1.7) using a more common
-    sign convention for the imaginary part of the index of refraction. Checked 
-    against http://henke.lbl.gov/optical_constants/getdb2.html. 
-    """
-    return 1 - delta(compound, 
-                      density=density, natural_density=natural_density, 
-                      energy=energy, wavelength=wavelength)
-
-def k(compound, *, density=None, natural_density=None,
-                        energy=None, wavelength=None):
-    """
-    Calculates the imaginary part (k) of the index of refraction for a given compound
-    
-    :Parameters:
-        *compound* : Formula initializer
-            Chemical formula.
-        *density* : float | |g/cm^3|
-            Mass density of the compound, or None for default.
-        *natural_density* : float | |g/cm^3|
-            Mass density of the compound at naturally occurring isotope abundance.
-        *wavelength* : float or vector | |Ang|
-            Wavelength of the X-ray.
-        *energy* : float or vector | keV
-            Energy of the X-ray, if *wavelength* is not specified.
-
-    :Returns:
-        *k* : float or vector | unitless
-            k component of the index of refraction of the material at the given energy
-    
-    :Notes:
-
-    Formula taken from the equation
-
-    .. math::
-
-        n = 1 - \delta + i \beta
-
-    derivitive of the formula for β from http://xdb.lbl.gov (section 1.7) using a more common
-    sign convention for the imaginary part of the index of refraction. Checked 
-    against http://henke.lbl.gov/optical_constants/getdb2.html. 
-    """
-    return beta(compound, 
-                density=density, natural_density=natural_density, 
-                energy=energy, wavelength=wavelength)
 
 def mirror_reflectivity(compound, *, density=None, natural_density=None,
                         energy=None, wavelength=None,
