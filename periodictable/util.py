@@ -47,7 +47,7 @@ def parse_uncertainty(s):
         # e.g., 23.0035(12) but not 23(1) or 23.0(1.0) or 23(1.0)
         if '.' not in unc and '.' in value:
             zeros = len(value.split('.')[1]) - len(unc)
-            unc = "0." + ("0"*zeros) + unc
+            unc = "".join(["0.", "0" * zeros, unc])
         return float(value), float(unc)
 
     # Plain value with no uncertainty
