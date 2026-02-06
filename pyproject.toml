@@ -8,7 +8,7 @@
     ]
     license = { file = "LICENSE.txt" }
     dependencies = [
-        "pyparsing", "numpy",
+        "pyparsing>=3.0.0", "numpy",
     ]
 
     classifiers = [
