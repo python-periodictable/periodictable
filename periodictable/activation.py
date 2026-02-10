@@ -546,7 +546,7 @@ class ActivationEnvironment:
 
     """
     fluence: float
-    CD_ratio: float
+    Cd_ratio: float
     fast_ratio: float
     location: str
 
