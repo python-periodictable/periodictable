@@ -1854,7 +1854,7 @@ def energy_dependent_table(table=None):
         if dep:
             print("    " + " ".join(dep))
 
-def _diff(iso, measured, calculated, tol=0.01):
+def _diff(iso, measured, calculated, tol):
     if None in (measured, calculated):
         if measured is not None or calculated is not None:
             if measured is None and calculated > tol:
@@ -1872,7 +1872,9 @@ def _diff(iso, measured, calculated, tol=0.01):
         # print(f"{tol=} {measured=} {calculated=} {diff=}")
         print(f"{str(iso):10s} {measured:8.2f} {calculated:8.2f} {100*diff:5.1f}%")
 
-def compare(fn1, fn2, table=None, tol=0.01):
+def compare(fn1, fn2, table=None, tol=None):
+    if tol is None:
+        tol = 0.1
     table = default_table(table)
     for el in table:
         try:
