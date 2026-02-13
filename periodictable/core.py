@@ -59,7 +59,7 @@ Helper functions:
 __docformat__ = 'restructuredtext en'
 __all__ = ['delayed_load', 'define_elements', 'get_data_path',
            'default_table', 'change_table',
-           'Ion', 'Isotope', 'Element', 'PeriodicTable',
+           'Ion', 'IonSet', 'Isotope', 'Element', 'PeriodicTable',
            'isatom', 'iselement', 'isisotope', 'ision']
 
 from pathlib import Path
@@ -663,6 +663,11 @@ class Ion(_AtomBase):
                                self.charge)
 
 class IonSet:
+    """
+    The set of ions associated with an element or isotope.
+
+    This is a dictionary interface indexed by ion charge.
+    """
     element_or_isotope: Union["Element", "Isotope"]
     ionset: dict[int, "Ion"]
 

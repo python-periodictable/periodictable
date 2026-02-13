@@ -2020,7 +2020,7 @@ def incoherent_comparison_table(table=None, tol=None):
     r"""
     Prints a table comparing total minus coherent with incoherent cross sections.
 
-    That is, check that σ_i = σ_t - σ_c where σ_c =σ_4π/100 |b_c - σ_a/(2000 λ)i|²
+    That is, check that σ_i = σ_s - σ_c where σ_c =σ_4π/100 \|b_c - σ_a/(2000 λ)i\|²
     for i = √-1 and λ = wavelength for the absorption cross section σ_a reported
     in the table.
 

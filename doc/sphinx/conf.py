@@ -50,6 +50,7 @@ nitpick_ignore = [
     ('py:class', 'type'),
     ('py:class', 'object'),
 
+    ('py:class', 'collections.abc.Buffer'),
     ('py:class', 'collections.abc.Callable'),
     ('py:class', 'collections.abc.Iterator'),
     ('py:class', 'collections.abc.Sequence'),
@@ -59,6 +60,7 @@ nitpick_ignore = [
     ('py:class', 'numpy.ndarray'),
     ('py:class', 'numpy.float64'),
     ('py:class', 'numpy._typing._array_like._Buffer'),
+    ('py:class', 'numpy._typing._array_like._ScalarType_co'),
     ('py:class', 'numpy._typing._array_like._SupportsArray'),
     ('py:class', 'numpy._typing._array_like._ScalarT'),
     ('py:class', 'numpy._typing._nested_sequence._NestedSequence'),
