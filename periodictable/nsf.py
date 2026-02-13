@@ -130,7 +130,7 @@ The following newer measurements from the literature are included:
     [4] Kohlmann (2016) 10.1515/zkri-2016-1984
     [5] Haddock (2019) 10.1103/PhysRevC.100.064002
     [6] Hannon (2018) 10.1107/S1600576718006064
-    [7] Fisher (2008) 10.1088/0953-8984/20/04/045221
+    [7] Fischer (2008) 10.1088/0953-8984/20/04/045221
 
 .. [#Rauch2003] Rauch, H. and Waschkowski, W. (2003)
     Neutron Scattering Lengths in ILL
