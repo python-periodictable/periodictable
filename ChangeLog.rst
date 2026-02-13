@@ -23,6 +23,16 @@ Known issues
 Change history
 ==============
 
+2026-02-13 R2.0.3
+-----------------
+
+Modified:
+
+* Update b_c bp bm and incoherent attributes for C-13
+* Update nuclear_spin for Se-77 Hf-177 W-182
+* Add comparison tables checking b_c and σ_i against b+ and b-
+* Add type hinting to many of the functions
+
 2024-12-19 R2.0.2
 -----------------
 

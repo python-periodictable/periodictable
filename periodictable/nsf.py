@@ -107,6 +107,7 @@ The following newer measurements from the literature are included:
     4He coherent = total cross sections computed from 4 pi b_c^2/100
     natHe computed from isotopic weighting of 3He and 4He
     natC b_c 6.6484(13) => 6.6472(9) [1]
+    13C b_c 6.19(9) => 6.542(3); bp 5.6(5) => 6.30(14); bm 6.2(5) => 7.27(42); incoherent 0.034(11) => 0.022(20) [7]
     natO b_c 5.805(4) => 5.8037(29) [1]
     17O b_c 5.6(5) => 5.867(4) [2]
     18O b_c 5.84(7) => 6.009(5) [2]
@@ -129,6 +130,7 @@ The following newer measurements from the literature are included:
     [4] Kohlmann (2016) 10.1515/zkri-2016-1984
     [5] Haddock (2019) 10.1103/PhysRevC.100.064002
     [6] Hannon (2018) 10.1107/S1600576718006064
+    [7] Fisher (2008) 10.1088/0953-8984/20/04/045221
 
 .. [#Rauch2003] Rauch, H. and Waschkowski, W. (2003)
     Neutron Scattering Lengths in ILL
@@ -191,7 +193,7 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 from numpy import sqrt, pi, asarray, inf
 from numpy.typing import NDArray, ArrayLike
-from .core import Element, Isotope, PeriodicTable, default_table
+from .core import Element, Isotope, PeriodicTable, Atom, default_table, iselement
 from .constants import (avogadro_number, planck_constant, electron_volt,
                         neutron_mass, atomic_mass_constant)
 
@@ -430,10 +432,10 @@ class Neutron:
     b_c_i_units: str = "fm"
     b_c_complex: complex|None = None
     b_c_complex_units: str = "fm"
-    bp: float|None = None
+    bp: float|None = None # Not all isotopes provide b+/b- values
     bp_i: float|None = None
     bp_units: str = "fm"
-    bm: float|None = None
+    bm: float|None = None # Not all isotopes provide b+/b- values
     bm_i: float|None = None
     bm_units: str = "fm"
     coherent: float|None = None
@@ -1327,11 +1329,37 @@ def sld_plot(table=None):
 # * Fix typos such as 70Zn b_c 6.9(1.0) => 6.0(1.0).
 # * Update bound coherent scattering length for H-1, H-2, He-4, C-12,
 #   O-16, O-17, O-18, Sn-119, Sm-154, Eu-153, Pb-207, Bi-209
+# * Update b_c, bp, bm for C-13 and compute incoherent from bp and bm
 # * Update total cross section for He, Kr, Xe
 # * Usd 63-Eu-151 b_c from 84Mug1. This change is moot since this isotope
 #   has energy dependent isotope coeffs.
 # * Use calculated values for 4He coh and total, and natHe b_c, coh and total.
+# * Update Se-77 to spin -1/2; Hf-177 to spin -7/2; W-182 to spin 0
 
+# TODO: check isotope spin; some of them were wrong.
+# TODO: add missing b+, b- to table using b_i values from Sears table
+# Tables for Crystallography Ch. 4 defines b_i for the following isotopes which
+# are missing b+, b- entries (though many of them with 100% uncertainty). Otherwise
+# we need to invert.
+#
+# Using the b_coh and b_inc defined as:
+#     b_c = ((I+1) b+ + I b-) / (2I+1)
+#     b_i = sqrt(I(I+1)) (b+ - b-) / (2I+1)
+# and solving for b+, b- gives:
+#     b+ = b_c + b_i I / sqrt(I(I+1)) = b_c + b_i sqrt(I/(I+1))
+#     b- = b_c - b_i (I+1) / sqrt(I(I+1)) = b_c - b_i sqrt((I+1)/I)
+# The square root fails if spin is negative, which is the case for some isotopes.
+#
+# Those with b_i > 0 (so positive branch of sqrt when inverting incoherent)
+#   9Be 21Ne 31P 33S 40,41K 43Ca 50V 57Fe 61Si 63Cu 65Cu 77Se 81Br 85,87Rb
+#   87Sr 113In 115Sn 133Cs 135,137Ba 138La 143,145Nd 147Pm 147Sm 153Eu 161Dy 175Lu
+#   177Hf 179Hf 185,187Re 189Os 207Pb 233,235U 239Pu
+# Those with b_i < 0 (so negative branch of sqrt when inverting incoherent)
+#   79Br 141Pr 169Tm 181Ta 187Os
+# Those with b_c and b_i complex (don't know what this means)
+#   149Sm 151Eu 155,157Gd 176Lu
+# Those with b_i unknown:
+#   95,97Mo 99Tc 99,101Ru 105Pd 111,113Cd 231Pa 237Np 243Am
 nsftable = """\
 0-n-1,618 S,1/2,-37.0(6),0,-37.0(6),,43.01(2),,43.01(2),0
 1-H,,,-3.7409(11),,,,1.7568(10),80.26(6),82.02(6),0.3326(7)
@@ -1350,7 +1378,7 @@ nsftable = """\
 5-B-11,80.2,3/2,6.65(4),5.6(3),8.3(3),,5.56(7),0.21(7),5.77(10),0.0055(33)
 6-C,,,6.6472(9),,,,5.551(2),0.001(4),5.551(3),0.00350(7)
 6-C-12,98.89,0,6.6535(14),,,,5.559(3),0,5.559(3),0.00353(7)
-6-C-13,1.11,1/2,6.19(9),5.6(5),6.2(5),+/-,4.81(14),0.034(11),4.84(14),0.00137(4)
+6-C-13,1.11,1/2,6.542(3),6.30(14),7.27(42),+/-,4.81(14),0.022(20),4.84(14),0.00137(4)
 7-N,,,9.36(2),,,,11.01(5),0.50(12),11.51(11),1.90(3)
 7-N-14,99.635,1,9.37(2),10.7(2),6.2(3),,11.03(5),0.50(12),11.53(11),1.91(3)
 7-N-15,0.365,1/2,6.44(3),6.77(10),6.21(10),,5.21(5),0.00005(10),5.21(5),0.000024(8)
@@ -1447,7 +1475,7 @@ nsftable = """\
 34-Se,,,7.970(9),,,,7.98(2),0.32(6),8.30(6),11.7(2)
 34-Se-74,0.9,0,0.8(3.0),,,,0.1(6),0,0.1(6),51.8(1.2)
 34-Se-76,9,0,12.2(1),,,,18.7(3),0,18.7(3),85.0(7.0)
-34-Se-77,7.5,0,8.25(8),,,,8.6(2),0.05(25),8.65(16),42.0(4.0)
+34-Se-77,7.5,-1/2,8.25(8),,,,8.6(2),0.05(25),8.65(16),42.0(4.0)
 34-Se-78,23.5,0,8.24(9),,,,8.5(2),0,8.5(2),0.43(2)
 34-Se-80,50,0,7.48(3),,,,7.03(6),0,7.03(6),0.61(5)
 34-Se-82,8.84,0,6.34(8),,,,5.05(13),0,5.05(13),0.044(3)
@@ -1629,7 +1657,7 @@ nsftable = """\
 72-Hf,,,7.77(14),,,,7.6(3),2.6(5),10.2(4),104.1(5)
 72-Hf-174,0.184,0,10.9(1.1),,,,15.0(3.0),0,15.0(3.0),561.0(35.0)
 72-Hf-176,5.2,0,6.61(18),,,,5.5(3),0,5.5(3),23.5(3.1)
-72-Hf-177,18.5,0,0.8(1.0)*,,,,0.1(2),0.1(3),0.2(2),373.0(10.0)
+72-Hf-177,18.5,-7/2,0.8(1.0)*,,,,0.1(2),0.1(3),0.2(2),373.0(10.0)
 72-Hf-178,27.2,0,5.9(2),,,,4.4(3),0,4.4(3),84.0(4.0)
 72-Hf-179,13.8,9/2,7.46(16),,,,7.0(3),0.14(2),7.1(3),41.0(3.0)
 72-Hf-180,35.1,0,13.2(3),,,,21.9(1.0),0,21.9(1.0),13.04(7)
@@ -1638,7 +1666,7 @@ nsftable = """\
 73-Ta-181,99.98,7/2,6.91(7),,,+/-,6.00(12),0.011(2),6.01(12),20.5(5)
 74-W,,,4.755(18),,,,2.97(2),1.63(6),4.60(6),18.3(2)
 74-W-180,0.13,0,5.0(3.0)*,,,,3.0(4.0),0,3.0(4.0),30.0(20.0)
-74-W-182,26.3,1/2,7.04(4),,,,6.10(7),0,6.10(7),20.7(5)
+74-W-182,26.3,0,7.04(4),,,,6.10(7),0,6.10(7),20.7(5)
 74-W-183,14.3,1/2,6.59(4),6.3(4),7.0(4),,5.36(7),0.3(3)*,5.7(3),10.1(3)
 74-W-184,30.7,0,7.55(6),,,,7.03(11),0,7.03(11),1.7(1)
 74-W-186,28.6,0,-0.73(4),,,,0.065(7),0,0.065(7),37.9(6)
@@ -1826,18 +1854,23 @@ def energy_dependent_table(table=None):
         if dep:
             print("    " + " ".join(dep))
 
-def _diff(iso, a, b, tol=0.01):
-    if None in (a, b):
-        if a is not None or b is not None:
-            if a is None and b > tol:
-                print("%10s %8s %8.2f"%(iso, "----", b))
-            elif b is None and a > tol:
-                print("%10s %8.2f %8s"%(iso, a, "----"))
+def _diff(iso, measured, calculated, tol=0.01):
+    if None in (measured, calculated):
+        if measured is not None or calculated is not None:
+            if measured is None and calculated > tol:
+                print(f"{str(iso):10s} {'----':>8s} {calculated:8.2f}")
+            elif calculated is None and measured > tol:
+                print(f"{str(iso):10s} {measured:8.2f} {'-----':>8s}")
     # Tricky code: Using tolerance of -tol selects for items within tolerance
-    # rather than outside tolerance by using -|a-b| > -tol.
-    elif np.sign(tol)*abs(a - b) > tol:
-        print("%10s %8.2f %8.2f %5.1f%%"
-              % (iso, a, b, (100*(a-b)/b if b != 0 else inf)))
+    # rather than outside tolerance by using -|a-b| > -tol. Note that sign(0)
+    # is zero, so using >= tol so that tol=0 prints every element of the table.
+    # If a or b is nan then the expression on the left is nan and the condition
+    # fails so the row will not be printed.
+    # Note: for relative tolerance use tol*measured
+    elif np.sign(tol)*abs(measured - calculated) >= tol:
+        diff = (measured-calculated)/calculated if calculated != 0 else 0.0 if measured == 0 else 1
+        # print(f"{tol=} {measured=} {calculated=} {diff=}")
+        print(f"{str(iso):10s} {measured:8.2f} {calculated:8.2f} {100*diff:5.1f}%")
 
 def compare(fn1, fn2, table=None, tol=0.01):
     table = default_table(table)
@@ -1845,10 +1878,12 @@ def compare(fn1, fn2, table=None, tol=0.01):
         try:
             res1 = fn1(el)
         except Exception:
+            raise
             res1 = None
         try:
             res2 = fn2(el)
         except Exception:
+            raise
             res2 = None
         _diff(el, res1, res2, tol=tol)
         for iso in el:
@@ -1860,10 +1895,12 @@ def compare(fn1, fn2, table=None, tol=0.01):
             try:
                 res1 = fn1(iso)
             except Exception:
+                raise
                 res1 = None
             try:
                 res2 = fn2(iso)
             except Exception:
+                raise
                 res2 = None
             _diff(iso, res1, res2, tol=tol)
 
@@ -1938,8 +1975,9 @@ def coherent_comparison_table(table=None, tol=None):
 
     """
     print("Comparison of (4 pi |b_c|^2/100) and coherent")
-    sigma_c = lambda el: 4*pi/100*abs(el.neutron.b_c_complex)**2
-    compare(sigma_c, lambda el: el.neutron.coherent, table=table, tol=tol)
+    def sigma_c(el):
+        return 4*pi/100*abs(el.neutron.b_c_complex)**2
+    compare(lambda el: el.neutron.coherent, sigma_c, table=table, tol=tol)
 
 def total_comparison_table(table=None, tol=None):
     r"""
@@ -1978,7 +2016,11 @@ def total_comparison_table(table=None, tol=None):
 
 def incoherent_comparison_table(table=None, tol=None):
     r"""
-    Prints a table of incoherent computed from total and b_c with incoherent.
+    Prints a table comparing total minus coherent with incoherent cross sections.
+
+    That is, check that σ_i = σ_t - σ_c where σ_c =σ_4π/100 |b_c - σ_a/(2000 λ)i|²
+    for i = √-1 and λ = wavelength for the absorption cross section σ_a reported
+    in the table.
 
     :Parameters:
         *table* \: PeriodicTable
@@ -2001,10 +2043,164 @@ def incoherent_comparison_table(table=None, tol=None):
 
     """
     print("Comparison of incoherent and (total - 4 pi |b_c|^2/100)")
-    sigma_c = lambda el: 4*pi/100*abs(el.neutron.b_c_complex)**2
+    def sigma_c(el):
+        return 4*pi/100*abs(el.neutron.b_c_complex)**2
     compare(lambda el: el.neutron.incoherent,
             lambda el: el.neutron.total - sigma_c(el),
             table=table, tol=tol)
+
+def bp_bm_bc_comparison_table(table=None, tol=None):
+    r"""
+    Prints a table comparing b+ and b- with coherent.
+
+    The coherent scattering length for an isotope with spin I is computed as
+    b_c = (I+1)/(2I+1) b_p + I/(2I+1) b_m.
+
+    :Parameters:
+        *table* \: PeriodicTable
+            The default periodictable unless a specific table has been requested.
+        *tol* = 0.01 \: float | barn
+            Amount of difference to show. Use -tol to show elements within
+            tolerance rather than those outside tolerance.
+
+    :Returns: None
+    """
+    print("Comparison of b_c with b_c computed from b+ and b-")
+    def b_coh(el: Atom) -> float|None:
+        if iselement(el):
+            return np.nan  # should be excluded from the table
+
+        # print(f"Processing isotope {el}")
+        # print(f"   {el} {el.abundance} {el.nuclear_spin} b+={el.neutron.bp} b-={el.neutron.bm}")
+        spinstr, bp, bm = el.nuclear_spin, el.neutron.bp, el.neutron.bm
+        if not spinstr or bp is None:
+            return np.nan
+        spin = int(spinstr[:-2])/2 if spinstr.endswith('/2') else int(spinstr)
+        b_coh = ((spin+1)*bp + spin*bm) / (2*spin+1)
+        return b_coh
+
+    compare(lambda el: el.neutron.b_c, b_coh, table=table, tol=tol)
+
+def bp_bm_bi_comparison_table(table=None, tol=None):
+    r"""
+    Prints a table comparing b+ and b- with incoherent.
+
+    Also calculates the incoherent scattering from the mixture of naturally occurring
+    isotopes for each element using mean(b_i²) + var(b_c).
+
+    The incoherent scattering length for an isotope with spin I is computed as
+    b_i = √I(I+1)]/(2I+1) (b_p - b_m). If b_p and b_m are not available, then guess
+    b_i up to sign from the incoherent cross section σ_i.
+
+    :Parameters:
+        *table* \: PeriodicTable
+            The default periodictable unless a specific table has been requested.
+        *tol* = 0.01 \: float | barn
+            Amount of difference to show. Use -tol to show elements within
+            tolerance rather than those outside tolerance.
+
+    :Returns: None
+    """
+    print("Comparison of σ_ι and 4 pi/100 var(b_c)")
+    def sigma_i(el: Atom) -> float|None:
+        if iselement(el):
+            # print(f"Processing element {el}")
+            sum_b_coh = 0
+            sum_b_coh_sq = 0
+            sum_weight = 0
+            for iso in el:
+                if not iso.neutron.has_sld():
+                    continue
+
+                bp, bm = iso.neutron.bp, iso.neutron.bm
+                b_coh = iso.neutron.b_c
+                # The following doesn't work in practice because b_inc may be negative.
+                # Since this code is only for crosscheck and this only affects isotopes
+                # that don't have b+ and b- defined we won't worry too much about
+                # correctness. If you are trying to track down why some of the table
+                # comparisons are so bad you may need to address them.
+                # Looking at tables for Crystallography C(4):
+                #   b_i < 0: 79Br 141Pr 169Tm 181Ta 187Os
+                #   b_i complex: 149Sm 151Eu 155,157Gd 176Lu
+                #   b_i unknown: 95,97Mo 99Tc 99,101Ru 105Pd 111,113Cd 231Pa 237Np 243Am
+                # The remaining missing entries have b_i > 0 so inversion should work.
+                b_inc = np.sqrt(iso.neutron.incoherent/_4PI_100) if iso.neutron.incoherent else 0
+
+                # # List the isotopes which don't have b+ defined.
+                # if bp is None and b_inc != 0:
+                #     print(f"!!! {iso} missing b+,b- with {b_coh=} {b_inc=}")
+
+                # TODO: I don't know what to do with negative spin
+                spinstr = iso.nuclear_spin
+                spin = abs(int(spinstr[:-2])/2 if spinstr.endswith('/2') else int(spinstr))
+                # # Check that odd isotopes have fractional spin and even isotops have integer spin
+                # if iso.isotope%2 == 1 and not spinstr.endswith('/2'):
+                #     print(f"!!! {iso} with spin={spinstr} should have fractional spin")
+                # if iso.isotope%2 == 0 and spinstr.endswith('/2'):
+                #     print(f"!!! {iso} with spin={spinstr} should have integer spin")
+
+                if iso.abundance:
+                    # Checking that all spin=0 have no incoherent scattering recorded
+                    # if spin == 0 and b_inc != 0:
+                    #     print(f"!!! {iso} has spin {spin} and {b_inc=}")
+                    if bp is None:
+                        # Using the b_coh and b_inc defined as:
+                        #     b_c = ((I+1) b+ + I b-) / (2I+1)
+                        #     b_i = √I(I+1)] (b+ - b-) / (2I+1)
+                        # and solving for b+, b- gives:
+                        #     b+ = b_c + b_i I / √I(I+1)] = b_c + b_i √I/(I+1)]
+                        #     b- = b_c - b_i (I+1) / √I(I+1)] = b_c - b_i √(I+1)/I]
+                        # Guard against division by I=0. In that case we will only
+                        # have b+ contributing to the sums, so it doesn't matter
+                        # what value we use for b-. I've arbitrarily set it
+                        # to b- = b_coh when spin is zero since b_inc is zero in those cases
+                        bp = b_coh + b_inc * np.sqrt(spin/(spin + 1))
+                        bm = b_coh - b_inc * np.sqrt((spin + 1)/spin) if spin != 0 else b_coh
+
+                    # calc_bc = ((spin+1)*bp + spin*bm) / (2*spin + 1)
+                    # calc_bi = np.sqrt(spin*(spin+1)) * (bp - bm) / (2*spin + 1)
+                    # print(f"   {iso} {iso.abundance} {spinstr} b+={bp} b-={bm} b_c={b_coh}:{calc_bc} b_i={b_inc}:{calc_bi}")
+
+
+                    # Instead treat bp and bm as separate isotopes when finding
+                    # the mean and variance. Use relative weighting of spin+1:spin
+                    # for b+ and b-, so normalize by (2*spin+1). There is no
+                    # independent incoherent contribution using this approach.
+                    weight = iso.abundance/100
+                    sum_weight += weight # in case abundance doesn't sum to 100%
+                    sum_b_coh += weight*((spin+1)*bp + spin*bm)/(2*spin+1)
+                    sum_b_coh_sq += weight*((spin+1)*bp**2 + spin*bm**2)/(2*spin+1)
+
+            if sum_weight == 0.0:
+                # No naturally occurring isotopes; value is meaningless
+                return np.nan
+            # Normal expression across isotopes is the weighted mean of the isotope
+            # incoherence plus the variance of the isotope coherence:
+            #    var(b_c) = Σ w (b_c - <b_c>)² / Σ w
+            #    mean(b_i²) = Σ w b_i² / Σ w
+            #    b_i² = mean(b_i²) + var(b_c)
+            # Since we are using the different spin states as separate coherent
+            # contributions we don't need mean(b_i²), just the coherent variance
+            var_b_coh = sum_b_coh_sq/sum_weight - (sum_b_coh/sum_weight)**2
+            sigma_i = _4PI_100 * var_b_coh
+            # print(f"   var<b_c> = {var_b_coh} -> σ_i = {sigma_i:.5f} compared to {el.neutron.incoherent:.5f}")
+
+            return sigma_i
+
+        # print(f"Processing isotope {el}")
+        #print(f":: {el} {el.abundance} {el.nuclear_spin} b+={el.neutron.bp} b-={el.neutron.bm}")
+        spinstr, bp, bm = el.nuclear_spin, el.neutron.bp, el.neutron.bm
+        if not spinstr or bp is None:
+            return np.nan # exclude from the table
+            return el.neutron.incoherent
+        spin = int(spinstr[:-2])/2 if spinstr.endswith('/2') else int(spinstr)
+        b_inc = np.sqrt(spin*(spin+1)) / (2*spin+1) * (bp - bm)
+        sigma_i = _4PI_100 * abs(b_inc)**2
+        #print(f"   σ_i = {sigma_i:.5f} compared to {el.neutron.incoherent:.5f}")
+        return sigma_i
+
+    compare(lambda el: el.neutron.incoherent, sigma_i, table=table, tol=tol)
+
 
 def print_scattering(compound, wavelength=ABSORPTION_WAVELENGTH):
     """
@@ -2040,6 +2236,9 @@ def main():
 
     import sys
     compounds = sys.argv[1:]
+    if not compounds:
+        print("usage: python -m periodictable.nsf [-Lwavelength] atom ...")
+        sys.exit(1)
     if compounds[0].startswith('-L'):
         wavelength = float(compounds[0][2:])
         compounds = compounds[1:]
@@ -2049,9 +2248,12 @@ def main():
         print_scattering(c, wavelength)
 
 if __name__ == "__main__":
-    main()
     #sld_table()
+    # tolerances are absolute, not relative
     #coherent_comparison_table(tol=0.1)
     #incoherent_comparison_table(tol=0.1)
     #absorption_comparison_table(tol=0.1)
     #total_comparison_table(tol=0.1)
+    #bp_bm_bc_comparison_table(tol=0.1)
+    #bp_bm_bi_comparison_table(tol=0.1)
+    main() # command line scattering calculator for elements and isotopes
