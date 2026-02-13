@@ -412,7 +412,9 @@ class Neutron:
 
     * abundance (%)
         Isotope abundance used to compute the properties of the element in
-        natural abundance.
+        natural abundance. Note that this data is taken from the ATI scattering
+        tables. Each isotope has an abundance provided by the latest mass tables
+        from IUPAC.
 
     * nuclear_spin (string)
         Spin on the nucleus: '0', '1/2', '3/2', etc.
@@ -1287,9 +1289,8 @@ def sld_plot(table=None):
 
     table = default_table(table)
 
-    SLDs = dict((el, el.neutron.sld()[0])
-                for el in table
-                if el.neutron.has_sld())
+    SLDs: dict[Atom, float] = dict(
+        (el, el.neutron.sld()[0]) for el in table if el.neutron.has_sld())
     SLDs[table.D] = table.D.neutron.sld()[0]
 
     table_plot(SLDs, label='Scattering length density ($10^{-6}$ Nb)',
@@ -2068,20 +2069,21 @@ def bp_bm_bc_comparison_table(table=None, tol=None):
     :Returns: None
     """
     print("Comparison of b_c with b_c computed from b+ and b-")
-    def b_coh(el: Atom) -> float|None:
-        if iselement(el):
+    def b_coh(atom: Atom) -> float|None:
+        if iselement(atom):
             return np.nan  # should be excluded from the table
 
+        iso = cast(Isotope, atom)
         # print(f"Processing isotope {el}")
         # print(f"   {el} {el.abundance} {el.nuclear_spin} b+={el.neutron.bp} b-={el.neutron.bm}")
-        spinstr, bp, bm = el.nuclear_spin, el.neutron.bp, el.neutron.bm
+        spinstr, bp, bm = iso.nuclear_spin, iso.neutron.bp, iso.neutron.bm
         if not spinstr or bp is None:
             return np.nan
         spin = int(spinstr[:-2])/2 if spinstr.endswith('/2') else int(spinstr)
         b_coh = ((spin+1)*bp + spin*bm) / (2*spin+1)
         return b_coh
 
-    compare(lambda el: el.neutron.b_c, b_coh, table=table, tol=tol)
+    compare(lambda atom: atom.neutron.b_c, b_coh, table=table, tol=tol)
 
 def bp_bm_bi_comparison_table(table=None, tol=None):
     r"""
@@ -2104,8 +2106,9 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
     :Returns: None
     """
     print("Comparison of σ_ι and 4 pi/100 var(b_c)")
-    def sigma_i(el: Atom) -> float|None:
-        if iselement(el):
+    def sigma_i(atom: Atom) -> float|None:
+        if iselement(atom):
+            el = cast(Element, atom)
             # print(f"Processing element {el}")
             sum_b_coh = 0
             sum_b_coh_sq = 0
@@ -2191,10 +2194,11 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
 
         # print(f"Processing isotope {el}")
         #print(f":: {el} {el.abundance} {el.nuclear_spin} b+={el.neutron.bp} b-={el.neutron.bm}")
-        spinstr, bp, bm = el.nuclear_spin, el.neutron.bp, el.neutron.bm
+        iso = cast(Isotope, atom)
+        spinstr, bp, bm = iso.nuclear_spin, iso.neutron.bp, iso.neutron.bm
         if not spinstr or bp is None:
             return np.nan # exclude from the table
-            return el.neutron.incoherent
+            return iso.neutron.incoherent
         spin = int(spinstr[:-2])/2 if spinstr.endswith('/2') else int(spinstr)
         b_inc = np.sqrt(spin*(spin+1)) / (2*spin+1) * (bp - bm)
         sigma_i = _4PI_100 * abs(b_inc)**2

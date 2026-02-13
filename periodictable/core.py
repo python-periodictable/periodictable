@@ -653,14 +653,11 @@ class Ion(_AtomBase):
         return repr(self.element)+'.ion[%d]'%self.charge
     def __reduce__(self):
         try:
-            return _make_isotope_ion, (self.element.table,
-                                       self.element.number,
-                                       self.element.isotope,
-                                       self.charge)
+            iso = cast("Isotope", self.element)
+            return _make_isotope_ion, (iso.table, iso.number, iso.isotope, self.charge)
         except Exception:
-            return _make_ion, (self.element.table,
-                               self.element.number,
-                               self.charge)
+            el = cast("Element", self.element)
+            return _make_ion, (el.table, el.number, self.charge)
 
 class IonSet:
     """

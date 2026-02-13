@@ -190,6 +190,7 @@ def _update_cmformulas() -> None:
     #   #N 11
     #   #L a1 a2 a3 a4 a5 c b1 b2 b3 b4 b5
     #    <a1 a2 a3 a4 a5> <c> <b1 b2 b3 b4 b5>
+    symbol = None
     with open(path) as fp:
         for line in fp:
             if line.startswith("#S"):

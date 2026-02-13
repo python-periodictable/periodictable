@@ -972,8 +972,7 @@ def init(table, reload=False):
             columns = row.split('\t')
             if columns[0].strip() in ('', 'xx'):
                 continue
-            columns = [c[1:-1] if c.startswith('"') else c
-                    for c in columns]
+            columns = [c[1:-1] if c.startswith('"') else c for c in columns]
             #print columns
             for c in INT_COLUMNS:
                 columns[c] = int(columns[c])
