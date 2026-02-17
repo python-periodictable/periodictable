@@ -61,6 +61,7 @@ but they are not yet part of the public interface.
     materials (IUPAC Technical Report). Pure and Applied Chemistry, 93(1), 155-166.
     https://doi.org/10.1515/pac-2018-0916
 """
+from typing import cast
 from .core import Element, Isotope, PeriodicTable, default_table
 from .util import parse_uncertainty
 
@@ -113,9 +114,9 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
         iso = el.add_isotope(int(astr))
         # Note: new mass table doesn't include nominal values for transuranics
         # so use old masses here and override later with new masses.
-        el._mass, el._mass_unc = parse_uncertainty(el_mass)
+        el._mass, el._mass_unc = cast(tuple[float, float], parse_uncertainty(el_mass))
         #el._mass, el._mass_unc = None, None
-        iso._mass, iso._mass_unc = parse_uncertainty(iso_mass)
+        iso._mass, iso._mass_unc = cast(tuple[float, float], parse_uncertainty(iso_mass))
         #iso._abundance, iso._abundance_unc = parse_uncertainty(p)
         iso._abundance, iso._abundance_unc = 0, 0
 
@@ -139,7 +140,7 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
             #from uncertainties import ufloat as U
             #if delta > 0.01:
             #    print(f"{el.number}-{el.symbol} mass changed by {delta:.2f}% to {U(v,dv):fS} from {U(el._mass,el._mass_unc):fS}")
-            el._mass, el._mass_unc = parse_uncertainty(valstr)
+            el._mass, el._mass_unc = cast(tuple[float, float], parse_uncertainty(valstr))
 
     #Li_ratio = table.Li[7]._abundance/table.Li[6]._abundance
 
@@ -176,25 +177,25 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
             #print(line)
             parts = line.strip().split()
             #print(parts)
-            value[int(parts[0])] = parse_uncertainty(parts[1])
+            value[int(parts[0])] = cast(tuple[float, float], parse_uncertainty(parts[1]))
 
     #new_Li_ratio = table.Li[7]._abundance/table.Li[6]._abundance
     #print(f"Li6:Li7 ratio changed from {Li_ratio:.1f} to {new_Li_ratio:.1f}")
 
 
 def print_natural_mass(table: PeriodicTable|None=None) -> None:
-    from uncertainties import ufloat as U
+    from uncertainties import ufloat as U  # type: ignore[import-untyped]
     table = default_table(table)
     for el in table:
         iso_mass = [
-            U(iso.abundance, iso._abundance_unc)/100*U(iso.mass, iso._mass_unc)
+            U(iso.abundance, iso._abundance_unc)/100*U(iso.mass, iso._mass_unc)  # type: ignore[operator]
             for iso in el if iso.abundance>0]
         if iso_mass:
             el_mass = U(el.mass, el._mass_unc)
             iso_sum = sum(iso_mass)
-            delta = el_mass - iso_sum
+            delta = el_mass - iso_sum # type: ignore[operator]
             # python 3.6 and above only
-            if abs(delta.n) > 1e-3 or delta.s/iso_sum.n > 0.01:
+            if abs(delta.n) > 1e-3 or delta.s/iso_sum.n > 0.01:  # type: ignore[operator,union-attr]
                 print(f"{el.number}-{el}: {el_mass:fS}, sum: {iso_sum:fS}, Δ={delta:fS}")
                 #print(f"{el.number}-{el}: {delta:fS}")
             #print(f"{el.number}-{el}: {el_mass:fS}, sum: {iso_sum:fS}, Δ=")

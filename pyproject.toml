@@ -58,5 +58,5 @@
     python_functions = ["test", "*_test", "test_*"]
 
 [tool.mypy]
-    files = ["test/test_element_types.py"]
-    follow_imports = "silent"  # Check imports but don't report errors in them
+#files = ["test/test_element_types.py"]
+follow_imports = "silent"  # Check imports but don't report errors in them

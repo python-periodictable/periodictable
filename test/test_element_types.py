@@ -17,6 +17,6 @@ symbol: str = periodictable.Fe.symbol
 number: int = periodictable.U.number
 
 # Test special cases
-deuterium: Element = periodictable.D
+deuterium: Isotope = periodictable.D
 tritium: Isotope = periodictable.T
 neutron: Element = periodictable.n

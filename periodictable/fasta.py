@@ -73,7 +73,7 @@ import warnings
 from pathlib import Path
 # Warning: name clash with Sequence
 from collections.abc import Iterator
-from typing import IO
+from typing import IO, cast
 
 from .formulas import formula as parse_formula, Formula, FormulaInput
 from .nsf import neutron_sld
@@ -82,7 +82,7 @@ from .core import default_table, Atom
 from .constants import avogadro_number
 
 # CRUFT 1.5.2: retaining fasta.isotope_substitution for compatibility
-def isotope_substitution(formula: Formula, source: Atom, target: Atom, portion: float=1):
+def isotope_substitution(formula: Formula, source: Atom, target: Atom, portion: float=1.0):
     """
     Substitute one atom/isotope in a formula with another in some proportion.
 
@@ -188,6 +188,7 @@ class Molecule:
             M.density = 1e24*M.molecular_mass/cell_volume if cell_volume > 0 else 0
             #print name, M.molecular_mass, cell_volume, M.density
         else:
+            assert M.density is not None, "Need density to compute cell volume"
             cell_volume = 1e24*M.molecular_mass/M.density
 
         H = M.replace(elements.H[1], elements.H)
@@ -590,9 +591,9 @@ def fasta_table() -> None:
     for v in rows:
         protons = sum(num*el.number for el, num in v.natural_formula.atoms.items())
         electrons = protons - v.charge
-        Xsld = xray_sld(v.formula, wavelength=elements.Cu.K_alpha)
+        Xsld = xray_sld(v.formula, wavelength=cast(float, elements.Cu.K_alpha))
         print("%25s %7.1f %7.1f %7.1f %5.2f %5d %5.2f %5.2f %5.2f %5.1f"%(
-            v.name, v.mass, v.Dmass, v.cell_volume, v.natural_formula.density,
+            v.name, v.mass, v.Dmass, v.cell_volume, v.natural_formula.density or 0.,
             electrons, Xsld[0], v.sld, v.Dsld, v.D2Omatch))
 
 beta_casein = "RELEELNVPGEIVESLSSSEESITRINKKIEKFQSEEQQQTEDELQDKIHPFAQTQSLVYPFPGPIPNSLPQNIPPLTQTPVVVPPFLQPEVMGVSKVKEAMAPKHKEMPFPKYPVEPFTESQSLTLTDVENLHLPLPLLQSWMHQPHQPLPPTVMFPPQSVLSLSQSKVLPVPQKAVPYPQRDMPIQAFLLYQEPVLGPVRGPFPIIV"
