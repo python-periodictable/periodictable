@@ -63,7 +63,7 @@ __all__ = ['delayed_load', 'define_elements', 'get_data_path',
            'isatom', 'iselement', 'isisotope', 'ision']
 
 from pathlib import Path
-from typing import TYPE_CHECKING, cast, Any, Union, TypeVar, List
+from typing import TYPE_CHECKING, cast, Any, Union, TypeVar, List, overload, Literal
 from collections.abc import Sequence, Callable, Iterator
 
 if TYPE_CHECKING:
@@ -383,6 +383,15 @@ class PeriodicTable:
         # Skipping the first entry (neutron) in the iterator
         for _, el in elements[1:]:
             yield el
+
+    @overload
+    def symbol(self, input: Literal["D"]) -> "Isotope": ... # type: ignore[overload-overlap]
+
+    @overload
+    def symbol(self, input: Literal["T"]) -> "Isotope": ... # type: ignore[overload-overlap]
+
+    @overload
+    def symbol(self, input: str) -> "Element": ...
 
     def symbol(self, input: str) -> Union["Element", "Isotope"]:
         """
