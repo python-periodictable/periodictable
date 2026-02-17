@@ -661,12 +661,12 @@ class Ion(_AtomBase):
     def __repr__(self) -> str:
         return repr(self.element)+'.ion[%d]'%self.charge
     def __reduce__(self):
-        try:
+        if isinstance(self.element, Isotope):
             return _make_isotope_ion, (self.element.table,
                                        self.element.number,
                                        self.element.isotope,
                                        self.charge)
-        except Exception:
+        else:
             return _make_ion, (self.element.table,
                                self.element.number,
                                self.charge)
