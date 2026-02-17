@@ -651,7 +651,7 @@ class Ion(_AtomBase):
     def __getattr__(self, attr: str) -> Any:
         return getattr(self.element, attr)
     @property
-    def mass(self) -> float:
+    def mass(self) -> float: # type: ignore[override]
         return getattr(self.element, 'mass') - constants.electron_mass*self.charge
     def __str__(self) -> str:
         sign = '+' if self.charge > 0 else '-'

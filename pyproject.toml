@@ -31,6 +31,7 @@
         "pytest-cov",
         "matplotlib",
         "sphinx",
+        "pytest-mypy",
     ]
 
 [project.urls]
@@ -48,10 +49,14 @@
     packages = ["periodictable"]
 
 [tool.pytest.ini_options]
-    addopts = ["--doctest-modules", "--doctest-glob=*.rst", "--cov=periodictable"]
+    addopts = ["--doctest-modules", "--doctest-glob=*.rst", "--cov=periodictable", "--mypy"]
     doctest_optionflags = "ELLIPSIS"
     pythonpath = ["doc/sphinx"]
     testpaths = ["periodictable", "test", "doc/sphinx/guide"]
     python_files = "*.py"
     python_classes = "NoClassTestsWillMatch"
     python_functions = ["test", "*_test", "test_*"]
+
+[tool.mypy]
+    files = ["test/test_element_types.py"]
+    follow_imports = "silent"  # Check imports but don't report errors in them

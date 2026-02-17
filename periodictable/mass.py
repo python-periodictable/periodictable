@@ -94,10 +94,10 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
     if 'mass' in table.properties and not reload:
         return
     table.properties.append('mass')
-    Element.mass = property(mass, doc=mass.__doc__)
+    Element.mass = property(mass, doc=mass.__doc__) # type: ignore[assignment]
     Element.mass_units = "u"
-    Isotope.mass = property(mass, doc=mass.__doc__)
-    Isotope.abundance = property(abundance, doc=abundance.__doc__)
+    Isotope.mass = property(mass, doc=mass.__doc__) # type: ignore[assignment]
+    Isotope.abundance = property(abundance, doc=abundance.__doc__) # type: ignore[assignment]
     Isotope.abundance_units = "%"
 
     # Parse isotope mass table where each line looks like:
