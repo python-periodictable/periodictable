@@ -84,10 +84,14 @@ jobs:
     # Change into the test directory to test the wheel so that the
     # source directory is not on the path. Full tests with coverage are
     # run before building the wheel.
+    # Use --pyargs --import-mode=append to target the installed package.
+    # The mypy plugin fails when testing the installed package. It doesn't
+    # support --no-mypy so we erase the addopts configuration from pyproject.toml
+    # and put the remaining options directly on the pytest command line.
     - name: Test wheel with pytest
       run: |
         cd test
-        pytest -v . ../doc/sphinx/guide
+        pytest -v --override-ini addopts= --doctest-modules --doctest-glob=*.rst --pyargs --import-mode=append periodictable . ../doc/sphinx/guide
 
   # Upload wheel to PyPI only when a tag is pushed, and its name begins with 'v'
   upload-to-pypi:
