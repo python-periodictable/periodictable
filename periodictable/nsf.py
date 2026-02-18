@@ -688,7 +688,7 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
         # Read imaginary values
         nsf.b_c_i, nsf.b_c_i_unc = _fix_number(columns[1])
         nsf.bp_i, nsf.bp_i_unc = _fix_number(columns[2])
-        nsf.bm_i, nsf.bm_i_unc = _fix_number(columns[2])
+        nsf.bm_i, nsf.bm_i_unc = _fix_number(columns[3])
 
     # Add energy-dependent tables
     energy_dependent_init(table)
