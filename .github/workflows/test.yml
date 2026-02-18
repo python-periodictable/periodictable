@@ -91,7 +91,7 @@ jobs:
     - name: Test wheel with pytest
       run: |
         cd test
-        pytest -v --override-ini addopts= --doctest-modules --doctest-glob=*.rst --pyargs --import-mode=append periodictable . ../doc/sphinx/guide
+        pytest -v --pyargs --import-mode=append periodictable --override-ini addopts= --doctest-modules --doctest-glob=*.rst --cov=periodictable . ../doc/sphinx/guide
 
   # Upload wheel to PyPI only when a tag is pushed, and its name begins with 'v'
   upload-to-pypi:
