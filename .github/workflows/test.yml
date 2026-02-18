@@ -33,7 +33,7 @@ jobs:
 
     - name: Run the tests
       run: |
-        python -m pip install numpy pyparsing pytest pytest-cov
+        python -m pip install numpy pyparsing pytest pytest-cov pytest-mypy
         pytest -v
 
     - name: Build the docs
