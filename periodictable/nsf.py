@@ -494,7 +494,7 @@ class Neutron:
         #b_c = np.interp(energy, self.nsf_table[0], self.nsf_table[1])
         b_c = np.interp(wavelength, self.nsf_table[0], self.nsf_table[1])
         # TODO: sigma_s should include an incoherent contribution
-        sigma_s = _4PI_100*abs(b_c)**2 # 1 barn = 1 fm^2 1e-2 barn/fm^2
+        sigma_s = _4PI_100*np.abs(b_c)**2 # 1 barn = 1 fm^2 1e-2 barn/fm^2
         return b_c, sigma_s
 
     def sld(self, *, wavelength: float | NDArray =ABSORPTION_WAVELENGTH) -> NDArray|None:
