@@ -87,7 +87,7 @@ jobs:
     - name: Test wheel with pytest
       run: |
         cd test
-        pytest -v --pyargs --import-mode=append periodictable . ../doc/sphinx/guide
+        pytest -v . ../doc/sphinx/guide
 
   # Upload wheel to PyPI only when a tag is pushed, and its name begins with 'v'
   upload-to-pypi:

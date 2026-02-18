@@ -29,9 +29,10 @@
         "build",
         "pytest",
         "pytest-cov",
+        "pytest-mypy",
         "matplotlib",
         "sphinx",
-        "pytest-mypy",
+        "uncertainties",
     ]
 
 [project.urls]
