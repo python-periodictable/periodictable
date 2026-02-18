@@ -22,7 +22,7 @@ jobs:
 
     - name: Build the wheel
       run: |
-        python -m pip install build
+        python -m pip install --group dev
         python -m build
 
     - name: Upload wheel
@@ -31,16 +31,12 @@ jobs:
         name: wheel
         path: dist/*.whl
 
-    # uncertainties and matplotlib are optional packages, but they are needed for mypy tests
     - name: Run the tests
       run: |
-        python -m pip install numpy pyparsing pytest pytest-cov pytest-mypy uncertainties matplotlib matplotlib-stubs
         pytest -v
 
     - name: Build the docs
       run: |
-        python -m pip install matplotlib sphinx
-        python -m pip install dist/periodictable*.whl
         make -j 4 -C doc/sphinx SPHINXOPTS="-W --keep-going" html
 
   # Test the wheel on different platforms
@@ -77,17 +73,17 @@ jobs:
       shell: bash
 
     # uncertainties and matplotlib are optional packages, but they are needed for mypy tests
-    - name: Install Python dependencies
+    - name: Install test dependencies
       run: |
-        python -m pip install pytest pytest-cov pytest-mypy matplotlib-stubs matplotlib uncertainties
+        python -m pip install --group test
 
-    # Change into the test directory to test the wheel so that the
-    # source directory is not on the path. Full tests with coverage are
-    # run before building the wheel.
     # Use --pyargs --import-mode=append to target the installed package.
-    # The mypy plugin fails when testing the installed package. It doesn't
-    # support --no-mypy so we erase the addopts configuration from pyproject.toml
-    # and put the remaining options directly on the pytest command line.
+    # Change into the test directory to test the wheel so that the
+    # source directory is not on the path. We are running coverage tests
+    # because it shows that it is indeed the installed package that is tested.
+    # The mypy plugin fails when testing the installed package. Since there is no
+    # way to turn the option off, so we instead erase the addopts configuration
+    # and put them explicitly on the pytest command line below without --mypy.
     - name: Test wheel with pytest
       run: |
         cd test
