@@ -4,10 +4,6 @@ import periodictable as pt
 from periodictable.activation import Sample, ActivationEnvironment
 from periodictable.activation import IAEA1987_isotopic_abundance, table_abundance
 
-# Verify that periodictable is being imported from the site-packages directory
-# If that is the case we should see the following test failure on the CI
-if "site-packages" in pt.__file__: raise BogusException
-
 def test():
     # This is not a very complete test of the activation calculator.
     # Mostly just a smoke test to see that things run and produce the
