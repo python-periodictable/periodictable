@@ -33,7 +33,7 @@ jobs:
 
     - name: Run the tests
       run: |
-        python -m pip install numpy pyparsing pytest pytest-cov pytest-mypy
+        python -m pip install numpy pyparsing pytest pytest-cov pytest-mypy matplotlib-stubs
         pytest -v
 
     - name: Build the docs
@@ -77,7 +77,7 @@ jobs:
 
     - name: Install Python dependencies
       run: |
-        python -m pip install pytest pytest-cov pytest-mypy
+        python -m pip install pytest pytest-cov pytest-mypy matplotlib-stubs
 
     # Change into the test directory to test the wheel so that the
     # source directory is not on the path. Full tests with coverage are
