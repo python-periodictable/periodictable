@@ -40,9 +40,10 @@ Example:
 This data is from Ashcroft and Mermin.
 '''
 
+from typing import Any
 from .core import PeriodicTable
 
-crystal_structures = [
+crystal_structures: list[dict[str, Any]|None] = [
     {'symmetry': 'diatom', 'd': 0.74}, #H
     {'symmetry': 'atom'}, #He
     {'symmetry': 'BCC', 'a': 3.49}, #Li

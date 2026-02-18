@@ -464,7 +464,7 @@ class Neutron:
         return self.b_c is not None and self._number_density is not None
 
     # PAK 2021-04-05: allow energy dependent b_c
-    def scattering_by_wavelength(self, wavelength: ArrayLike) -> tuple[ArrayLike, ArrayLike]|tuple[None, None]:
+    def scattering_by_wavelength(self, wavelength: float | NDArray) -> tuple[float | NDArray, float | NDArray]|tuple[None, None]:
         r"""
         Return scattering length and total cross section for each wavelength.
 
@@ -494,10 +494,10 @@ class Neutron:
         #b_c = np.interp(energy, self.nsf_table[0], self.nsf_table[1])
         b_c = np.interp(wavelength, self.nsf_table[0], self.nsf_table[1])
         # TODO: sigma_s should include an incoherent contribution
-        sigma_s = _4PI_100*abs(b_c)**2 # 1 barn = 1 fm^2 1e-2 barn/fm^2
+        sigma_s = _4PI_100*np.abs(b_c)**2 # 1 barn = 1 fm^2 1e-2 barn/fm^2
         return b_c, sigma_s
 
-    def sld(self, *, wavelength: ArrayLike=ABSORPTION_WAVELENGTH) -> NDArray|None:
+    def sld(self, *, wavelength: float | NDArray =ABSORPTION_WAVELENGTH) -> NDArray|None:
         r"""
         Returns scattering length density for the element at natural
         abundance and density.
@@ -518,7 +518,7 @@ class Neutron:
             return None
         return self.scattering(wavelength=wavelength)[0]
 
-    def scattering(self, *, wavelength: ArrayLike=ABSORPTION_WAVELENGTH) -> tuple[NDArray, NDArray, NDArray]|tuple[None, None, None]:
+    def scattering(self, *, wavelength: float | NDArray=ABSORPTION_WAVELENGTH) -> tuple[NDArray, NDArray, NDArray]|tuple[None, None, None]:
         r"""
         Returns neutron scattering information for the element at natural
         abundance and density.
@@ -567,8 +567,8 @@ def energy_dependent_init(table: PeriodicTable) -> None:
     # Lu nat missing from Lynn and Seeger, so mix Lu[175] and Lu[176]
     Lu175 = table.Lu[175]
     Lu176 = table.Lu[176]
-    bc_175 = Lu175.neutron.b_c_complex
-    wavelength, bc_176 = Lu176.neutron.nsf_table
+    bc_175 = cast(complex, Lu175.neutron.b_c_complex)
+    wavelength, bc_176 = cast(tuple[DoubleArray, DoubleArray], Lu176.neutron.nsf_table)
     bc_nat = (bc_175*Lu175.abundance + bc_176*Lu176.abundance)/100.0 # 1 fm = 1fm * %/100
     table.Lu.neutron.nsf_table = wavelength, cast(DoubleArray, bc_nat)
     #table.Lu.neutron.total = 0.  # zap total cross section
@@ -680,7 +680,7 @@ if TYPE_CHECKING:
 def neutron_scattering(
         compound: "FormulaInput", *,
         density: float|None=None,
-        wavelength: ArrayLike|None=None,
+        wavelength: float|NDArray|None=None,
         energy: ArrayLike|None=None,
         natural_density: float|None=None,
         table: PeriodicTable|None=None,
@@ -940,7 +940,8 @@ def neutron_scattering(
 
     # Sum over the quantities (note: formulas can have fractional atoms)
     molar_mass, num_atoms = 0., 0.
-    b_c, sigma_s = 0., 0.
+    b_c: float|NDArray = 0.
+    sigma_s: float|NDArray = 0.
     is_energy_dependent = False
     for element, quantity in compound.atoms.items():
         # TODO: use NaN rather than None
@@ -949,7 +950,7 @@ def neutron_scattering(
         molar_mass += element.mass*quantity
         num_atoms += quantity
         # PAK 2021-04-05: allow energy dependent b_c, b''
-        b_ck, sigma_sk = element.neutron.scattering_by_wavelength(wavelength)
+        b_ck, sigma_sk = cast(tuple[float|NDArray, float|NDArray], element.neutron.scattering_by_wavelength(wavelength))
         #print(f"{element=}; {b_ck=}; {sigma_sk=}")
         b_c += quantity * b_ck
         sigma_s += quantity * sigma_sk
@@ -958,7 +959,7 @@ def neutron_scattering(
     # If nothing to sum, return values for a vacuum.  This might be because
     # the material has no atoms or it might be because the density is zero.
     if molar_mass*compound.density == 0:
-        return (0, 0, 0), (0, 0, 0), inf
+        return (0, 0, 0), (0, 0, 0), inf  # type: ignore[return-value]
 
     # Turn weighted sums into scattering factors
     b_c /= num_atoms

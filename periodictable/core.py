@@ -651,7 +651,7 @@ class Ion(_AtomBase):
     def __getattr__(self, attr: str) -> Any:
         return getattr(self.element, attr)
     @property
-    def mass(self) -> float:
+    def mass(self) -> float: # type: ignore[override]
         return getattr(self.element, 'mass') - constants.electron_mass*self.charge
     def __str__(self) -> str:
         sign = '+' if self.charge > 0 else '-'
@@ -661,12 +661,12 @@ class Ion(_AtomBase):
     def __repr__(self) -> str:
         return repr(self.element)+'.ion[%d]'%self.charge
     def __reduce__(self):
-        try:
+        if isinstance(self.element, Isotope):
             return _make_isotope_ion, (self.element.table,
                                        self.element.number,
                                        self.element.isotope,
                                        self.charge)
-        except Exception:
+        else:
             return _make_ion, (self.element.table,
                                self.element.number,
                                self.charge)

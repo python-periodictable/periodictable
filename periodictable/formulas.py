@@ -108,7 +108,7 @@ def _mix_by_weight_pairs(pairs: list[tuple["Formula", float]]) -> "Formula":
             result += ((q/f.mass)/scale) * f
         if all(f.density for f, _ in pairs):
             # Tested that densities are not None, so the following will work
-            volume = sum(q/f.density for f, q in pairs)/scale
+            volume = sum(q/cast(float, f.density) for f, q in pairs)/scale
             result.density = result.mass/volume
     return result
 
@@ -193,9 +193,9 @@ def _mix_by_volume_pairs(pairs: list[tuple["Formula", float]]) -> "Formula":
         #        = q / (mass/density)
         #        = q * density / mass
         # scale this so that n = 1 for the smallest quantity
-        scale = min(q*f.density/f.mass for f, q in pairs)
+        scale = min(q*cast(float, f.density)/f.mass for f, q in pairs)
         for f, q in pairs:
-            result += ((q*f.density/f.mass)/scale) * f
+            result += ((q*cast(float, f.density)/f.mass)/scale) * f
 
         volume = sum(q for _, q in pairs)/scale
         result.density = result.mass/volume
@@ -298,7 +298,7 @@ def formula(
         structure = ((1, cast(Atom, compound)), )
     elif isinstance(compound, dict):
         structure = _convert_to_hill_notation(cast(dict[Atom, float], compound))
-    elif _is_string_like(compound):
+    elif isinstance(compound, str):
         try:
             chem = parse_formula(compound, table=table)
             if name:
@@ -403,7 +403,7 @@ class Formula:
         return (total_natural_mass + charge_correction)/(total_isotope_mass + charge_correction)
 
     @property
-    def natural_density(self) -> float:
+    def natural_density(self) -> float | None:
         """
         |g/cm^3|
 
@@ -411,6 +411,8 @@ class Formula:
         replaced by the naturally occurring abundance of the element
         without changing the cell volume.
         """
+        if self.density is None:
+            return None
         return self.density*self.natural_mass_ratio()
 
     @natural_density.setter
@@ -455,7 +457,7 @@ class Formula:
         return dict((a, m*a.mass/total_mass) for a, m in self.atoms.items())
 
     # TODO: Remove compound._pf. It is unused and wrong.
-    def _pf(self) -> float:
+    def _pf(self) -> float | None:
         """
         packing factor  | unitless
 
@@ -531,6 +533,7 @@ class Formula:
         # Compute atomic volume
         V = 0.
         for atom, count in self.atoms.items():
+            assert atom.covalent_radius is not None, "Need covalent radius for "+str(atom)
             radius = atom.covalent_radius
             #if el.number == 1 and H_radius is not None:
             #    radius = H_radius
@@ -607,7 +610,7 @@ class Formula:
         self.structure = _change_table(self.structure, table)
         return self
 
-    def replace(self, source, target, portion=1):
+    def replace(self, source, target, portion=1.0):
         """
         Create a new formula with one atom/isotope substituted for another.
 
@@ -688,6 +691,7 @@ def _isotope_substitution(compound: "Formula", source: Atom, target: Atom, porti
     """
     # TODO: fails if density is not defined
     atoms = compound.atoms
+    assert compound.density is not None, "Need density for isotope substitution"
     if source in atoms:
         mass = compound.mass
         mass_reduction = atoms[source]*portion*(source.mass - target.mass)
@@ -1099,13 +1103,6 @@ def _str_atoms(seq) -> str:
 
     return ret
 
-def _is_string_like(val: Any) -> bool:
-    """Returns True if val acts like a string"""
-    try:
-        val+''
-    except Exception:
-        return False
-    return True
 
 def from_subscript(value: str) -> str:
     """
