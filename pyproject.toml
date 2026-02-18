@@ -22,7 +22,7 @@
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Physics",
     ]
-    requires-python = ">=3.8"
+    requires-python = ">=3.10"
 
 [dependency-groups]
     build  = ["build"]
