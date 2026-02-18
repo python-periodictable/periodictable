@@ -2011,9 +2011,9 @@ def _diff(iso, measured, calculated, tol):
     if None in (measured, calculated):
         if measured is not None or calculated is not None:
             if measured is None and calculated > tol:
-                print(f"{str(iso):10s} {'----':>8s} {calculated:8.2f}")
+                print(f"{str(iso):>10s} {'---':>8s} {calculated:8.2f}")
             elif calculated is None and measured > tol:
-                print(f"{str(iso):10s} {measured:8.2f} {'-----':>8s}")
+                print(f"{str(iso):>10s} {measured:8.2f} {'----':>8s}")
     # Tricky code: Using tolerance of -tol selects for items within tolerance
     # rather than outside tolerance by using -|a-b| > -tol. Note that sign(0)
     # is zero, so using >= tol so that tol=0 prints every element of the table.
@@ -2023,7 +2023,7 @@ def _diff(iso, measured, calculated, tol):
     elif np.sign(tol)*abs(measured - calculated) >= tol:
         diff = (measured-calculated)/calculated if calculated != 0 else 0.0 if measured == 0 else 1
         # print(f"{tol=} {measured=} {calculated=} {diff=}")
-        print(f"{str(iso):10s} {measured:8.2f} {calculated:8.2f} {100*diff:5.1f}%")
+        print(f"{str(iso):>10s} {measured:8.2f} {calculated:8.2f} {100*diff:5.1f}%")
 
 def compare(fn1, fn2, table=None, tol=None):
     if tol is None:
@@ -2033,12 +2033,12 @@ def compare(fn1, fn2, table=None, tol=None):
         try:
             res1 = fn1(el)
         except Exception:
-            raise
+            #raise
             res1 = None
         try:
             res2 = fn2(el)
         except Exception:
-            raise
+            #raise
             res2 = None
         _diff(el, res1, res2, tol=tol)
         for iso in el:
@@ -2050,12 +2050,12 @@ def compare(fn1, fn2, table=None, tol=None):
             try:
                 res1 = fn1(iso)
             except Exception:
-                raise
+                #raise
                 res1 = None
             try:
                 res2 = fn2(iso)
             except Exception:
-                raise
+                #raise
                 res2 = None
             _diff(iso, res1, res2, tol=tol)
 
@@ -2122,10 +2122,11 @@ def coherent_comparison_table(table=None, tol=None):
 
         >>> coherent_comparison_table (tol=0.5) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
         Comparison of (4 pi |b_c|^2/100) and coherent
-                Sc    18.40    19.00  -3.2%
-             45-Sc    18.40    19.00  -3.2%
-             65-Cu    13.08    14.10  -7.2%
-             84-Sr     3.14     6.00 -47.6%
+              13-C     4.81     5.38 -10.6%
+                Sc    19.00    18.40   3.3%
+             45-Sc    19.00    18.40   3.3%
+             65-Cu    14.10    13.08   7.8%
+             84-Sr     6.00     3.14  91.0%
            ...
 
     """
@@ -2190,6 +2191,7 @@ def incoherent_comparison_table(table=None, tol=None):
 
         >>> incoherent_comparison_table (tol=0.5) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
         Comparison of incoherent and (total - 4 pi |b_c|^2/100)
+              13-C     0.02    -0.54 -104.1%
                 Sc     4.50     5.10 -11.8%
              45-Sc     4.50     5.10 -11.8%
              65-Cu     0.40     1.42 -71.7%
