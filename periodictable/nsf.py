@@ -1865,17 +1865,17 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
 
     # Generate table rows
     for el in [table.n, *table]:
-        A = el.number
-        isotopes = [iso for iso in el if iso.neutron.b_c is not None]
-        singleton = len(isotopes) <= 1
+        element_number = el.number
+        isotopes = [iso for iso in el if iso.neutron.absorption is not None or iso.abundance]
+        singleton = len(isotopes) == 1
         # print(f"{el=} {A=} {singleton=} {el.neutron.has_sld()=} {[*el]}")
-        if el.neutron.b_c is not None and not singleton:
+        if element_number <= 96 and not singleton:
             # Multiple isotopes: put element summary above
             n = el.neutron
             rows.append(f"""\
             <tr class="element-row" id="{el}">
                 <td>{el}</td>
-                <td>{A}</td>
+                <td>{element_number}</td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -1889,8 +1889,8 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
             </tr>""")
 
         for iso in isotopes:
-            Z = iso.isotope
-            spin = iso.nuclear_spin
+            isotope_number = iso.isotope
+            spin = getattr(iso, "nuclear_spin", "")
             n = iso.neutron
             abundance = (
                 f"{U(iso.abundance, iso._abundance_unc):fS}" if iso._abundance_unc
@@ -1901,8 +1901,8 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
             rows.append(f"""\
             <tr{f' class="element-row" id="{el}"' if singleton else ''}>
                 <td>{el if singleton else ''}</td>
-                <td>{A if singleton else ''}</td>
-                <td>{Z}</td>
+                <td>{element_number if singleton else ''}</td>
+                <td>{isotope_number}</td>
                 <td class="centered">{spin}</td>
                 <td>{abundance}</td>
                 <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
