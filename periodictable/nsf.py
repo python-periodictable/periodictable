@@ -1798,11 +1798,34 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
     <title>Neutron Cross Sections</title>
     <style>
         table {
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        tbody tr {
+            /* This offset ensures the target row isn't hidden behind the sticky header */
+            scroll-margin-top: 60px;
+        }
+        tbody tr:target td {
+           background-color: yellow; /* Light yellow highlight */
+           transition: background-color 2s ease-out;
         }
         th, td {
             border: 1px solid black;
             padding: 5px;
+            border-top: none;
+            border-right: none;
+        }
+        tr:first-child td, tr:first-child th {
+            border-top: 1px solid black;
+        }
+        td:last-child, th:last-child {
+            border-right: 1px solid black;
+        }
+        th {
+            position: sticky;
+            top: 0;
+            background: #e8edf3;
+            z-index: 1;
         }
         .centered {
             text-align: center;
@@ -1850,7 +1873,7 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
             # Multiple isotopes: put element summary above
             n = el.neutron
             rows.append(f"""\
-            <tr>
+            <tr class="element-row" id="{el}">
                 <td>{el}</td>
                 <td>{A}</td>
                 <td></td>
@@ -1876,7 +1899,7 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
                 else f"{iso.abundance}"
             )
             rows.append(f"""\
-            <tr>
+            <tr{f' class="element-row" id="{el}"' if singleton else ''}>
                 <td>{el if singleton else ''}</td>
                 <td>{A if singleton else ''}</td>
                 <td>{Z}</td>
