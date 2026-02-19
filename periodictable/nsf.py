@@ -147,20 +147,25 @@ Other measurements since 2000 (incomplete list):
     Zimmer (2001) 10.1007/s1010502a0001
         3He Δb = -5.462(46)
 
+    Lu (2024) 10.1103/PhysRevC.111.019902
+        129Xe bi = -0.184(7); 131Xe bi = 2.12(17)
+
     Ketter (2006) 10.1140/epja/i2005-10267-y
         3He bc' = 6.010(21)
         refs Kaiser (1979) for the current value of 5.74(7)
     Huffman (2004) 0.1103/PhysRevC.70.014004
         3He bc' = 5.853(7)
 
-    Lu (2024) 10.1103/PhysRevC.111.019902
-        129Xe bi = -0.184(7); 131Xe bi = 2.12(17)
-
     Gehlhaar (2025) 10.1088/1361-648X/add3a6
         Li bc, various isotopes
 
     Gehlhaar (2026) 10.1088/1361-648X/ae1ec0
         bc for Pr, Nd, Sm, Eu, Yb, including various isotopes
+
+    Von Dreele (2024) 10.1107/S1600576724005375
+        A fit to the Lynn and Seeger fitted resonance curves for the rare earths
+        using a simpler model. Also provides parameters for 103Rh, 113Cd, and 239,240Pu
+
 
 The Atlas of Neutron Resonances gives evaluated values for
 some of the entries missing from the table of measurements.
