@@ -132,6 +132,43 @@ The following newer measurements from the literature are included:
     [6] Hannon (2018) 10.1107/S1600576718006064
     [7] Fischer (2008) 10.1088/0953-8984/20/04/045221
 
+Other measurements since 2000 (incomplete list):
+
+    Black (2003) 10.1103/PhysRevLett.90.192502
+        2H b_c => 6.665(4); we are using 6.6681(27) from Snow (2020)
+
+    Lu (2023) 10.1103/PhysRevC.108.L031001
+        3He Δb = -5.27(10)
+    Huber (2014) 10.1103/PhysRevC.90.064004
+        3He Δb = b+ - b- = -5.411(70) => bi = -2.343(30) => b+,b- = 4.39(7),9.80(9)
+        Using the tabulated b-'' = -5.925j we can calculate bi complex, and from
+        that σ_i = 4π |bi|²/100 = 1.517(18). This does not match the reference value
+        of 3He σ_i = 6.0(4) in the tables.
+    Zimmer (2001) 10.1007/s1010502a0001
+        3He Δb = -5.462(46)
+
+    Ketter (2006) 10.1140/epja/i2005-10267-y
+        3He bc' = 6.010(21)
+        refs Kaiser (1979) for the current value of 5.74(7)
+    Huffman (2004) 0.1103/PhysRevC.70.014004
+        3He bc' = 5.853(7)
+
+    Lu (2024) 10.1103/PhysRevC.111.019902
+        129Xe bi = -0.184(7); 131Xe bi = 2.12(17)
+
+    Gehlhaar (2025) 10.1088/1361-648X/add3a6
+        Li bc, various isotopes
+
+    Gehlhaar (2026) 10.1088/1361-648X/ae1ec0
+        bc for Pr, Nd, Sm, Eu, Yb, including various isotopes
+
+The Atlas of Neutron Resonances gives evaluated values for
+some of the entries missing from the table of measurements.
+
+    Mughabghab (2018)
+    Z=1-60:  10.1016/C2015-0-00522-6
+    Z=61-102: 10.1016/C2015-0-00524-X
+
 .. [#Rauch2003] Rauch, H. and Waschkowski, W. (2003)
     Neutron Scattering Lengths in ILL
     Neutron Data Booklet (second edition), A.-J. Dianoux, G. Lander, Eds.
