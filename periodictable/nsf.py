@@ -132,6 +132,48 @@ The following newer measurements from the literature are included:
     [6] Hannon (2018) 10.1107/S1600576718006064
     [7] Fischer (2008) 10.1088/0953-8984/20/04/045221
 
+Other measurements since 2000 (incomplete list):
+
+    Black (2003) 10.1103/PhysRevLett.90.192502
+        2H b_c => 6.665(4); we are using 6.6681(27) from Snow (2020)
+
+    Lu (2023) 10.1103/PhysRevC.108.L031001
+        3He Δb = -5.27(10)
+    Huber (2014) 10.1103/PhysRevC.90.064004
+        3He Δb = b+ - b- = -5.411(70) => bi = -2.343(30) => b+,b- = 4.39(7),9.80(9)
+        Using the tabulated b-'' = -5.925j we can calculate bi complex, and from
+        that σ_i = 4π |bi|²/100 = 1.517(18). This does not match the reference value
+        of 3He σ_i = 6.0(4) in the tables.
+    Zimmer (2001) 10.1007/s1010502a0001
+        3He Δb = -5.462(46)
+
+    Lu (2024) 10.1103/PhysRevC.111.019902
+        129Xe bi = -0.184(7); 131Xe bi = 2.12(17)
+
+    Ketter (2006) 10.1140/epja/i2005-10267-y
+        3He bc' = 6.010(21)
+        refs Kaiser (1979) for the current value of 5.74(7)
+    Huffman (2004) 0.1103/PhysRevC.70.014004
+        3He bc' = 5.853(7)
+
+    Gehlhaar (2025) 10.1088/1361-648X/add3a6
+        Li bc, various isotopes
+
+    Gehlhaar (2026) 10.1088/1361-648X/ae1ec0
+        bc for Pr, Nd, Sm, Eu, Yb, including various isotopes
+
+    Von Dreele (2024) 10.1107/S1600576724005375
+        A fit to the Lynn and Seeger fitted resonance curves for the rare earths
+        using a simpler model. Also provides parameters for 103Rh, 113Cd, and 239,240Pu
+
+
+The Atlas of Neutron Resonances gives evaluated values for
+some of the entries missing from the table of measurements.
+
+    Mughabghab (2018)
+    Z=1-60:  10.1016/C2015-0-00522-6
+    Z=61-102: 10.1016/C2015-0-00524-X
+
 .. [#Rauch2003] Rauch, H. and Waschkowski, W. (2003)
     Neutron Scattering Lengths in ILL
     Neutron Data Booklet (second edition), A.-J. Dianoux, G. Lander, Eds.
@@ -188,6 +230,7 @@ The following newer measurements from the literature are included:
 #    Wiley InterScience. pp 126-146. doi:10.1107/97809553602060000584
 #
 
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
@@ -429,24 +472,34 @@ class Neutron:
     .. Note:: 1 barn = 100 |fm^2|
     """
     b_c: float|None = None
+    b_c_unc: float|None = None
     b_c_units: str = "fm"
     b_c_i: float|None = None
+    b_c_i_unc: float|None = None
     b_c_i_units: str = "fm"
     b_c_complex: complex|None = None
     b_c_complex_units: str = "fm"
     bp: float|None = None # Not all isotopes provide b+/b- values
+    bp_unc: float|None = None
     bp_i: float|None = None
+    bp_i_unc: float|None = None
     bp_units: str = "fm"
     bm: float|None = None # Not all isotopes provide b+/b- values
+    bm_unc: float|None = None
     bm_i: float|None = None
+    bm_i_unc: float|None = None
     bm_units: str = "fm"
     coherent: float|None = None
+    coherent_unc: float|None = None
     coherent_units: str = "barn"
     incoherent: float|None = None
+    incoherent_unc: float|None = None
     incoherent_units: str = "barn"
     total: float|None = None
+    total_unc: float|None = None
     total_units: str = "barn"
     absorption: float|None = None
+    absorption_unc: float|None = None
     absorption_units: str = "barn"
     abundance: float = 0.
     abundance_units: str = "%"
@@ -598,10 +651,14 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
         nsf = Neutron()
         p = columns[1]
         spin = columns[2]
-        nsf.b_c, nsf.bp, nsf.bm = [fix_number(a) for a in columns[3:6]]
+        nsf.b_c, nsf.b_c_unc = _fix_number(columns[3])
+        nsf.bp, nsf.bp_unc = _fix_number(columns[4])
+        nsf.bm, nsf.bm_unc = _fix_number(columns[5])
         nsf.is_energy_dependent = (columns[6] == 'E')
-        nsf.coherent, nsf.incoherent, nsf.total, nsf.absorption \
-            = [fix_number(a) for a in columns[7:]]
+        nsf.coherent, nsf.coherent_unc = _fix_number(columns[7])
+        nsf.incoherent, nsf.incoherent_unc = _fix_number(columns[8])
+        nsf.total, nsf.total_unc = _fix_number(columns[9])
+        nsf.absorption, nsf.absorption_unc = _fix_number(columns[10])
         # 1 fm = (1 barn)(100 fm^2/barn)/(1 A) (1e-5 A/fm)
         # Note: Sears (1992) uses b = b' - i b'', so negate sigma_a for b''.
         # Warning: -b_c.imag may be -0, which can mess with your calculations.
@@ -617,10 +674,13 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
             # zero is well within the uncertainty measured in bulk Ir.
             if nsf.coherent is None:
                 nsf.coherent = 4*pi/100*abs(nsf.b_c_complex)**2
+                nsf.coherent_unc = np.nan # derived value
             if nsf.incoherent is None:
                 nsf.incoherent = 0
+                nsf.incoherent_unc = np.nan # derived value
             if nsf.total is None:
                 nsf.total = nsf.coherent + nsf.incoherent
+                nsf.total_unc = np.nan # derived value
 
         parts = columns[0].split('-')
         Z = int(parts[0])
@@ -645,7 +705,7 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
             isotope.neutron = nsf
             isotope.nuclear_spin = spin
             # p column contains either abundance(uncertainty) or "half-life Y"
-            isotope.neutron.abundance = fix_number(p) if ' ' not in p else 0
+            isotope.neutron.abundance = _fix_number(p)[0] if ' ' not in p else 0
 
             # If the element is not yet initialized, copy info into the atom.
             # This serves to set the element info for elements with only
@@ -668,8 +728,9 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
             nsf = element[isotope_number].neutron
 
         # Read imaginary values
-        nsf.b_c_i, nsf.bp_i, nsf.bm_i = [
-            fix_number(a) for a in columns[1:]]
+        nsf.b_c_i, nsf.b_c_i_unc = _fix_number(columns[1])
+        nsf.bp_i, nsf.bp_i_unc = _fix_number(columns[2])
+        nsf.bm_i, nsf.bm_i_unc = _fix_number(columns[3])
 
     # Add energy-dependent tables
     energy_dependent_init(table)
@@ -1753,14 +1814,172 @@ nsftableI = """\
 # 63-Eu-151,-2.46,,
 # 64-Gd-157,-47,-75,
 
-def fix_number(str):
+def _fix_number(str):
     """
     Converts strings of the form e.g., 35.24(2)* into numbers without
     uncertainty. Also accepts a limited range, e.g., <1e-6, which is
     converted as 1e-6.  Missing values are set to 0.
     """
     from .util import parse_uncertainty
-    return parse_uncertainty(str.replace('<','').replace('*',''))[0]
+    return parse_uncertainty(str.replace('<','').replace('*',''))
+
+
+# TODO: add a citation column to the html scattering table
+def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=None) -> str:
+    """
+    Generate an html table, returning it as a string. If path is given, write the
+    html to that path.
+
+    Note: requires the uncertainties package, which is not otherwise required by periodictable.
+    """
+    from uncertainties import ufloat as U
+
+    head = """\
+<head>
+    <meta charset="UTF-8">
+    <title>Neutron Cross Sections</title>
+    <style>
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        tbody tr {
+            /* This offset ensures the target row isn't hidden behind the sticky header */
+            scroll-margin-top: 60px;
+        }
+        tbody tr:target td {
+           background-color: yellow; /* Light yellow highlight */
+           transition: background-color 2s ease-out;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+            border-top: none;
+            border-right: none;
+        }
+        tr:first-child td, tr:first-child th {
+            border-top: 1px solid black;
+        }
+        td:last-child, th:last-child {
+            border-right: 1px solid black;
+        }
+        th {
+            position: sticky;
+            top: 0;
+            background: #e8edf3;
+            z-index: 1;
+        }
+        .centered {
+            text-align: center;
+        }
+
+    </style>
+</head>"""
+    table = default_table(table)
+
+    def format_num(re, re_unc, im=None, im_unc=None):
+        # Note: using NaN for uncertainty for derived values that should be
+        # left blank in the table (currently 191,193Ir cross sections)
+        re_str = "" if re is None or np.isnan(re_unc) else f"{U(re, re_unc):fS}" if re_unc else str(re) if re else "0"
+        if im is not None:
+            im_value = f"{U(abs(im), im_unc):fS}" if im_unc else str(abs(im))
+            im_str = f"<br>{'+' if im >= 0 else '–'} {im_value}j"
+        else:
+            im_str = ""
+        return f"{re_str}{im_str}"
+
+    rows = []
+    rows.append(f"""\
+        <tr>
+            <th></th>
+            <th>Z</th>
+            <th>A</th>
+            <th>I(π)</th>
+            <th>abundance %</th>
+            <th>b<sub>c</sub> {Neutron.b_c_units}</th>
+            <th>b<sub>+</sub> {Neutron.bp_units}</th>
+            <th>b<sub>–</sub> {Neutron.bm_units}</th>
+            <th>σ<sub>c</sub> {Neutron.coherent_units}</th>
+            <th>σ<sub>i</sub> {Neutron.incoherent_units}</th>
+            <th>σ<sub>s</sub> {Neutron.total_units}</th>
+            <th>σ<sub>a</sub> {Neutron.absorption_units}</th>
+        </tr>""")
+
+    # Generate table rows
+    for el in [table.n, *table]:
+        element_number = el.number
+        isotopes = [iso for iso in el if iso.neutron.absorption is not None or iso.abundance]
+        singleton = len(isotopes) == 1
+        # print(f"{el=} {A=} {singleton=} {el.neutron.has_sld()=} {[*el]}")
+        if element_number <= 96 and not singleton:
+            # Multiple isotopes: put element summary above
+            n = el.neutron
+            rows.append(f"""\
+            <tr class="element-row" id="{el}">
+                <td>{el}</td>
+                <td>{element_number}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
+                <td>{format_num(n.bp, n.bp_unc, n.bp_i, n.bp_i_unc)}</td>
+                <td>{format_num(n.bm, n.bm_unc, n.bm_i, n.bm_i_unc)}</td>
+                <td>{format_num(n.coherent, n.coherent_unc)}</td>
+                <td>{format_num(n.incoherent, n.incoherent_unc)}</td>
+                <td>{format_num(n.total, n.total_unc)}</td>
+                <td>{format_num(n.absorption, n.absorption_unc)}</td>
+            </tr>""")
+
+        for iso in isotopes:
+            isotope_number = iso.isotope
+            spin = getattr(iso, "nuclear_spin", "")
+            n = iso.neutron
+            abundance = (
+                f"{U(iso.abundance, iso._abundance_unc):fS}" if iso._abundance_unc
+                else "100" if iso.abundance == 100.0
+                else "" if iso.abundance == 0.0
+                else f"{iso.abundance}"
+            )
+            rows.append(f"""\
+            <tr{f' class="element-row" id="{el}"' if singleton else ''}>
+                <td>{el if singleton else ''}</td>
+                <td>{element_number if singleton else ''}</td>
+                <td>{isotope_number}</td>
+                <td class="centered">{spin}</td>
+                <td>{abundance}</td>
+                <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
+                <td>{format_num(n.bp, n.bp_unc, n.bp_i, n.bp_i_unc)}</td>
+                <td>{format_num(n.bm, n.bm_unc, n.bm_i, n.bm_i_unc)}</td>
+                <td>{format_num(n.coherent, n.coherent_unc)}</td>
+                <td>{format_num(n.incoherent, n.incoherent_unc)}</td>
+                <td>{format_num(n.total, n.total_unc)}</td>
+                <td>{format_num(n.absorption, n.absorption_unc)}</td>
+            </tr>""")
+
+    html = f"""
+<html>
+{head}
+<body>
+<p>Scattering lengths and cross sections for various isotopes evaluated at 2200 m s<sup>–1</sup>
+</p>
+<table>
+{'\n'.join(rows)}
+</table>
+<p>This table has been compiled from various sources for the user's convenience and does not represent a critical evaluation by the NIST Center for Neutron Research.
+See <a href="https://github.com/python-periodictable/periodictable/blob/master/periodictable/nsf.py">python-periodictable</a> on github for a list of citations.</p>
+<p>Natural abundance is from IUPAC Commission on Isotopic Abundances and Atomic Weights (<a href="ciaaw.org">CIAAW</a>)</p>
+</body>
+</html>
+"""
+
+    if path:
+        # Save the HTML to a file
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(html)
+
+        print(f"HTML table saved to {str(path)}")
+
+    return html
 
 def sld_table(wavelength=1, table=None, isotopes=True):
     r"""
@@ -2240,6 +2459,10 @@ def main():
           sld: 3.37503 + 0.000582313 j  (0.402605 incoherent)  1e-6/Ang^2
           sigma_c: 3.37503  sigma_i: 0.000582313  sigma_a: 0.402605  1/cm
           1/e penetration: 2.23871 cm
+
+    To generate an updated cross section table use::
+
+        python -m periodictable.nsf --html path/filename.html
     """
 
     import sys
@@ -2247,6 +2470,10 @@ def main():
     if not compounds:
         print("usage: python -m periodictable.nsf [-Lwavelength] atom ...")
         sys.exit(1)
+    if compounds[0] == '--html':
+        scattering_table_html(path=compounds[1])
+        return
+
     if compounds[0].startswith('-L'):
         wavelength = float(compounds[0][2:])
         compounds = compounds[1:]
