@@ -143,18 +143,18 @@ def init(table: PeriodicTable, reload: bool=False) -> None:
         return
     table.properties.append('density')
     Isotope.density \
-        = property(density, "density using inter-atomic spacing from naturally occurring form")
+        = property(density, doc="density using inter-atomic spacing from naturally occurring form")  # type: ignore[assignment]
     Element.density \
-        = property(density, "density using inter-atomic spacing from naturally occurring form")
+        = property(density, doc="density using inter-atomic spacing from naturally occurring form")  # type: ignore[assignment]
     Element.density_units = "g/cm^3"
 
     Element.interatomic_distance \
         = property(interatomic_distance,
-                   "interatomic distance estimated from density")
+                   doc="interatomic distance estimated from density")  # type: ignore[assignment]
     Element.interatomic_distance_units = "angstrom"
     Element.number_density \
         = property(number_density,
-                   "number density estimated from mass and density")
+                   doc="number density estimated from mass and density")  # type: ignore[assignment]
     Element.number_density_units = "1/cm^3"
 
     for k, v in element_densities.items():

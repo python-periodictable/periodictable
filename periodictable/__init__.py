@@ -196,6 +196,9 @@ moscovium = Mc = elements.symbol("Mc")
 livermorium = Lv = elements.symbol("Lv")
 tennessine = Ts = elements.symbol("Ts")
 oganesson = Og = elements.symbol("Og")
+deuterium = D = elements.symbol("D")
+tritium = T = elements.symbol("T")
+neutron = n = elements.symbol("n")
 
 # Add element name and symbol (e.g. nickel and Ni) to the public attributes.
 __all__ += core.define_elements(elements, globals())
