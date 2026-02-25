@@ -49,6 +49,26 @@ mathjax_path = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?
 nitpick_ignore = [
     ('py:class', 'type'),
     ('py:class', 'object'),
+
+    ('py:class', 'collections.abc.Callable'),
+    ('py:class', 'collections.abc.Iterator'),
+    ('py:class', 'collections.abc.Sequence'),
+    ('py:class', 'pathlib.Path'),
+
+    ('py:class', 'numpy.dtype'),
+    ('py:class', 'numpy.ndarray'),
+    ('py:class', 'numpy.float64'),
+    ('py:class', 'numpy._typing._array_like._Buffer'),
+    ('py:class', 'numpy._typing._array_like._SupportsArray'),
+    ('py:class', 'numpy._typing._array_like._ScalarT'),
+    ('py:class', 'numpy._typing._nested_sequence._NestedSequence'),
+    ('py:class', 'pyparsing.core.ParserElement'),
+
+    ('py:class', 'periodictable.core._AtomBase'),
+    ('py:class', 'periodictable.core.IonSet'),
+    ('py:class', 'periodictable.core.AtomVar'),
+    ('py:class', 'Fragment'),
+    ('py:class', 'FormulaInput'),
     ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -14,8 +14,13 @@ from __future__ import division
 
 import numpy
 from numpy import pi, exp
+from numpy.typing import ArrayLike
 
-def formfactor_0(j0, q):
+from .core import PeriodicTable
+
+JnCoeff = tuple[float, float, float, float, float, float, float]
+
+def formfactor_0(j0: JnCoeff, q: ArrayLike) -> numpy.ndarray:
     """
     Returns the scattering potential for form factor *j0* at the given *q*.
     """
@@ -24,7 +29,7 @@ def formfactor_0(j0, q):
     A, a, B, b, C, c, D = j0
     return A * exp(-a*s_sq) + B * exp(-b*s_sq) + C * exp(-c*s_sq) + D
 
-def formfactor_n(jn, q):
+def formfactor_n(jn: JnCoeff, q: ArrayLike):
     """
     Returns the scattering potential for form factor *jn* at the given *q*.
     """
@@ -69,36 +74,41 @@ class MagneticFormFactor:
 
     """
 
+    j0: JnCoeff
+    j2: JnCoeff
+    j4: JnCoeff
+    j6: JnCoeff
+    J: JnCoeff
 
-    def _getM(self):
+    @property
+    def M(self) -> JnCoeff:
+        """j0"""
         return self.j0
 
-    M = property(_getM, doc="j0")
-
-    def j0_Q(self, Q):
+    def j0_Q(self, Q: ArrayLike) -> ArrayLike:
         """Returns *j0* scattering potential at *Q* |1/Ang|"""
         return formfactor_0(self.j0, Q)
 
-    def j2_Q(self, Q):
+    def j2_Q(self, Q: ArrayLike) -> ArrayLike:
         """Returns *j2* scattering potential at *Q* |1/Ang|"""
         return formfactor_n(self.j2, Q)
 
-    def j4_Q(self, Q):
+    def j4_Q(self, Q: ArrayLike) -> ArrayLike:
         """Returns *j4* scattering potential at *Q* |1/Ang|"""
         return formfactor_n(self.j4, Q)
 
-    def j6_Q(self, Q):
+    def j6_Q(self, Q: ArrayLike) -> ArrayLike:
         """Returns j6 scattering potential at *Q* |1/Ang|"""
         return formfactor_n(self.j6, Q)
 
-    def J_Q(self, Q):
+    def J_Q(self, Q: ArrayLike) -> ArrayLike:
         """Returns J scattering potential at *Q* |1/Ang|"""
         return formfactor_0(self.J, Q)
 
     M_Q = j0_Q
 
 
-def init(table, reload=False):
+def init(table: PeriodicTable, reload: bool=False) -> None:
     """Add magnetic form factor properties to the periodic table"""
     if 'magnetic_ff' not in table.properties:
         # First call to init
@@ -108,13 +118,16 @@ def init(table, reload=False):
         return
 
     # Function for interpreting ionization state and form factor tuple
-    def add_form_factor(jn, symbol, charge, values):
+    def add_form_factor(jn: str, symbol: str, charge: int, values: tuple[float, ...]) -> None:
         # Add the magnetic form factor info to the element
         el = table.symbol(symbol.capitalize())
+        # Make sure element has a magnetic_ff dict
         if not hasattr(el, 'magnetic_ff'):
             el.magnetic_ff = {}
+        # Make sure dict has an entry for charge
         if charge not in el.magnetic_ff:
             el.magnetic_ff[charge] = MagneticFormFactor()
+        # Set coefficients for magnetic_ff[charge].jn
         setattr(el.magnetic_ff[charge], jn, values)
 
     # Transformed from fortran with:

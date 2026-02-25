@@ -247,10 +247,11 @@ class Xray:
     X-ray scattering properties for the elements. Refer help(periodictable.xsf)
     from command prompt for details.
     """
+    sftable_units: tuple[str, str, str] = ("eV", "", "")
+    scattering_factors_units: tuple[str, str] = ("", "")
+    sld_units: tuple[str, str] = ("1e-6/Ang^2", "1e-6/Ang^2")
+    element: Element
     _nff_path = get_data_path('xsf')
-    sftable_units = ["eV", "", ""]
-    scattering_factors_units = ["", ""]
-    sld_units = ["1e-6/Ang^2", "1e-6/Ang^2"]
     _table = None
     def __init__(self, element):
         self.element = element

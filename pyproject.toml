@@ -8,7 +8,7 @@
     ]
     license = { file = "LICENSE.txt" }
     dependencies = [
-        "pyparsing", "numpy",
+        "pyparsing>=3.0.0", "numpy",
     ]
 
     classifiers = [
@@ -22,15 +22,20 @@
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Physics",
     ]
-    requires-python = ">=3.8"
+    requires-python = ">=3.10"
 
-[project.optional-dependencies]
+[dependency-groups]
+    build  = ["build"]
+    # Matplotlib and uncertainties are optional packages, used for making
+    # plots in the docs and generating neutron data tables for the web.
+    # mypy checks all code so they are needed for testing as well.
+    optional = ["uncertainties", "matplotlib"]
+    docs = ["sphinx", {include-group = "optional"}]
+    test = ["pytest", "pytest-cov", "pytest-mypy", {include-group = "optional"}]
     dev = [
-        "build",
-        "pytest",
-        "pytest-cov",
-        "matplotlib",
-        "sphinx",
+        {include-group = "build"},
+        {include-group = "docs"},
+        {include-group = "test"},
     ]
 
 [project.urls]
@@ -48,10 +53,17 @@
     packages = ["periodictable"]
 
 [tool.pytest.ini_options]
-    addopts = ["--doctest-modules", "--doctest-glob=*.rst", "--cov=periodictable"]
+    # mypy doesn't work on the wheel tests, so these options are repeated in
+    # .github/workflows/test.yml. We could use pytest-enabler with "pytest -p no:mypy"
+    # but that introduces yet another dependency.
+    addopts = ["--doctest-modules", "--doctest-glob=*.rst", "--cov=periodictable", "--mypy"]
     doctest_optionflags = "ELLIPSIS"
     pythonpath = ["doc/sphinx"]
     testpaths = ["periodictable", "test", "doc/sphinx/guide"]
     python_files = "*.py"
     python_classes = "NoClassTestsWillMatch"
     python_functions = ["test", "*_test", "test_*"]
+
+[tool.mypy]
+#files = ["test/test_element_types.py"]
+follow_imports = "silent"  # Check imports but don't report errors in them

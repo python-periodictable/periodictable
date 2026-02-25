@@ -55,31 +55,32 @@ http://physics.nist.gov/cuu/index.html
        and High-Energy Physics, Amsterdam, The Netherlands.
 """
 
-from .core import Element, Isotope
+from typing import cast
+from .core import Element, Isotope, PeriodicTable
 from .mass import mass, abundance
 from .util import parse_uncertainty
 
-def init(table, reload=False):
+def init(table: PeriodicTable, reload: bool=False) -> None:
     """Add mass attribute to period table elements and isotopes"""
     if 'mass' in table.properties and not reload:
         return
     table.properties.append('mass')
-    Element.mass = property(mass, doc=mass.__doc__)
-    Isotope.mass = property(mass, doc=mass.__doc__)
-    Isotope.abundance = property(abundance, doc=abundance.__doc__)
+    Element.mass = property(mass, doc=mass.__doc__) # type: ignore
     Element.mass_units = "u"
-    Element.abundance_units = "%"
+    Isotope.mass = property(mass, doc=mass.__doc__) # type: ignore
+    Isotope.abundance = property(abundance, doc=abundance.__doc__) # type: ignore
+    Isotope.abundance_units = "%"
 
     for line in massdata.split('\n'):
         isotope, m, p, avg = line.split(',')
-        el, sym, iso = isotope.split('-')
-        el = table[int(el)]
+        z, sym, a = isotope.split('-')
+        el = table[int(z)]
         assert el.symbol == sym, \
             "Symbol %s does not match %s"%(sym, el.symbol)
-        iso = el.add_isotope(int(iso))
-        el._mass, el._mass_unc = parse_uncertainty(avg)
-        iso._mass, iso._mass_unc = parse_uncertainty(m)
-        iso._abundance,iso._abundance_unc = parse_uncertainty(p) if p else (0,0)
+        iso = el.add_isotope(int(a))
+        el._mass, el._mass_unc = cast(tuple[float, float], parse_uncertainty(avg))
+        iso._mass, iso._mass_unc = cast(tuple[float, float], parse_uncertainty(m))
+        iso._abundance, iso._abundance_unc = cast(tuple[float, float], parse_uncertainty(p)) if p else (0, 0)
 
     # # A single neutron is an isotope of element 0
     # from .constants import neutron_mass

@@ -6,7 +6,7 @@ dict(("element", isotope or None): [[energy (eV), Re(a), Im(a), |a|], ...])
 From Lynn and Seeger (1990)
 """
 
-ENERGY_DEPENDENT_TABLES = {
+ENERGY_DEPENDENT_TABLES: dict[tuple[str, int|None], list[list[float]]] = {
     ("Sm", None): [
         [0.01,  1.24, -1.16,  1.70],
         [0.02,  0.96, -1.42,  1.72],
