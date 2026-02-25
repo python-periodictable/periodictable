@@ -235,7 +235,7 @@ from typing import TYPE_CHECKING, cast
 
 import numpy as np
 from numpy import sqrt, pi, asarray, inf
-from numpy.typing import NDArray, ArrayLike
+from numpy.typing import NDArray
 from .core import Element, Isotope, PeriodicTable, Atom, default_table, iselement
 from .constants import (avogadro_number, planck_constant, electron_volt,
                         neutron_mass, atomic_mass_constant)
@@ -272,7 +272,7 @@ ENERGY_FACTOR = (
 VELOCITY_FACTOR = (
     1e10 * planck_constant / (neutron_mass * atomic_mass_constant))
 
-def neutron_wavelength(energy: ArrayLike) -> NDArray:
+def neutron_wavelength(energy: float|NDArray) -> NDArray:
     r"""
     Convert neutron energy to wavelength.
 
@@ -299,7 +299,7 @@ def neutron_wavelength(energy: ArrayLike) -> NDArray:
     return sqrt(ENERGY_FACTOR / asarray(energy))
 
 # TODO: why is neutron_wavelength_from_velocity not using asarray() ?
-def neutron_wavelength_from_velocity(velocity: float) -> float:
+def neutron_wavelength_from_velocity(velocity: float|NDArray) -> float|NDArray:
     r"""
     Convert neutron velocity to wavelength.
 
@@ -323,7 +323,7 @@ def neutron_wavelength_from_velocity(velocity: float) -> float:
     """
     return VELOCITY_FACTOR / velocity
 
-def neutron_energy(wavelength: ArrayLike) -> NDArray:
+def neutron_energy(wavelength: float|NDArray) -> NDArray:
     r"""
     Convert neutron wavelength to energy.
 
@@ -746,7 +746,7 @@ def neutron_scattering(
         compound: "FormulaInput", *,
         density: float|None=None,
         wavelength: float|NDArray|None=None,
-        energy: ArrayLike|None=None,
+        energy: float|NDArray|None=None,
         natural_density: float|None=None,
         table: PeriodicTable|None=None,
         ) -> tuple[NDArray, NDArray, NDArray]|tuple[None, None, None]:
@@ -1337,7 +1337,7 @@ def neutron_composite_sld(materials, wavelength=ABSORPTION_WAVELENGTH):
     return _compute
 
 
-def sld_plot(table=None):
+def sld_plot(table: PeriodicTable|None=None) -> None:
     r"""
     Plots SLD as a function of element number.
 
@@ -1351,9 +1351,12 @@ def sld_plot(table=None):
 
     table = default_table(table)
 
-    SLDs: dict[Atom, float] = dict(
-        (el, el.neutron.sld()[0]) for el in table if el.neutron.has_sld())
-    SLDs[table.D] = table.D.neutron.sld()[0]
+    def sld_re(atom) -> float:
+        sld = atom.neutron.sld()
+        return sld[0]
+
+    SLDs: dict[Atom, float] = {el: sld_re(el) for el in table if el.neutron.has_sld()}
+    SLDs[table.D] = sld_re(table.D)
 
     table_plot(SLDs, label='Scattering length density ($10^{-6}$ Nb)',
                title='Neutron SLD for elements in natural abundance')
@@ -2299,7 +2302,7 @@ def bp_bm_bc_comparison_table(table=None, tol=None):
         # print(f"Processing isotope {el}")
         # print(f"   {el} {el.abundance} {el.nuclear_spin} b+={el.neutron.bp} b-={el.neutron.bm}")
         spinstr, bp, bm = iso.nuclear_spin, iso.neutron.bp, iso.neutron.bm
-        if not spinstr or bp is None:
+        if not spinstr or bp is None or bm is None:
             return np.nan
         spin = int(spinstr[:-2])/2 if spinstr.endswith('/2') else int(spinstr)
         b_coh = ((spin+1)*bp + spin*bm) / (2*spin+1)
@@ -2332,9 +2335,9 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
         if iselement(atom):
             el = cast(Element, atom)
             # print(f"Processing element {el}")
-            sum_b_coh = 0
-            sum_b_coh_sq = 0
-            sum_weight = 0
+            sum_b_coh = 0.
+            sum_b_coh_sq = 0.
+            sum_weight = 0.
             for iso in el:
                 if not iso.neutron.has_sld():
                     continue
@@ -2351,7 +2354,7 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
                 #   b_i complex: 149Sm 151Eu 155,157Gd 176Lu
                 #   b_i unknown: 95,97Mo 99Tc 99,101Ru 105Pd 111,113Cd 231Pa 237Np 243Am
                 # The remaining missing entries have b_i > 0 so inversion should work.
-                b_inc = np.sqrt(iso.neutron.incoherent/_4PI_100) if iso.neutron.incoherent else 0
+                b_inc = np.sqrt(iso.neutron.incoherent/_4PI_100) if iso.neutron.incoherent else 0.
 
                 # # List the isotopes which don't have b+ defined.
                 # if bp is None and b_inc != 0:
@@ -2370,7 +2373,7 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
                     # Checking that all spin=0 have no incoherent scattering recorded
                     # if spin == 0 and b_inc != 0:
                     #     print(f"!!! {iso} has spin {spin} and {b_inc=}")
-                    if bp is None:
+                    if bp is None or bm is None:
                         # Using the b_coh and b_inc defined as:
                         #     b_c = ((I+1) b+ + I b-) / (2I+1)
                         #     b_i = √I(I+1)] (b+ - b-) / (2I+1)
@@ -2383,6 +2386,7 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
                         # to b- = b_coh when spin is zero since b_inc is zero in those cases
                         bp = b_coh + b_inc * np.sqrt(spin/(spin + 1))
                         bm = b_coh - b_inc * np.sqrt((spin + 1)/spin) if spin != 0 else b_coh
+                    bp, bm = cast(float, bp), cast(float, bm)
 
                     # calc_bc = ((spin+1)*bp + spin*bm) / (2*spin + 1)
                     # calc_bi = np.sqrt(spin*(spin+1)) * (bp - bm) / (2*spin + 1)
@@ -2418,7 +2422,7 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
         #print(f":: {el} {el.abundance} {el.nuclear_spin} b+={el.neutron.bp} b-={el.neutron.bm}")
         iso = cast(Isotope, atom)
         spinstr, bp, bm = iso.nuclear_spin, iso.neutron.bp, iso.neutron.bm
-        if not spinstr or bp is None:
+        if not spinstr or bp is None or bm is None:
             return np.nan # exclude from the table
             return iso.neutron.incoherent
         spin = int(spinstr[:-2])/2 if spinstr.endswith('/2') else int(spinstr)

@@ -502,7 +502,7 @@ def delta(compound, *, density=None, natural_density=None,
 
 def beta(compound, *, density=None, natural_density=None,
                         energy=None, wavelength=None):
-    """
+    r"""
     Calculates the β component of the index of refraction for a given compound
 
     :Parameters:
