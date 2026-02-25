@@ -1893,21 +1893,21 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
         return f"{re_str}{im_str}"
 
     rows = []
-    rows.append(f"""\
-        <tr>
-            <th></th>
-            <th>Z</th>
-            <th>A</th>
-            <th>I(π)</th>
-            <th>abundance %</th>
-            <th>b<sub>c</sub> {Neutron.b_c_units}</th>
-            <th>b<sub>+</sub> {Neutron.bp_units}</th>
-            <th>b<sub>–</sub> {Neutron.bm_units}</th>
-            <th>σ<sub>c</sub> {Neutron.coherent_units}</th>
-            <th>σ<sub>i</sub> {Neutron.incoherent_units}</th>
-            <th>σ<sub>s</sub> {Neutron.total_units}</th>
-            <th>σ<sub>a</sub> {Neutron.absorption_units}</th>
-        </tr>""")
+    rows.append(f"""
+    <tr>
+        <th></th>
+        <th>Z</th>
+        <th>A</th>
+        <th>I(π)</th>
+        <th>abundance %</th>
+        <th>b<sub>c</sub> {Neutron.b_c_units}</th>
+        <th>b<sub>+</sub> {Neutron.bp_units}</th>
+        <th>b<sub>–</sub> {Neutron.bm_units}</th>
+        <th>σ<sub>c</sub> {Neutron.coherent_units}</th>
+        <th>σ<sub>i</sub> {Neutron.incoherent_units}</th>
+        <th>σ<sub>s</sub> {Neutron.total_units}</th>
+        <th>σ<sub>a</sub> {Neutron.absorption_units}</th>
+    </tr>""")
 
     # Generate table rows
     for el in [table.n, *table]:
@@ -1918,21 +1918,21 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
         if element_number <= 96 and not singleton:
             # Multiple isotopes: put element summary above
             n = el.neutron
-            rows.append(f"""\
-            <tr class="element-row" id="{el}">
-                <td>{el}</td>
-                <td>{element_number}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
-                <td>{format_num(n.bp, n.bp_unc, n.bp_i, n.bp_i_unc)}</td>
-                <td>{format_num(n.bm, n.bm_unc, n.bm_i, n.bm_i_unc)}</td>
-                <td>{format_num(n.coherent, n.coherent_unc)}</td>
-                <td>{format_num(n.incoherent, n.incoherent_unc)}</td>
-                <td>{format_num(n.total, n.total_unc)}</td>
-                <td>{format_num(n.absorption, n.absorption_unc)}</td>
-            </tr>""")
+            rows.append(f"""
+    <tr class="element-row" id="{el}">
+        <td>{el}</td>
+        <td>{element_number}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
+        <td>{format_num(n.bp, n.bp_unc, n.bp_i, n.bp_i_unc)}</td>
+        <td>{format_num(n.bm, n.bm_unc, n.bm_i, n.bm_i_unc)}</td>
+        <td>{format_num(n.coherent, n.coherent_unc)}</td>
+        <td>{format_num(n.incoherent, n.incoherent_unc)}</td>
+        <td>{format_num(n.total, n.total_unc)}</td>
+        <td>{format_num(n.absorption, n.absorption_unc)}</td>
+    </tr>""")
 
         for iso in isotopes:
             isotope_number = iso.isotope
@@ -1944,21 +1944,21 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
                 else "" if iso.abundance == 0.0
                 else f"{iso.abundance}"
             )
-            rows.append(f"""\
-            <tr{f' class="element-row" id="{el}"' if singleton else ''}>
-                <td>{el if singleton else ''}</td>
-                <td>{element_number if singleton else ''}</td>
-                <td>{isotope_number}</td>
-                <td class="centered">{spin}</td>
-                <td>{abundance}</td>
-                <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
-                <td>{format_num(n.bp, n.bp_unc, n.bp_i, n.bp_i_unc)}</td>
-                <td>{format_num(n.bm, n.bm_unc, n.bm_i, n.bm_i_unc)}</td>
-                <td>{format_num(n.coherent, n.coherent_unc)}</td>
-                <td>{format_num(n.incoherent, n.incoherent_unc)}</td>
-                <td>{format_num(n.total, n.total_unc)}</td>
-                <td>{format_num(n.absorption, n.absorption_unc)}</td>
-            </tr>""")
+            rows.append(f"""
+    <tr{f' class="element-row" id="{el}"' if singleton else ''}>
+        <td>{el if singleton else ''}</td>
+        <td>{element_number if singleton else ''}</td>
+        <td>{isotope_number}</td>
+        <td class="centered">{spin}</td>
+        <td>{abundance}</td>
+        <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
+        <td>{format_num(n.bp, n.bp_unc, n.bp_i, n.bp_i_unc)}</td>
+        <td>{format_num(n.bm, n.bm_unc, n.bm_i, n.bm_i_unc)}</td>
+        <td>{format_num(n.coherent, n.coherent_unc)}</td>
+        <td>{format_num(n.incoherent, n.incoherent_unc)}</td>
+        <td>{format_num(n.total, n.total_unc)}</td>
+        <td>{format_num(n.absorption, n.absorption_unc)}</td>
+    </tr>""")
 
     html = f"""
 <html>
