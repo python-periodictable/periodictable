@@ -12,28 +12,28 @@ documentation for CrysFML [#Brown]_ , but that does not seem to be the case in p
 """
 from __future__ import division
 
-import numpy
+import numpy as np
 from numpy import pi, exp
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 from .core import PeriodicTable
 
 JnCoeff = tuple[float, float, float, float, float, float, float]
 
-def formfactor_0(j0: JnCoeff, q: ArrayLike) -> numpy.ndarray:
+def formfactor_0(j0: JnCoeff, q: float|NDArray) -> NDArray:
     """
     Returns the scattering potential for form factor *j0* at the given *q*.
     """
-    q = numpy.asarray(q)
+    q = np.asarray(q)
     s_sq = (q/(4*pi))**2
     A, a, B, b, C, c, D = j0
     return A * exp(-a*s_sq) + B * exp(-b*s_sq) + C * exp(-c*s_sq) + D
 
-def formfactor_n(jn: JnCoeff, q: ArrayLike):
+def formfactor_n(jn: JnCoeff, q: float|NDArray) -> NDArray:
     """
     Returns the scattering potential for form factor *jn* at the given *q*.
     """
-    q = numpy.asarray(q)
+    q = np.asarray(q)
     s_sq = (q/(4*pi))**2
     A, a, B, b, C, c, D = jn
     return s_sq * (A * exp(-a*s_sq) + B * exp(-b*s_sq) + C * exp(-c*s_sq) + D)
@@ -85,23 +85,23 @@ class MagneticFormFactor:
         """j0"""
         return self.j0
 
-    def j0_Q(self, Q: ArrayLike) -> ArrayLike:
+    def j0_Q(self, Q: float|NDArray) -> NDArray:
         """Returns *j0* scattering potential at *Q* |1/Ang|"""
         return formfactor_0(self.j0, Q)
 
-    def j2_Q(self, Q: ArrayLike) -> ArrayLike:
+    def j2_Q(self, Q: float|NDArray) -> NDArray:
         """Returns *j2* scattering potential at *Q* |1/Ang|"""
         return formfactor_n(self.j2, Q)
 
-    def j4_Q(self, Q: ArrayLike) -> ArrayLike:
+    def j4_Q(self, Q: float|NDArray) -> NDArray:
         """Returns *j4* scattering potential at *Q* |1/Ang|"""
         return formfactor_n(self.j4, Q)
 
-    def j6_Q(self, Q: ArrayLike) -> ArrayLike:
+    def j6_Q(self, Q: float|NDArray) -> NDArray:
         """Returns j6 scattering potential at *Q* |1/Ang|"""
         return formfactor_n(self.j6, Q)
 
-    def J_Q(self, Q: ArrayLike) -> ArrayLike:
+    def J_Q(self, Q: float|NDArray) -> NDArray:
         """Returns J scattering potential at *Q* |1/Ang|"""
         return formfactor_0(self.J, Q)
 

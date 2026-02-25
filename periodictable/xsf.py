@@ -502,7 +502,7 @@ def delta(compound, *, density=None, natural_density=None,
 
 def beta(compound, *, density=None, natural_density=None,
                         energy=None, wavelength=None):
-    """
+    r"""
     Calculates the β component of the index of refraction for a given compound
 
     :Parameters:
@@ -575,6 +575,7 @@ def mirror_reflectivity(compound, *, density=None, natural_density=None,
     if energy is not None:
         wavelength = xray_wavelength(energy)
     assert wavelength is not None, "scattering calculation needs energy or wavelength"
+    assert angle is not None, "scattering calculation needs incident angle"
     angle = radians(angle)
     if np.isscalar(wavelength):
         wavelength = np.array([wavelength])

@@ -90,6 +90,7 @@ def mix_by_weight(*args, **kw) -> "Formula":
     return result
 
 def _mix_by_weight_pairs(pairs: list[tuple["Formula", float]]) -> "Formula":
+    from .formulas import Formula # For running as __main__
 
     # Drop pairs with zero quantity
     # Note: must be first statement in order to accept iterators
@@ -175,6 +176,7 @@ def mix_by_volume(*args, **kw) -> "Formula":
     return result
 
 def _mix_by_volume_pairs(pairs: list[tuple["Formula", float]]) -> "Formula":
+    from .formulas import Formula # For running as __main__
 
     # Drop pairs with zero quantity
     # Note: must be first statement in order to accept iterators
@@ -285,6 +287,8 @@ def formula(
     The representations are simple, but preserve some of the structure for
     display purposes.
     """
+    from .formulas import Formula # For running as __main__
+
     structure: Structure
     if compound is None or compound == '':
         structure = tuple()
@@ -708,7 +712,7 @@ def _isotope_substitution(compound: "Formula", source: Atom, target: Atom, porti
 
 # TODO: Grammar should be independent of table
 # TODO: Parser can't handle meters as 'm' because it conflicts with the milli prefix
-LENGTH_UNITS = {'nm': 1e-9, 'um': 1e-6, 'mm': 1e-3, 'cm': 1e-2}
+LENGTH_UNITS = {'nm': 1e-9, 'um': 1e-6, 'μm': 1e-6, 'mm': 1e-3, 'cm': 1e-2}
 MASS_UNITS = {'ng': 1e-9, 'ug': 1e-6, 'mg': 1e-3, 'g': 1e+0, 'kg': 1e+3}
 VOLUME_UNITS = {'nL': 1e-9, 'uL': 1e-6, 'mL': 1e-3, 'L': 1e+0}
 LENGTH_RE = '('+'|'.join(LENGTH_UNITS.keys())+')'
@@ -913,7 +917,7 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
         fract = []
         for p1, p2 in zip(tokens[0::2], tokens[1::2]):
             if isinstance(p1, Formula):
-                f = p1.absthick * float(p2)
+                f = p1.thickness * float(p2)
                 p = p1
             else:
                 f = float(p1[0]) * LENGTH_UNITS[p1[1]]

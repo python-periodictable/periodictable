@@ -59,7 +59,7 @@ Helper functions:
 __docformat__ = 'restructuredtext en'
 __all__ = ['delayed_load', 'define_elements', 'get_data_path',
            'default_table', 'change_table',
-           'Ion', 'Isotope', 'Element', 'PeriodicTable',
+           'Ion', 'IonSet', 'Isotope', 'Element', 'PeriodicTable',
            'isatom', 'iselement', 'isisotope', 'ision']
 
 from pathlib import Path
@@ -376,16 +376,18 @@ class Ion(_AtomBase):
         return repr(self.element)+'.ion[%d]'%self.charge
     def __reduce__(self):
         if isinstance(self.element, Isotope):
-            return _make_isotope_ion, (self.element.table,
-                                       self.element.number,
-                                       self.element.isotope,
-                                       self.charge)
+            iso = cast("Isotope", self.element)
+            return _make_isotope_ion, (iso.table, iso.number, iso.isotope, self.charge)
         else:
-            return _make_ion, (self.element.table,
-                               self.element.number,
-                               self.charge)
+            el = cast("Element", self.element)
+            return _make_ion, (el.table, el.number, self.charge)
 
 class IonSet:
+    """
+    The set of ions associated with an element or isotope.
+
+    This is a dictionary interface indexed by ion charge.
+    """
     element_or_isotope: Element|Isotope
     ionset: dict[int, Ion]
 
