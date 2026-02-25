@@ -186,10 +186,10 @@ class _AtomBase:
     symbol: str
     number: int
     ions: tuple[int, ...]
-    ion: "IonSet" # TODO: could be IonSet["Element"] or IonSet["Isotope"]
+    ion: "IonSet" # TODO: could be IonSet[Element] or IonSet[Isotope]
     charge: int # element (=0), isotope (delegate to element), ion (!= 0)
 
-    #element: Union["Element", "Isotope"] # ion or isotope
+    #element: Union["Element", "Isotope"] # isotope or ion, not element
 
     # mass.py
     mass: float # property
@@ -233,109 +233,6 @@ class _AtomBase:
 
     # magnetic_ff.py
     magnetic_ff: dict[int, "MagneticFormFactor"] # element
-
-class Ion(_AtomBase):
-    """
-    Periodic table entry for an individual ion.
-
-    An ion is associated with an element. In addition to the element
-    properties (*symbol*, *name*, *atomic number*), it has specific ion
-    properties (*charge*). Properties not specific to the ion (i.e., *charge*)
-    are retrieved from the associated element.
-    """
-    element: Union["Element", "Isotope"]
-    # charge: int # inherited from _AtomBase
-
-    # TODO: abundance and activation need to be defined for charged isotopes.
-
-    def __init__(self, element: Union["Element", "Isotope"], charge: int):
-        self.element = element
-        self.charge = charge
-    def __getattr__(self, attr: str) -> Any:
-        return getattr(self.element, attr)
-    @property
-    def mass(self) -> float: # type: ignore[override]
-        return getattr(self.element, 'mass') - constants.electron_mass*self.charge
-    def __str__(self) -> str:
-        sign = '+' if self.charge > 0 else '-'
-        value = '%d'%abs(self.charge) if abs(self.charge) > 1 else ''
-        charge_str = '{'+value+sign+'}' if self.charge != 0 else ''
-        return str(self.element)+charge_str
-    def __repr__(self) -> str:
-        return repr(self.element)+'.ion[%d]'%self.charge
-    def __reduce__(self):
-        if isinstance(self.element, Isotope):
-            return _make_isotope_ion, (self.element.table,
-                                       self.element.number,
-                                       self.element.isotope,
-                                       self.charge)
-        else:
-            return _make_ion, (self.element.table,
-                               self.element.number,
-                               self.charge)
-
-class IonSet:
-    element_or_isotope: Union["Element", "Isotope"]
-    ionset: dict[int, Ion]
-
-    def __init__(self, element_or_isotope: Union["Element", "Isotope"]):
-        self.element_or_isotope = element_or_isotope
-        self.ionset = {}
-
-    def __getitem__(self, charge: int) -> Ion:
-        if charge not in self.ionset:
-            if charge not in self.element_or_isotope.ions:
-                raise ValueError("%(charge)d is not a valid charge for %(symbol)s"
-                                 % dict(charge=charge,
-                                        symbol=self.element_or_isotope.symbol))
-            self.ionset[charge] = Ion(self.element_or_isotope, charge)
-        return self.ionset[charge]
-
-class Isotope(_AtomBase):
-    """
-    Periodic table entry for an individual isotope.
-
-    An isotope is associated with an element.  In addition to the element
-    properties (*symbol*, *name*, *atomic number*), it has specific isotope
-    properties (*isotope number*, *nuclear spin*, *relative abundance*).
-    Properties not specific to the isotope (e.g., *x-ray scattering factors*)
-    are retrieved from the associated element.
-    """
-    element: "Element"
-    ion: IonSet # TODO: should be IonSet["Isotope"]
-    isotope: int
-
-    # mass.py
-    # TODO: Do we still need to modify isotope.abundance during mass.init()?
-    @property
-    def abundance(self) -> float: return self._abundance
-    _abundance: float
-    _abundance_unc: float
-    abundance_units: str # isotope only
-
-    # activation.py
-    neutron_activation: tuple["ActivationResult"]  # isotope only
-
-    # nsf.py
-    nuclear_spin: str
-
-    def __init__(self, element: "Element", isotope_number: int):
-        self.element = element
-        self.isotope = isotope_number
-        self.ion = IonSet(self)
-    def __getattr__(self, attr):
-        return getattr(self.element, attr)
-    def __str__(self) -> str:
-        # Deuterium and Tritium are special
-        if 'symbol' in self.__dict__:
-            return self.symbol
-        return "%d-%s"%(self.isotope, self.element.symbol)
-    def __repr__(self) -> str:
-        return "%s[%d]"%(self.element.symbol, self.isotope)
-    def __reduce__(self):
-        return _make_isotope, (self.element.table,
-                               self.element.number,
-                               self.isotope)
 
 class Element(_AtomBase):
     """
@@ -401,6 +298,110 @@ class Element(_AtomBase):
 
     def __reduce__(self):
         return _make_element, (self.table, self.number)
+
+class Isotope(_AtomBase):
+    """
+    Periodic table entry for an individual isotope.
+
+    An isotope is associated with an element.  In addition to the element
+    properties (*symbol*, *name*, *atomic number*), it has specific isotope
+    properties (*isotope number*, *nuclear spin*, *relative abundance*).
+    Properties not specific to the isotope (e.g., *x-ray scattering factors*)
+    are retrieved from the associated element.
+    """
+    element: Element
+    isotope: int
+
+    # mass.py
+    # TODO: Do we still need to modify isotope.abundance during mass.init()?
+    @property
+    def abundance(self) -> float:
+        return self._abundance
+    _abundance: float
+    _abundance_unc: float
+    abundance_units: str # isotope only
+
+    # activation.py
+    neutron_activation: tuple["ActivationResult"]  # isotope only
+
+    # nsf.py
+    nuclear_spin: str
+
+    def __init__(self, element: Element, isotope_number: int):
+        self.element = element
+        self.isotope = isotope_number
+        self.ion = IonSet(self)
+    def __getattr__(self, attr):
+        return getattr(self.element, attr)
+    def __str__(self) -> str:
+        # Deuterium and Tritium are special
+        if 'symbol' in self.__dict__:
+            return self.symbol
+        return "%d-%s"%(self.isotope, self.element.symbol)
+    def __repr__(self) -> str:
+        return "%s[%d]"%(self.element.symbol, self.isotope)
+    def __reduce__(self):
+        return _make_isotope, (self.element.table,
+                               self.element.number,
+                               self.isotope)
+
+class Ion(_AtomBase):
+    """
+    Periodic table entry for an individual ion.
+
+    An ion is associated with an element. In addition to the element
+    properties (*symbol*, *name*, *atomic number*), it has specific ion
+    properties (*charge*). Properties not specific to the ion (i.e., *charge*)
+    are retrieved from the associated element.
+    """
+    element: Element|Isotope
+    # charge: int # inherited from _AtomBase
+
+    # TODO: abundance and activation need to be defined for charged isotopes.
+
+    def __init__(self, element: Element|Isotope, charge: int):
+        self.element = element
+        self.charge = charge
+    def __getattr__(self, attr: str) -> Any:
+        return getattr(self.element, attr)
+    @property
+    def mass(self) -> float: # type: ignore[override]
+        return getattr(self.element, 'mass') - constants.electron_mass*self.charge
+    def __str__(self) -> str:
+        sign = '+' if self.charge > 0 else '-'
+        value = '%d'%abs(self.charge) if abs(self.charge) > 1 else ''
+        charge_str = '{'+value+sign+'}' if self.charge != 0 else ''
+        return str(self.element)+charge_str
+    def __repr__(self) -> str:
+        return repr(self.element)+'.ion[%d]'%self.charge
+    def __reduce__(self):
+        if isinstance(self.element, Isotope):
+            return _make_isotope_ion, (self.element.table,
+                                       self.element.number,
+                                       self.element.isotope,
+                                       self.charge)
+        else:
+            return _make_ion, (self.element.table,
+                               self.element.number,
+                               self.charge)
+
+class IonSet:
+    element_or_isotope: Element|Isotope
+    ionset: dict[int, Ion]
+
+    def __init__(self, element_or_isotope: Element|Isotope):
+        self.element_or_isotope = element_or_isotope
+        self.ionset = {}
+
+    def __getitem__(self, charge: int) -> Ion:
+        if charge not in self.ionset:
+            if charge not in self.element_or_isotope.ions:
+                raise ValueError("%(charge)d is not a valid charge for %(symbol)s"
+                                 % dict(charge=charge,
+                                        symbol=self.element_or_isotope.symbol))
+            self.ionset[charge] = Ion(self.element_or_isotope, charge)
+        return self.ionset[charge]
+
 
 # Define the element names from the element table.
 class PeriodicTable:
