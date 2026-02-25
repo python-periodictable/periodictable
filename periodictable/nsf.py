@@ -99,7 +99,7 @@ with changes from Sears to Rauch
 and from Rauch to Dawidowski
 `(b) <https://github.com/python-periodictable/periodictable/issues/59#issuecomment-1690212205>`__.
 
-The following newer measurements from the literature are included:
+The following newer measurements from the literature are included::
 
     1H b_c -3.7423(12) => -3.7395(11) [1]
     2H b_c 6.674(6) => 6.6681(27) [1]
@@ -132,7 +132,7 @@ The following newer measurements from the literature are included:
     [6] Hannon (2018) 10.1107/S1600576718006064
     [7] Fischer (2008) 10.1088/0953-8984/20/04/045221
 
-Other measurements since 2000 (incomplete list):
+Other measurements since 2000 (incomplete list)::
 
     Black (2003) 10.1103/PhysRevLett.90.192502
         2H b_c => 6.665(4); we are using 6.6681(27) from Snow (2020)
