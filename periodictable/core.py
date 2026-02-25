@@ -67,6 +67,7 @@ from typing import TYPE_CHECKING, cast, Any, Union, TypeVar, List, overload, Lit
 from collections.abc import Sequence, Callable, Iterator
 
 if TYPE_CHECKING:
+    # Circular imports; only include them for type checking
     from .nsf import Neutron
     from .activation import ActivationResult
     from .xsf import Xray
@@ -163,404 +164,6 @@ def delayed_load(all_props: Sequence[str], loader: Callable[[], None], element=T
         for p in all_props:
             prop = property(getter(p), setter(p), doc=doc)
             setattr(Ion, p, prop)
-
-# Define the element names from the element table.
-class PeriodicTable:
-    """
-    Defines the periodic table of the elements with isotopes.
-    Individidual elements are accessed by name, symbol or atomic number.
-    Individual isotopes are addressable by ``element[mass_number]`` or
-    ``elements.isotope(element name)``, ``elements.isotope(element symbol)``.
-
-    For example, the following all retrieve iron:
-
-    .. doctest::
-
-        >>> from periodictable import *
-        >>> print(elements[26])
-        Fe
-        >>> print(elements.Fe)
-        Fe
-        >>> print(elements.symbol('Fe'))
-        Fe
-        >>> print(elements.name('iron'))
-        Fe
-        >>> print(elements.isotope('Fe'))
-        Fe
-
-
-    To get iron-56, use:
-
-    .. doctest::
-
-        >>> print(elements[26][56])
-        56-Fe
-        >>> print(elements.Fe[56])
-        56-Fe
-        >>> print(elements.isotope('56-Fe'))
-        56-Fe
-
-
-    Deuterium and tritium are defined as 'D' and 'T'.
-
-    To show all the elements in the table, use the iterator:
-
-    .. doctest::
-
-        >>> from periodictable import *
-        >>> for el in elements:  # lists the element symbols
-        ...     print("%s %s"%(el.symbol, el.name))  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
-        H hydrogen
-        He helium
-        ...
-        Og oganesson
-
-
-    .. Note::
-           Properties can be added to the elements as needed, including *mass*,
-           *nuclear* and *X-ray* scattering cross sections.
-           See section :ref:`Adding properties <extending>` for details.
-    """
-    properties: List[str]  # list method shadows builtin list, so using List instead
-    """Properties loaded into the table"""
-
-    # Tedious listing of available elements for typed table.El access
-    n: "Element"
-    H: "Element"
-    D: "Isotope"
-    T: "Isotope"
-    He: "Element"
-    Li: "Element"
-    Be: "Element"
-    B: "Element"
-    C: "Element"
-    N: "Element"
-    O: "Element"
-    F: "Element"
-    Ne: "Element"
-    Na: "Element"
-    Mg: "Element"
-    Al: "Element"
-    Si: "Element"
-    P: "Element"
-    S: "Element"
-    Cl: "Element"
-    Ar: "Element"
-    K: "Element"
-    Ca: "Element"
-    Sc: "Element"
-    Ti: "Element"
-    V: "Element"
-    Cr: "Element"
-    Mn: "Element"
-    Fe: "Element"
-    Co: "Element"
-    Ni: "Element"
-    Cu: "Element"
-    Zn: "Element"
-    Ga: "Element"
-    Ge: "Element"
-    As: "Element"
-    Se: "Element"
-    Br: "Element"
-    Kr: "Element"
-    Rb: "Element"
-    Sr: "Element"
-    Y: "Element"
-    Zr: "Element"
-    Nb: "Element"
-    Mo: "Element"
-    Tc: "Element"
-    Ru: "Element"
-    Rh: "Element"
-    Pd: "Element"
-    Ag: "Element"
-    Cd: "Element"
-    In: "Element"
-    Sn: "Element"
-    Sb: "Element"
-    Te: "Element"
-    I: "Element"
-    Xe: "Element"
-    Cs: "Element"
-    Ba: "Element"
-    La: "Element"
-    Ce: "Element"
-    Pr: "Element"
-    Nd: "Element"
-    Pm: "Element"
-    Sm: "Element"
-    Eu: "Element"
-    Gd: "Element"
-    Tb: "Element"
-    Dy: "Element"
-    Ho: "Element"
-    Er: "Element"
-    Tm: "Element"
-    Yb: "Element"
-    Lu: "Element"
-    Hf: "Element"
-    Ta: "Element"
-    W: "Element"
-    Re: "Element"
-    Os: "Element"
-    Ir: "Element"
-    Pt: "Element"
-    Au: "Element"
-    Hg: "Element"
-    Tl: "Element"
-    Pb: "Element"
-    Bi: "Element"
-    Po: "Element"
-    At: "Element"
-    Rn: "Element"
-    Fr: "Element"
-    Ra: "Element"
-    Ac: "Element"
-    Th: "Element"
-    Pa: "Element"
-    U: "Element"
-    Np: "Element"
-    Pu: "Element"
-    Am: "Element"
-    Cm: "Element"
-    Bk: "Element"
-    Cf: "Element"
-    Es: "Element"
-    Fm: "Element"
-    Md: "Element"
-    No: "Element"
-    Lr: "Element"
-    Rf: "Element"
-    Db: "Element"
-    Sg: "Element"
-    Bh: "Element"
-    Hs: "Element"
-    Mt: "Element"
-    Ds: "Element"
-    Rg: "Element"
-    Cn: "Element"
-    Nh: "Element"
-    Fl: "Element"
-    Mc: "Element"
-    Lv: "Element"
-    Ts: "Element"
-    Og: "Element"
-
-    def __init__(self, table: str) -> None:
-        if table in PRIVATE_TABLES:
-            raise ValueError("Periodic table '%s' is already defined"%table)
-        PRIVATE_TABLES[table] = self
-        self.properties = []
-        self._element = {}
-        for Z, (name, symbol, ions, uncommon_ions) in element_base.items():
-            element = Element(name=name.lower(), symbol=symbol, Z=Z,
-                              ions=tuple(sorted(ions+uncommon_ions)), table=table)
-            self._element[element.number] = element
-            setattr(self, symbol, element)
-            PeriodicTable.__annotations__[symbol] = Element
-
-        # There are two specially named isotopes D and T
-        self.D = self.H.add_isotope(2)
-        self.D.name = 'deuterium'
-        self.D.symbol = 'D'
-        self.T = self.H.add_isotope(3)
-        self.T.name = 'tritium'
-        self.T.symbol = 'T'
-
-    def __getitem__(self, Z: int) -> "Element":
-        """
-        Retrieve element Z.
-        """
-        return self._element[Z]
-
-    def __iter__(self) -> Iterator["Element"]:
-        """
-        Process the elements in Z order
-        """
-        # CRUFT: Since 3.7 dictionaries use insertion order, so no need to sort
-        elements = sorted(self._element.items())
-        # Skipping the first entry (neutron) in the iterator
-        for _, el in elements[1:]:
-            yield el
-
-    @overload
-    def symbol(self, input: Literal["D"]) -> "Isotope": ... # type: ignore[overload-overlap]
-
-    @overload
-    def symbol(self, input: Literal["T"]) -> "Isotope": ... # type: ignore[overload-overlap]
-
-    @overload
-    def symbol(self, input: str) -> "Element": ...
-
-    def symbol(self, input: str) -> Union["Element", "Isotope"]:
-        """
-        Lookup the an element in the periodic table using its symbol.  Symbols
-        are included for 'D' and 'T', deuterium and tritium.
-
-        :Parameters:
-            *input* : string
-                Element symbol to be looked up in periodictable.
-
-        :Returns: Element
-
-        :Raises:
-            ValueError if the element symbol is not defined.
-
-        For example, print the element corresponding to 'Fe':
-
-        .. doctest::
-
-            >>> import periodictable
-            >>> print(periodictable.elements.symbol('Fe'))
-            Fe
-        """
-        if hasattr(self, input):
-            value = getattr(self, input)
-            if isinstance(value, (Element, Isotope)):
-                return value
-        raise ValueError("unknown element "+input)
-
-    def name(self, input: str) -> Union["Element", "Isotope"]:
-        """
-        Lookup an element given its name.
-
-        :Parameters:
-            *input* : string
-                Element name to be looked up in periodictable.
-
-        :Returns: Element (or Isotope for "D" and "T")
-
-        :Raises:
-            *ValueError* if element does not exist.
-
-        For example, print the element corresponding to 'iron':
-
-        .. doctest::
-
-            >>> import periodictable
-            >>> print(periodictable.elements.name('iron'))
-            Fe
-        """
-        for el in self:
-            if input == el.name:
-                return el
-        if input == self.D.name:
-            return self.D
-        if input == self.T.name:
-            return self.T
-        raise ValueError("unknown element "+input)
-
-    def isotope(self, input: str) -> Union["Element", "Isotope"]:
-        """
-        Lookup the element or isotope in the periodic table. Elements
-        are assumed to be given by the standard element symbols. Isotopes
-        are given by number-symbol, or 'D' and 'T' for 2-H and 3-H.
-
-        :Parameters:
-            *input* : string
-                Element name or isotope to be looked up in periodictable.
-
-        :Returns: Element
-
-        :Raises:
-            *ValueError* if element or isotope is not defined.
-
-        For example, print the element corresponding to '58-Ni'.
-
-        .. doctest::
-
-            >>> import periodictable
-            >>> print(periodictable.elements.isotope('58-Ni'))
-            58-Ni
-        """
-        # Parse #-Sym or Sym
-        # If # is not an integer, set isotope to -1 so that the isotope
-        # lookup will fail later.
-        parts = input.split('-')
-        if len(parts) == 1:
-            isotope = 0
-            symbol = parts[0]
-        elif len(parts) == 2:
-            try:
-                isotope = int(parts[0])
-            except Exception:
-                isotope = -1
-            symbol = parts[1]
-        else:
-            symbol = ''
-            isotope = -1
-
-        # All elements are attributes of the table
-        # Check that the attribute is an Element or an Isotope (for D or T)
-        # If it is an element, check that the isotope exists
-        if hasattr(self, symbol):
-            attr = getattr(self, symbol)
-            if isinstance(attr, Element):
-                # If no isotope, return the element
-                if isotope == 0:
-                    return attr
-                # If isotope, check that it is valid
-                if isotope in attr.isotopes:
-                    return attr[isotope]
-            elif isinstance(attr, Isotope):
-                # D, T must not have an associated isotope; 4-D is meaningless.
-                if isotope == 0:
-                    return attr
-
-        # If we can't parse the string as an element or isotope, raise an error
-        raise ValueError("unknown element "+input)
-
-    # TODO: list method shadows builtin list in "properties: list[str]" above
-    def list(self, *props, **kw) -> None:
-        """
-        Print a list of elements with the given set of properties.
-
-        :Parameters:
-            *prop1*, *prop2*, ... : string
-                Name of the properties to print
-            *format*: string
-                Template for displaying the element properties, with one
-                % for each property.
-
-        :Returns: None
-
-        For example, print a table of mass and density.
-
-        .. doctest::
-
-            >>> from periodictable import elements
-            >>> elements.list('symbol', 'mass', 'density',
-            ...     format="%-2s: %6.2f u %6.2f g/cm^3") # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
-            H :   1.01 u   0.07 g/cm^3
-            He:   4.00 u   0.12 g/cm^3
-            Li:   6.94 u   0.53 g/cm^3
-            ...
-            Bk: 247.00 u  14.00 g/cm^3
-        """
-        #TODO: accept template strings
-        #TODO: override signature in sphinx with
-        #    .. method:: list(prop1, prop2, ..., format='')
-        format = kw.pop('format', None)
-        assert not kw  # make sure *format* is the only keyword argument
-        for el in self:
-            try:
-                L = tuple(getattr(el, p) for p in props)
-            except AttributeError:
-                # Skip elements which don't define all the attributes
-                continue
-            # Skip elements with a value of None
-            if any(v is None for v in L):
-                continue
-
-            if format is None:
-                print(" ".join(str(p) for p in L))
-            else:
-                #try:
-                print(format%L)
-                #except:
-                #    print "format", format, "args", L
-                #    raise
 
 # TODO: types for properties are not being handled correctly
 # I've left them as simple "name: float" for now so that the editor will see them.
@@ -673,7 +276,7 @@ class Ion(_AtomBase):
 
 class IonSet:
     element_or_isotope: Union["Element", "Isotope"]
-    ionset: dict[int, "Ion"]
+    ionset: dict[int, Ion]
 
     def __init__(self, element_or_isotope: Union["Element", "Isotope"]):
         self.element_or_isotope = element_or_isotope
@@ -798,6 +401,404 @@ class Element(_AtomBase):
 
     def __reduce__(self):
         return _make_element, (self.table, self.number)
+
+# Define the element names from the element table.
+class PeriodicTable:
+    """
+    Defines the periodic table of the elements with isotopes.
+    Individidual elements are accessed by name, symbol or atomic number.
+    Individual isotopes are addressable by ``element[mass_number]`` or
+    ``elements.isotope(element name)``, ``elements.isotope(element symbol)``.
+
+    For example, the following all retrieve iron:
+
+    .. doctest::
+
+        >>> from periodictable import *
+        >>> print(elements[26])
+        Fe
+        >>> print(elements.Fe)
+        Fe
+        >>> print(elements.symbol('Fe'))
+        Fe
+        >>> print(elements.name('iron'))
+        Fe
+        >>> print(elements.isotope('Fe'))
+        Fe
+
+
+    To get iron-56, use:
+
+    .. doctest::
+
+        >>> print(elements[26][56])
+        56-Fe
+        >>> print(elements.Fe[56])
+        56-Fe
+        >>> print(elements.isotope('56-Fe'))
+        56-Fe
+
+
+    Deuterium and tritium are defined as 'D' and 'T'.
+
+    To show all the elements in the table, use the iterator:
+
+    .. doctest::
+
+        >>> from periodictable import *
+        >>> for el in elements:  # lists the element symbols
+        ...     print("%s %s"%(el.symbol, el.name))  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+        H hydrogen
+        He helium
+        ...
+        Og oganesson
+
+
+    .. Note::
+           Properties can be added to the elements as needed, including *mass*,
+           *nuclear* and *X-ray* scattering cross sections.
+           See section :ref:`Adding properties <extending>` for details.
+    """
+    properties: List[str]  # list method shadows builtin list, so using List instead
+    """Properties loaded into the table"""
+
+    # Tedious listing of available elements for typed table.El access
+    n: Element
+    H: Element
+    D: Isotope
+    T: Isotope
+    He: Element
+    Li: Element
+    Be: Element
+    B: Element
+    C: Element
+    N: Element
+    O: Element
+    F: Element
+    Ne: Element
+    Na: Element
+    Mg: Element
+    Al: Element
+    Si: Element
+    P: Element
+    S: Element
+    Cl: Element
+    Ar: Element
+    K: Element
+    Ca: Element
+    Sc: Element
+    Ti: Element
+    V: Element
+    Cr: Element
+    Mn: Element
+    Fe: Element
+    Co: Element
+    Ni: Element
+    Cu: Element
+    Zn: Element
+    Ga: Element
+    Ge: Element
+    As: Element
+    Se: Element
+    Br: Element
+    Kr: Element
+    Rb: Element
+    Sr: Element
+    Y: Element
+    Zr: Element
+    Nb: Element
+    Mo: Element
+    Tc: Element
+    Ru: Element
+    Rh: Element
+    Pd: Element
+    Ag: Element
+    Cd: Element
+    In: Element
+    Sn: Element
+    Sb: Element
+    Te: Element
+    I: Element
+    Xe: Element
+    Cs: Element
+    Ba: Element
+    La: Element
+    Ce: Element
+    Pr: Element
+    Nd: Element
+    Pm: Element
+    Sm: Element
+    Eu: Element
+    Gd: Element
+    Tb: Element
+    Dy: Element
+    Ho: Element
+    Er: Element
+    Tm: Element
+    Yb: Element
+    Lu: Element
+    Hf: Element
+    Ta: Element
+    W: Element
+    Re: Element
+    Os: Element
+    Ir: Element
+    Pt: Element
+    Au: Element
+    Hg: Element
+    Tl: Element
+    Pb: Element
+    Bi: Element
+    Po: Element
+    At: Element
+    Rn: Element
+    Fr: Element
+    Ra: Element
+    Ac: Element
+    Th: Element
+    Pa: Element
+    U: Element
+    Np: Element
+    Pu: Element
+    Am: Element
+    Cm: Element
+    Bk: Element
+    Cf: Element
+    Es: Element
+    Fm: Element
+    Md: Element
+    No: Element
+    Lr: Element
+    Rf: Element
+    Db: Element
+    Sg: Element
+    Bh: Element
+    Hs: Element
+    Mt: Element
+    Ds: Element
+    Rg: Element
+    Cn: Element
+    Nh: Element
+    Fl: Element
+    Mc: Element
+    Lv: Element
+    Ts: Element
+    Og: Element
+
+    def __init__(self, table: str) -> None:
+        if table in PRIVATE_TABLES:
+            raise ValueError("Periodic table '%s' is already defined"%table)
+        PRIVATE_TABLES[table] = self
+        self.properties = []
+        self._element = {}
+        for Z, (name, symbol, ions, uncommon_ions) in element_base.items():
+            element = Element(name=name.lower(), symbol=symbol, Z=Z,
+                              ions=tuple(sorted(ions+uncommon_ions)), table=table)
+            self._element[element.number] = element
+            setattr(self, symbol, element)
+            PeriodicTable.__annotations__[symbol] = Element
+
+        # There are two specially named isotopes D and T
+        self.D = self.H.add_isotope(2)
+        self.D.name = 'deuterium'
+        self.D.symbol = 'D'
+        self.T = self.H.add_isotope(3)
+        self.T.name = 'tritium'
+        self.T.symbol = 'T'
+
+    def __getitem__(self, Z: int) -> Element:
+        """
+        Retrieve element Z.
+        """
+        return self._element[Z]
+
+    def __iter__(self) -> Iterator[Element]:
+        """
+        Process the elements in Z order
+        """
+        # CRUFT: Since 3.7 dictionaries use insertion order, so no need to sort
+        elements = sorted(self._element.items())
+        # Skipping the first entry (neutron) in the iterator
+        for _, el in elements[1:]:
+            yield el
+
+    @overload
+    def symbol(self, input: Literal["D"]) -> Isotope: ... # type: ignore[overload-overlap]
+
+    @overload
+    def symbol(self, input: Literal["T"]) -> Isotope: ... # type: ignore[overload-overlap]
+
+    @overload
+    def symbol(self, input: str) -> Element: ...
+
+    def symbol(self, input: str) -> Element|Isotope:
+        """
+        Lookup the an element in the periodic table using its symbol.  Symbols
+        are included for 'D' and 'T', deuterium and tritium.
+
+        :Parameters:
+            *input* : string
+                Element symbol to be looked up in periodictable.
+
+        :Returns: Element
+
+        :Raises:
+            ValueError if the element symbol is not defined.
+
+        For example, print the element corresponding to 'Fe':
+
+        .. doctest::
+
+            >>> import periodictable
+            >>> print(periodictable.elements.symbol('Fe'))
+            Fe
+        """
+        if hasattr(self, input):
+            value = getattr(self, input)
+            if isinstance(value, (Element, Isotope)):
+                return value
+        raise ValueError("unknown element "+input)
+
+    def name(self, input: str) -> Element|Isotope:
+        """
+        Lookup an element given its name.
+
+        :Parameters:
+            *input* : string
+                Element name to be looked up in periodictable.
+
+        :Returns: Element (or Isotope for "D" and "T")
+
+        :Raises:
+            *ValueError* if element does not exist.
+
+        For example, print the element corresponding to 'iron':
+
+        .. doctest::
+
+            >>> import periodictable
+            >>> print(periodictable.elements.name('iron'))
+            Fe
+        """
+        for el in self:
+            if input == el.name:
+                return el
+        if input == self.D.name:
+            return self.D
+        if input == self.T.name:
+            return self.T
+        raise ValueError("unknown element "+input)
+
+    def isotope(self, input: str) -> Element|Isotope:
+        """
+        Lookup the element or isotope in the periodic table. Elements
+        are assumed to be given by the standard element symbols. Isotopes
+        are given by number-symbol, or 'D' and 'T' for 2-H and 3-H.
+
+        :Parameters:
+            *input* : string
+                Element name or isotope to be looked up in periodictable.
+
+        :Returns: Element
+
+        :Raises:
+            *ValueError* if element or isotope is not defined.
+
+        For example, print the element corresponding to '58-Ni'.
+
+        .. doctest::
+
+            >>> import periodictable
+            >>> print(periodictable.elements.isotope('58-Ni'))
+            58-Ni
+        """
+        # Parse #-Sym or Sym
+        # If # is not an integer, set isotope to -1 so that the isotope
+        # lookup will fail later.
+        parts = input.split('-')
+        if len(parts) == 1:
+            isotope = 0
+            symbol = parts[0]
+        elif len(parts) == 2:
+            try:
+                isotope = int(parts[0])
+            except Exception:
+                isotope = -1
+            symbol = parts[1]
+        else:
+            symbol = ''
+            isotope = -1
+
+        # All elements are attributes of the table
+        # Check that the attribute is an Element or an Isotope (for D or T)
+        # If it is an element, check that the isotope exists
+        if hasattr(self, symbol):
+            attr = getattr(self, symbol)
+            if isinstance(attr, Element):
+                # If no isotope, return the element
+                if isotope == 0:
+                    return attr
+                # If isotope, check that it is valid
+                if isotope in attr.isotopes:
+                    return attr[isotope]
+            elif isinstance(attr, Isotope):
+                # D, T must not have an associated isotope; 4-D is meaningless.
+                if isotope == 0:
+                    return attr
+
+        # If we can't parse the string as an element or isotope, raise an error
+        raise ValueError("unknown element "+input)
+
+    # TODO: list method shadows builtin list in "properties: list[str]" above
+    def list(self, *props, **kw) -> None:
+        """
+        Print a list of elements with the given set of properties.
+
+        :Parameters:
+            *prop1*, *prop2*, ... : string
+                Name of the properties to print
+            *format*: string
+                Template for displaying the element properties, with one
+                % for each property.
+
+        :Returns: None
+
+        For example, print a table of mass and density.
+
+        .. doctest::
+
+            >>> from periodictable import elements
+            >>> elements.list('symbol', 'mass', 'density',
+            ...     format="%-2s: %6.2f u %6.2f g/cm^3") # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+            H :   1.01 u   0.07 g/cm^3
+            He:   4.00 u   0.12 g/cm^3
+            Li:   6.94 u   0.53 g/cm^3
+            ...
+            Bk: 247.00 u  14.00 g/cm^3
+        """
+        #TODO: accept template strings
+        #TODO: override signature in sphinx with
+        #    .. method:: list(prop1, prop2, ..., format='')
+        format = kw.pop('format', None)
+        assert not kw  # make sure *format* is the only keyword argument
+        for el in self:
+            try:
+                L = tuple(getattr(el, p) for p in props)
+            except AttributeError:
+                # Skip elements which don't define all the attributes
+                continue
+            # Skip elements with a value of None
+            if any(v is None for v in L):
+                continue
+
+            if format is None:
+                print(" ".join(str(p) for p in L))
+            else:
+                #try:
+                print(format%L)
+                #except:
+                #    print "format", format, "args", L
+                #    raise
 
 def isatom(val: Any) -> bool:
     """Return true if value is an element, isotope or ion"""
