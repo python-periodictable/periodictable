@@ -1960,6 +1960,8 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
         <td>{format_num(n.absorption, n.absorption_unc)}</td>
     </tr>""")
 
+    # Note: don't need \n between rows since we add it to each.
+    table = ''.join(rows)
     html = f"""
 <html>
 {head}
@@ -1967,7 +1969,7 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
 <p>Scattering lengths and cross sections for various isotopes evaluated at 2200 m s<sup>–1</sup>
 </p>
 <table>
-{'\n'.join(rows)}
+{table}
 </table>
 <p>This table has been compiled from various sources for the user's convenience and does not represent a critical evaluation by the NIST Center for Neutron Research.
 See <a href="https://github.com/python-periodictable/periodictable/blob/master/periodictable/nsf.py">python-periodictable</a> on github for a list of citations.</p>
