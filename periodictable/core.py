@@ -854,7 +854,7 @@ def _make_isotope_ion(table: str, Z: int, n: int, c: int) -> Ion:
 
 # pylint: disable=bad-whitespace
 element_base: dict[int, tuple[str, str, list[int], list[int]]] = {
-    # number: name symbol common_ions uncommon_ions
+    # Z: ('name', 'symbol', [common ions], [uncommon ions])
     # ion info comes from Wikipedia: list of oxidation states of the elements.
     0: ('neutron',     'n',  [],         []),
     1: ('Hydrogen',    'H',  [-1, 1],    []),

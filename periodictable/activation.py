@@ -228,17 +228,17 @@ from collections.abc import Callable, Sequence
 from typing import cast
 
 from .formulas import formula as build_formula, Formula, FormulaInput
-from . import core
+from .core import Element, Isotope, isisotope, get_data_path
 
 LN2 = log(2)
 
-def table_abundance(iso: core.Isotope) -> float:
+def table_abundance(iso: Isotope) -> float:
     """
     Isotopic abundance in % from the periodic table package.
     """
     return iso.abundance if iso.abundance else 0.
 
-def IAEA1987_isotopic_abundance(iso: core.Isotope) -> float:
+def IAEA1987_isotopic_abundance(iso: Isotope) -> float:
     """
     Isotopic abundance in % from the IAEA, as provided in the activation.dat table.
 
@@ -295,7 +295,7 @@ class Sample:
             environment: "ActivationEnvironment",
             exposure: float=1,
             rest_times: tuple[float, ...]=(0, 1, 24, 360),
-            abundance: Callable[[core.Isotope], float]=table_abundance,
+            abundance: Callable[[Isotope], float]=table_abundance,
             ):
         """
         Calculate sample activation (uCi) after exposure to a neutron flux.
@@ -317,12 +317,12 @@ class Sample:
         self.exposure = exposure
         self.rest_times = rest_times
         for el, frac in self.formula.mass_fraction.items():
-            if core.isisotope(el):
-                A = activity(cast(core.Isotope, el), self.mass*frac, environment, exposure, rest_times)
+            if isisotope(el):
+                A = activity(cast(Isotope, el), self.mass*frac, environment, exposure, rest_times)
                 self._accumulate(A)
             else:
                 for iso_num in el.isotopes:
-                    iso: core.Isotope = cast(core.Element, el)[iso_num]
+                    iso: Isotope = cast(Element, el)[iso_num]
                     iso_mass = self.mass*frac*abundance(iso)*0.01
                     if iso_mass:
                         A = activity(iso, iso_mass, environment, exposure, rest_times)
@@ -596,7 +596,7 @@ FLOAT_COLUMNS = [6, 11, 14, 15, 16, 17, 19, 20, 21]
 UNITS_TO_HOURS = {'y': 8760, 'd': 24, 'h': 1, 'm': 1/60, 's': 1/3600}
 
 def activity(
-        isotope: core.Isotope,
+        isotope: Isotope,
         mass: float,
         env: ActivationEnvironment,
         exposure: float,
@@ -915,7 +915,7 @@ class ActivationResult:
         A2 = K [1 - exp(-L1*t) * L2/(L2-L1) + exp(-L2*t) * L1/(L2-L1)]
 
     """
-    isotope: core.Isotope
+    isotope: Isotope
     abundance: float
     symbol: str
     A: int
@@ -965,7 +965,7 @@ def init(table, reload=False):
     # of the cells involved formulas, which need to be reproduced when loading
     # in order to match full double precision values.
     activations = {}
-    path = os.path.join(core.get_data_path('.'), 'activation.dat')
+    path = os.path.join(get_data_path('.'), 'activation.dat')
     with open(path, 'r') as fd:
         for row in fd:
             #print(row, end='')
