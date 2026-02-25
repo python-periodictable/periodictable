@@ -1836,7 +1836,7 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
 
     Note: requires the uncertainties package, which is not otherwise required by periodictable.
     """
-    from uncertainties import ufloat as U
+    from uncertainties import ufloat as U # type: ignore[import-untyped]
 
     head = """\
 <head>
