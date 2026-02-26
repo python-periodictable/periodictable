@@ -23,13 +23,15 @@ Known issues
 Change history
 ==============
 
-2026-02-13 R2.0.3
+2026-02-xx R2.0.3
 -----------------
 
 Modified:
 
-* Update b_c bp bm and incoherent attributes for C-13
-* Update nuclear_spin for Se-77 Hf-177 W-182
+* Update b_c bp bm and incoherent attributes for 13C
+* Update b_c for Li 6Li 7Li 141Pr Nd 142-146,148,150Nd 144,147-150,152,154Sm 153Eu 174Yb
+* Update nuclear_spin for 77Se 177Hf 182W
+* Generate html table of scattering lengths and cross sections
 * Add comparison tables checking b_c and σ_i against b+ and b-
 * Add type hinting to many of the functions
 
