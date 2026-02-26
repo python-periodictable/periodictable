@@ -3,6 +3,7 @@ include README.rst
 graft periodictable/xsf
 include periodictable/f0_WaasKirf.dat
 include periodictable/activation.dat
+include periodictable/py.typed
 prune doc
 prune doc/sphinx/_build
 prune doc/sphinx/build

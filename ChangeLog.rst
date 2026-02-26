@@ -30,6 +30,10 @@ Modified:
 
 * Use NUBASE2020 for half-life values in activation. The following change by 20% or more:
   32Si, 38Clm, 41Ca, 79Se, 97Tc, 108Ag, 121Snm, 126Sn, 135Cs, 157Tb, 177Lum
+* Update b_c bp bm and incoherent attributes for C-13
+* Update nuclear_spin for Se-77 Hf-177 W-182
+* Add comparison tables checking b_c and σ_i against b+ and b-
+* Add type hinting to many of the functions
 
 2024-12-19 R2.0.2
 -----------------

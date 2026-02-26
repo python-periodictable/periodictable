@@ -44,12 +44,13 @@ __id__ = "$Id: cromermann.py 1051 2010-01-30 01:01:43Z juhas $"
 
 import os
 
-import numpy
+import numpy as np
+from numpy.typing import NDArray
 
 from . import core
 
 
-def getCMformula(symbol):
+def getCMformula(symbol: str) -> "CromerMannFormula":
     """
     Obtain Cromer-Mann formula and coefficients for a specified element.
 
@@ -63,7 +64,7 @@ def getCMformula(symbol):
     return _cmformulas[symbol]
 
 
-def fxrayatq(symbol, Q, charge=None):
+def fxrayatq(symbol: str, Q: float|NDArray, charge: int|None=None) -> NDArray:
     """
     Return x-ray scattering factors of an element at a given Q.
 
@@ -76,12 +77,12 @@ def fxrayatq(symbol, Q, charge=None):
 
     Return float or numpy array.
     """
-    stol = numpy.array(Q) / (4 * numpy.pi)
+    stol = np.asarray(Q) / (4 * np.pi)
     rv = fxrayatstol(symbol, stol, charge)
     return rv
 
 
-def fxrayatstol(symbol, stol, charge=None):
+def fxrayatstol(symbol: str, stol: float|NDArray, charge: int|None=None) -> NDArray:
     """
     Calculate x-ray scattering factors at specified sin(theta)/lambda
 
@@ -92,7 +93,7 @@ def fxrayatstol(symbol, stol, charge=None):
     *charge* : int
         ion charge, overrides any valence suffixes such as "-", "+", "3+".
 
-    Return float or numpy.array.
+    Return NDArray.
     """
     # resolve lookup symbol smbl, by default symbol
     smbl = symbol
@@ -135,7 +136,11 @@ class CromerMannFormula:
     # obtained from tables/f0_WaasKirf.dat and the associated reference
     # D. Waasmaier, A. Kirfel, Acta Cryst. (1995). A51, 416-413
     # http://dx.doi.org/10.1107/S0108767394013292
-    stollimit = 6
+    stollimit: float = 6
+    a: NDArray
+    b: NDArray
+    c: float
+    symbol: str
 
     def __init__(self, symbol, a, b, c):
         """
@@ -144,36 +149,36 @@ class CromerMannFormula:
         No return value
         """
         self.symbol = symbol
-        self.a = numpy.asarray(a, dtype=float)
-        self.b = numpy.asarray(b, dtype=float)
+        self.a = np.asarray(a, dtype=float)
+        self.b = np.asarray(b, dtype=float)
         self.c = float(c)
 
-    def atstol(self, stol):
+    def atstol(self, stol: float|NDArray) -> NDArray:
         """
         Calculate x-ray scattering factors at specified sin(theta)/lambda
 
         *stol* : float or [float] | |1/Ang|
             sin(theta)/lambda
 
-        Return float or numpy.array.
+        Return NDArray.
         """
-        stolflat = numpy.array(stol).flatten()
+        stolflat = np.asarray(stol).flatten()
         n = len(stolflat)
-        stol2row = numpy.reshape(stolflat ** 2, (1, n))
+        stol2row = np.reshape(stolflat ** 2, (1, n))
         bcol = self.b.reshape((len(self.a), 1))
-        bstol2 = numpy.dot(bcol, stol2row)
-        adiag = numpy.diag(self.a)
-        rvrows = numpy.dot(adiag, numpy.exp(-bstol2))
+        bstol2 = np.dot(bcol, stol2row)
+        adiag = np.diag(self.a)
+        rvrows = np.dot(adiag, np.exp(-bstol2))
         rvflat = rvrows.sum(axis=0) + self.c
-        rvflat[stolflat > self.stollimit] = numpy.nan
+        rvflat[stolflat > self.stollimit] = np.nan
         # when stol is scalar, addition of zero converts the rv array to float
-        rv = rvflat.reshape(numpy.shape(stol)) + 0.0
+        rv = rvflat.reshape(np.shape(stol)) + 0.0
         return rv
 
 # class CromerMannFormula
 
 
-def _update_cmformulas():
+def _update_cmformulas() -> None:
     """
     Update the static dictionary of CromerMannFormula instances.
     """
@@ -185,6 +190,7 @@ def _update_cmformulas():
     #   #N 11
     #   #L a1 a2 a3 a4 a5 c b1 b2 b3 b4 b5
     #    <a1 a2 a3 a4 a5> <c> <b1 b2 b3 b4 b5>
+    symbol = None
     with open(path) as fp:
         for line in fp:
             if line.startswith("#S"):
@@ -200,6 +206,6 @@ def _update_cmformulas():
                 _cmformulas[cmf.symbol] = cmf
                 symbol = None
 
-_cmformulas = {}
+_cmformulas: dict[str, CromerMannFormula] = {}
 
 # End of file

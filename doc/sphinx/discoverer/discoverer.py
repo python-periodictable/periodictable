@@ -4,14 +4,14 @@ Partial table of element discoverers.
 From http://en.wikipedia.org/wiki/Discoveries_of_the_chemical_elements.
 """
 
-import periodictable.core
+from periodictable.core import Element
 
 def init(table, reload=False):
     if 'discoverer' in table.properties and not reload: return
     table.properties.append('discoverer')
 
     # Set the default, if any
-    periodictable.core.Element.discoverer = "Unknown"
+    Element.discoverer = "Unknown"
 
     # Not numeric, so no discoverer_units
 

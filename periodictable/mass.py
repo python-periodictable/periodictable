@@ -61,10 +61,11 @@ but they are not yet part of the public interface.
     materials (IUPAC Technical Report). Pure and Applied Chemistry, 93(1), 155-166.
     https://doi.org/10.1515/pac-2018-0916
 """
-from .core import Element, Isotope, default_table
+from typing import cast
+from .core import Element, Isotope, PeriodicTable, default_table
 from .util import parse_uncertainty
 
-def mass(isotope):
+def mass(atom: Element|Isotope) -> float:
     """
     Atomic weight.
 
@@ -75,9 +76,9 @@ def mass(isotope):
         *mass* : float | u
             Atomic weight of the element.
     """
-    return isotope._mass
+    return atom._mass
 
-def abundance(isotope):
+def abundance(atom: Isotope) -> float:
     """
     Natural abundance.
 
@@ -87,35 +88,35 @@ def abundance(isotope):
     :Returns:
         *abundance* : float | %
     """
-    return isotope._abundance
+    return atom._abundance
 
-def init(table, reload=False):
+def init(table: PeriodicTable, reload: bool=False) -> None:
     """Add mass attribute to period table elements and isotopes"""
     if 'mass' in table.properties and not reload:
         return
     table.properties.append('mass')
-    Element.mass = property(mass, doc=mass.__doc__)
-    Isotope.mass = property(mass, doc=mass.__doc__)
-    Isotope.abundance = property(abundance, doc=abundance.__doc__)
+    Element.mass = property(mass, doc=mass.__doc__) # type: ignore[assignment]
     Element.mass_units = "u"
-    Element.abundance_units = "%"
+    Isotope.mass = property(mass, doc=mass.__doc__) # type: ignore[assignment]
+    Isotope.abundance = property(abundance, doc=abundance.__doc__) # type: ignore[assignment]
+    Isotope.abundance_units = "%"
 
     # Parse isotope mass table where each line looks like:
     #     z-el-iso,isotope mass(unc)#?,abundance(unc),element mass(unc)
     # The abundance and element masses will be set from other tables, so
     # ignore them here.
     for line in isotope_mass.split('\n'):
-        isotope, m, p, avg = line.split(',')
-        z, sym, iso = isotope.split('-')
-        el = table[int(z)]
+        isotope, iso_mass, iso_abundance, el_mass = line.split(',')
+        zstr, sym, astr = isotope.split('-')
+        el = table[int(zstr)]
         assert el.symbol == sym, \
             "Symbol %s does not match %s"%(sym, el.symbol)
-        iso = el.add_isotope(int(iso))
+        iso = el.add_isotope(int(astr))
         # Note: new mass table doesn't include nominal values for transuranics
         # so use old masses here and override later with new masses.
-        el._mass, el._mass_unc = parse_uncertainty(avg)
+        el._mass, el._mass_unc = cast(tuple[float, float], parse_uncertainty(el_mass))
         #el._mass, el._mass_unc = None, None
-        iso._mass, iso._mass_unc = parse_uncertainty(m)
+        iso._mass, iso._mass_unc = cast(tuple[float, float], parse_uncertainty(iso_mass))
         #iso._abundance, iso._abundance_unc = parse_uncertainty(p)
         iso._abundance, iso._abundance_unc = 0, 0
 
@@ -125,21 +126,21 @@ def init(table, reload=False):
     el._mass, el._mass_unc = neutron_mass, neutron_mass_unc
     iso = el.add_isotope(1)
     iso._mass, iso._mass_unc = neutron_mass, neutron_mass_unc
-    iso._abundance, iso._abundance_unc = 100, 0
+    iso._abundance, iso._abundance_unc = 0, 0
 
     # Parse element mass table where each line looks like:
     #    z  El  element mass(unc)|[low,high]|- note note ...
     for line in element_mass.split('\n'):
-        z, symbol, name, value = line.split()[:4]
-        #print(z, symbol, name, value)
-        el = table[int(z)]
-        if value != '-':
-            #v, dv = parse_uncertainty(value)
+        zstr, symbol, name, valstr = line.split()[:4]
+        #print(z, symbol, name, valstr)
+        el = table[int(zstr)]
+        if valstr != '-':
+            #v, dv = parse_uncertainty(valstr)
             #delta = abs(v-el._mass)/el._mass*100
             #from uncertainties import ufloat as U
             #if delta > 0.01:
             #    print(f"{el.number}-{el.symbol} mass changed by {delta:.2f}% to {U(v,dv):fS} from {U(el._mass,el._mass_unc):fS}")
-            el._mass, el._mass_unc = parse_uncertainty(value)
+            el._mass, el._mass_unc = cast(tuple[float, float], parse_uncertainty(valstr))
 
     #Li_ratio = table.Li[7]._abundance/table.Li[6]._abundance
 
@@ -147,7 +148,7 @@ def init(table, reload=False):
     #    z  El element\n    iso mass(unc)|[low,high] note ...
     # Note: tables modified for Pb, Ar, and N to use 2013 values
     z = 0
-    value = {}
+    value: dict[int, tuple[float, float]] = {}
     for line in isotope_abundance.split('\n'):
         #print(line)
         # New element
@@ -176,32 +177,32 @@ def init(table, reload=False):
             #print(line)
             parts = line.strip().split()
             #print(parts)
-            value[int(parts[0])] = parse_uncertainty(parts[1])
+            value[int(parts[0])] = cast(tuple[float, float], parse_uncertainty(parts[1]))
 
     #new_Li_ratio = table.Li[7]._abundance/table.Li[6]._abundance
     #print(f"Li6:Li7 ratio changed from {Li_ratio:.1f} to {new_Li_ratio:.1f}")
 
 
-def print_natural_mass(table=None):
-    from uncertainties import ufloat as U
+def print_natural_mass(table: PeriodicTable|None=None) -> None:
+    from uncertainties import ufloat as U  # type: ignore[import-untyped]
     table = default_table(table)
     for el in table:
         iso_mass = [
-            U(iso.abundance, iso._abundance_unc)/100*U(iso.mass, iso._mass_unc)
+            U(iso.abundance, iso._abundance_unc)/100*U(iso.mass, iso._mass_unc)  # type: ignore[operator]
             for iso in el if iso.abundance>0]
         if iso_mass:
             el_mass = U(el.mass, el._mass_unc)
             iso_sum = sum(iso_mass)
-            delta = el_mass - iso_sum
+            delta = el_mass - iso_sum # type: ignore[operator]
             # python 3.6 and above only
-            if abs(delta.n) > 1e-3 or delta.s/iso_sum.n > 0.01:
+            if abs(delta.n) > 1e-3 or delta.s/iso_sum.n > 0.01:  # type: ignore[operator,union-attr]
                 print(f"{el.number}-{el}: {el_mass:fS}, sum: {iso_sum:fS}, Δ={delta:fS}")
                 #print(f"{el.number}-{el}: {delta:fS}")
             #print(f"{el.number}-{el}: {el_mass:fS}, sum: {iso_sum:fS}, Δ=")
             #print(f"{el.number}-{el}: {delta:fS}")
             #print("%d-%s: %s (from sum: %s)"%(el.number, el, str(el_mass), str(iso_sum)))
 
-def print_abundance(table=None):
+def print_abundance(table: PeriodicTable|None=None) -> None:
     table = default_table(table)
     for el in table:
         abundance = ["%8s %g"%(iso, iso.abundance/100) for iso in el if iso.abundance>0]
@@ -209,7 +210,7 @@ def print_abundance(table=None):
             print("\n".join(abundance))
             print()
 
-def check_abundance(table=None):
+def check_abundance(table: PeriodicTable|None=None) -> None:
     table = default_table(table)
     for el in table:
         abundance = [iso.abundance for iso in el if iso.abundance>0]
@@ -725,7 +726,9 @@ isotope_abundance = """\
 # Coursey. J. S., Schwab. D. J., and Dragoset. R. A., NIST,
 #   Physics Laboratory, Office of Electronic Commerce in Scientific
 #   and Engineering Data.
-
+#
+# Column layout:
+#     z-el-iso,isotope mass(unc)#?,abundance(unc),element mass(unc)
 isotope_mass = """\
 1-H-1,1.0078250319000(100),99.9885(70),1.00794(7)
 1-H-2,2.0141017778400(200),0.0115(70),1.00794(7)

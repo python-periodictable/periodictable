@@ -40,8 +40,10 @@ Example:
 This data is from Ashcroft and Mermin.
 '''
 
+from typing import Any
+from .core import PeriodicTable
 
-crystal_structures = [\
+crystal_structures: list[dict[str, Any]|None] = [
     {'symmetry': 'diatom', 'd': 0.74}, #H
     {'symmetry': 'atom'}, #He
     {'symmetry': 'BCC', 'a': 3.49}, #Li
@@ -106,7 +108,7 @@ crystal_structures = [\
     {'symmetry': 'Rhombohedral', 'a': 9.00, 'alpha': 23.13}, #Sm
     {'symmetry': 'BCC', 'a': 4.61}, #Eu
     {'symmetry': 'hcp', 'c/a': 1.588, 'a': 3.64}, #Gd
-    {'symmetry': 'hcp', 'c/a': 1.581, 'a': 3.60}, #Th
+    {'symmetry': 'hcp', 'c/a': 1.581, 'a': 3.60}, #Tb
     {'symmetry': 'hcp', 'c/a': 1.573, 'a': 3.59}, #Dy
     {'symmetry': 'hcp', 'c/a': 1.570, 'a': 3.58}, #Ho
     {'symmetry': 'hcp', 'c/a': 1.570, 'a': 3.56}, #Er
@@ -144,9 +146,10 @@ crystal_structures = [\
     None, #Fm
     None, #Md
     None, #No
-    None]#Lw
+    None, #Lw
+]
 
-def init(table, reload=False):
+def init(table: PeriodicTable, reload: bool=False) -> None:
     """
     Add crystal_structure field to the element properties.
     """

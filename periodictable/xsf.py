@@ -247,10 +247,11 @@ class Xray:
     X-ray scattering properties for the elements. Refer help(periodictable.xsf)
     from command prompt for details.
     """
+    sftable_units: tuple[str, str, str] = ("eV", "", "")
+    scattering_factors_units: tuple[str, str] = ("", "")
+    sld_units: tuple[str, str] = ("1e-6/Ang^2", "1e-6/Ang^2")
+    element: Element
     _nff_path = get_data_path('xsf')
-    sftable_units = ["eV", "", ""]
-    scattering_factors_units = ["", ""]
-    sld_units = ["1e-6/Ang^2", "1e-6/Ang^2"]
     _table = None
     def __init__(self, element):
         self.element = element
@@ -465,6 +466,81 @@ def index_of_refraction(compound, *, density=None, natural_density=None,
                       wavelength=wavelength)
     return 1 - wavelength**2/(2*pi)*(f1 + f2*1j)*1e-6
 
+def delta(compound, *, density=None, natural_density=None,
+                        energy=None, wavelength=None):
+    """
+    Calculates the δ component of the index of refraction for a given compound
+
+    :Parameters:
+        *compound* : Formula initializer
+            Chemical formula.
+        *density* : float | |g/cm^3|
+            Mass density of the compound, or None for default.
+        *natural_density* : float | |g/cm^3|
+            Mass density of the compound at naturally occurring isotope abundance.
+        *wavelength* : float or vector | |Ang|
+            Wavelength of the X-ray.
+        *energy* : float or vector | keV
+            Energy of the X-ray, if *wavelength* is not specified.
+
+    :Returns:
+        *delta* : float or vector | unitless
+            δ component of the index of refraction of the material at the given energy
+
+    :Notes:
+
+    Formula taken from http://xdb.lbl.gov (section 1.7) and checked
+    against http://henke.lbl.gov/optical_constants/getdb2.html.
+    """
+    if energy is not None:
+        wavelength = xray_wavelength(energy)
+    assert wavelength is not None, "scattering calculation needs energy or wavelength"
+    f1, f2 = xray_sld(compound,
+                      density=density, natural_density=natural_density,
+                      wavelength=wavelength)
+    return wavelength**2/(2*pi)*(f1)*1e-6
+
+def beta(compound, *, density=None, natural_density=None,
+                        energy=None, wavelength=None):
+    r"""
+    Calculates the β component of the index of refraction for a given compound
+
+    :Parameters:
+        *compound* : Formula initializer
+            Chemical formula.
+        *density* : float | |g/cm^3|
+            Mass density of the compound, or None for default.
+        *natural_density* : float | |g/cm^3|
+            Mass density of the compound at naturally occurring isotope abundance.
+        *wavelength* : float or vector | |Ang|
+            Wavelength of the X-ray.
+        *energy* : float or vector | keV
+            Energy of the X-ray, if *wavelength* is not specified.
+
+    :Returns:
+        *beta* : float or vector | unitless
+            β component of the index of refraction of the material at the given energy
+
+    :Notes:
+
+    Formula taken from the equation
+
+    .. math::
+
+        n = 1 - \delta + i \beta
+
+    derivative of the formula http://xdb.lbl.gov (section 1.7) using a more common
+    sign convention for the imaginary part of the index of refraction. Checked
+    against http://henke.lbl.gov/optical_constants/getdb2.html.
+    """
+    if energy is not None:
+        wavelength = xray_wavelength(energy)
+    assert wavelength is not None, "scattering calculation needs energy or wavelength"
+    f1, f2 = xray_sld(compound,
+                      density=density, natural_density=natural_density,
+                      wavelength=wavelength)
+    return wavelength**2/(2*pi)*(f2)*1e-6
+
 def mirror_reflectivity(compound, *, density=None, natural_density=None,
                         energy=None, wavelength=None,
                         angle=None, roughness=0):
@@ -499,6 +575,7 @@ def mirror_reflectivity(compound, *, density=None, natural_density=None,
     if energy is not None:
         wavelength = xray_wavelength(energy)
     assert wavelength is not None, "scattering calculation needs energy or wavelength"
+    assert angle is not None, "scattering calculation needs incident angle"
     angle = radians(angle)
     if np.isscalar(wavelength):
         wavelength = np.array([wavelength])

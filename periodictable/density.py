@@ -41,10 +41,12 @@ Data were taken mostly from [#Lide1999]_. These values are reproduced in [#ILL]_
 .. [#ILL] The ILL Neutron Data Booklet, Second Edition.
 """
 
-from .core import Element, Isotope
+from typing import cast
+
+from .core import Element, Isotope, Atom, PeriodicTable, isisotope, ision
 from .constants import avogadro_number
 
-def density(iso_el):
+def density(atom: Atom) -> float:
 
     """
     Element density for natural abundance. For isotopes, return
@@ -63,12 +65,13 @@ def density(iso_el):
         80th ed. (1999).*
 
     """
+    # Note: materials with pure isotopes are adjusted by the natural mass ratio.
+    if isisotope(atom):
+        iso = cast(Isotope, atom)
+        return iso.element._density * (iso.mass/iso.element.mass)
+    return cast(Element, atom)._density
 
-    if hasattr(iso_el, 'element'):
-        return iso_el.element._density * (iso_el.mass/iso_el.element.mass)
-    return iso_el._density
-
-def interatomic_distance(element):
+def interatomic_distance(element: Element) -> float|None:
     r"""
     Estimated interatomic distance from atomic weight and density. The
     distance between isotopes is assumed to match that between atoms in
@@ -98,14 +101,12 @@ def interatomic_distance(element):
             (10^{-8} cm\cdot \AA^{-1})^3))^{1/3} = \AA
 
     """
-
-    if hasattr(element, 'isotope'):
-        element = element.element
+    # Note: don't need to check for Ion or Isotope because these delegate to Element
     if element.density is None or element.mass is None:
         return None
     return (element.mass/(element.density*avogadro_number*1e-24))**(1./3.)
 
-def number_density(element):
+def number_density(element: Element) -> float:
     r"""
     Estimate the number density from atomic weight and density. The density
     for isotopes is assumed to match that of between atoms in natural abundance.
@@ -132,29 +133,28 @@ def number_density(element):
             = atoms\cdot cm^{-3}
 
     """
-    if hasattr(element, 'isotope'):
-        element = element.element
+    # Note: don't need to check for Ion or Isotope because these delegate to Element
     if element.density is None or element.mass is None:
         return None
     return (element.density/element.mass)*avogadro_number
 
-def init(table, reload=False):
+def init(table: PeriodicTable, reload: bool=False) -> None:
     if 'density' in table.properties and not reload:
         return
     table.properties.append('density')
     Isotope.density \
-        = property(density, "density using inter-atomic spacing from naturally occurring form")
+        = property(density, doc="density using inter-atomic spacing from naturally occurring form")  # type: ignore[assignment]
     Element.density \
-        = property(density, "density using inter-atomic spacing from naturally occurring form")
+        = property(density, doc="density using inter-atomic spacing from naturally occurring form")  # type: ignore[assignment]
     Element.density_units = "g/cm^3"
 
     Element.interatomic_distance \
         = property(interatomic_distance,
-                   "interatomic distance estimated from density")
+                   doc="interatomic distance estimated from density")  # type: ignore[assignment]
     Element.interatomic_distance_units = "angstrom"
     Element.number_density \
         = property(number_density,
-                   "number density estimated from mass and density")
+                   doc="number density estimated from mass and density")  # type: ignore[assignment]
     Element.number_density_units = "1/cm^3"
 
     for k, v in element_densities.items():

@@ -63,9 +63,9 @@ The abstract of Cordero reads as follows:
 
 """
 
-from .core import Element
+from .core import Element, PeriodicTable
 
-def init(table, reload=False):
+def init(table: PeriodicTable, reload: bool=False) -> None:
     """
     Add the covalent radius property to a private table.
     Use *reload = True* to replace the covalent radius property on an
