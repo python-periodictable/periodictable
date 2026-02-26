@@ -107,17 +107,17 @@ The following newer measurements from the literature are included::
     1H b_c -3.7423(12) => -3.7395(11) [1]
     2H b_c 6.674(6) => 6.6681(27) [1]
     4He b_c 3.26(3) => 3.0982(21) [3] (see also [5], which gives 3.075(6))
-    4He coherent = total cross sections computed from 4 pi b_c^2/100
-    natHe computed from isotopic weighting of 3He and 4He
+    natHe b_c 3.26(3) => 3.0985(21) [3] computed from 3He and 4He
     6Li b_c 2.0(1) => 2.27(2) [8]
     7Li b_c -2.22(2) => -2.28(2) [8]
     natLi b_c -1.90(3) => -1.93(2) [8]
-    natC b_c 6.6484(13) => 6.6472(9) [1]
+    12C b_c 6.6535(13) => 6.6472(9) [1]
     13C b_c 6.19(9) => 6.542(3); bp 5.6(5) => 6.30(14); bm 6.2(5) => 7.27(42); incoherent 0.034(11) => 0.022(20) [7]
-    natO b_c 5.805(4) => 5.8037(29) [1]
+    16O b_c 5.805(4) => 5.8037(29) [1]
     17O b_c 5.6(5) => 5.867(4) [2]
     18O b_c 5.84(7) => 6.009(5) [2]
-    natSn b_c 6.225(2) => 6.2239(13) [1]
+    119Sn b_c 6.225(2) => 6.2239(13) [1]
+    70Zn b_c 6.9(1.0) => 6.0(1.0) [OCR misidentified the the number]
     141Pr b_c 4.58(5) => 4.44(4) [9]
     natNd b_c 7.69(5) => 7.87(11) [9]
     142Nd b_c 7.7(3) => 7.24(4) [9]
@@ -134,14 +134,15 @@ The following newer measurements from the literature are included::
     150Sm b_c 14.0(3.0) => 10.05(10) [9]
     152Sm b_c -5.0(6) =? -6.14(12) [9]
     154Sm b_c 8.0(1.0) => 8.97(6) [4] => 9.34(9) [9]
+    151Eu b_c => 6.92(15) [from 94Mug1; value was missing from ATI table]
     153Eu b_c 8.22(12) => 8.85(3) [4] => 8.33(11) [9]
     174Yb b_c 19.2(1) => 22.02(7) [9]
     191Ir b_c => 12.1(9) [6]
     193Ir b_c => 9.71(18) [6]
-    natPb b_c 9.401(2) => 9.4024(13) [1]
-    natBi b_c 8.532(2) => 8.5242(18) [1]
+    207Pb b_c 9.401(2) => 9.4024(13) [1]
+    209Bi b_c 8.532(2) => 8.5242(18) [1]
 
-    He total 1.34(2) => 1.188(5) [5] (ignored; using 4 pi b_c^2/100)
+    He coh, total 1.34(2) => 1.188(5) [5] => 1.2065(16) [3] (using 4 pi b_c^2/100)
     Ar total 0.683(4) => 0.683(5) [5] (ignored; existing value is more precise)
     Kr total 7.68(13) => 7.685(26) [5]
     Xe total --- => 4.344(17) [5]
@@ -204,6 +205,8 @@ Other measurements since 2000 (incomplete list)::
     Gehlhaar (2026) 10.1088/1361-648X/ae1ec0
         170Yb b_c = 4.83(3) ignored: they note their value is not yet recommendable
         because of uncertainty in b_c for other isotopes in their sample.
+        natSm b_c = 5.29(5) ignored: it was measured at 330.3(9) meV not 25.3 meV
+        natEu b_c = 5.84(5) ignored: it was measured at 168.10(5) meV not 25.3 meV
 
 .. [#Rauch2003] Rauch, H. and Waschkowski, W. (2003)
     Neutron Scattering Lengths in ILL
@@ -1428,19 +1431,7 @@ def sld_plot(table: PeriodicTable|None=None) -> None:
 # Numbers followed by '*' are estimated.
 # Numbers may be given as limit, e.g., <1.0e-6
 #
-# [Paul Kienzle]
-# * Fix typos such as 70Zn b_c 6.9(1.0) => 6.0(1.0).
-# * Update bound coherent scattering length for H-1, H-2, He-4,
-#   Li-nat, Li-6, Li-7, C-12, C-13, O-16, O-17, O-18, Sn-119,
-#   Pr-141, Nd-nat, Nd-142, Nd-143, Nd-144, Nd-145, Nd-146, Nd-148, Nd-150
-#   Sm-144, Sm-147, Sm-148, Sm-149, Sm-150, Sm-152, Sm-154
-#   Eu-153, Pb-207, Bi-209
-# * Update bp, bm for C-13 and compute incoherent from bp and bm
-# * Update total cross section for He, Kr, Xe
-# * Use 63-Eu-151 b_c from 84Mug1. This change is moot since this isotope
-#   has energy dependent isotope coeffs.
-# * Use calculated values for 4He coh and total, and natHe b_c, coh and total.
-# * Update Se-77 to spin -1/2; Hf-177 to spin -7/2; W-182 to spin 0
+# Changes to the table are listed in the docstring at the top of the file.
 
 # TODO: check isotope spin; some of them were wrong.
 # TODO: add missing b+, b- to table using b_i values from Sears table
