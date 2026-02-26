@@ -102,7 +102,7 @@ Mughabghab (2018)\ [#Mughabghab2018]_ provides further updates, including calcul
 values for those values that have not been measured. These are not yet incorporated into the
 the table.
 
-The following newer measurements from the literature are included:
+The following newer measurements from the literature are included::
 
     1H b_c -3.7423(12) => -3.7395(11) [1]
     2H b_c 6.674(6) => 6.6681(27) [1]
@@ -272,7 +272,7 @@ from typing import TYPE_CHECKING, cast
 
 import numpy as np
 from numpy import sqrt, pi, asarray, inf
-from numpy.typing import NDArray, ArrayLike
+from numpy.typing import NDArray
 from .core import Element, Isotope, PeriodicTable, Atom, default_table, iselement
 from .constants import (avogadro_number, planck_constant, electron_volt,
                         neutron_mass, atomic_mass_constant)
@@ -309,7 +309,7 @@ ENERGY_FACTOR = (
 VELOCITY_FACTOR = (
     1e10 * planck_constant / (neutron_mass * atomic_mass_constant))
 
-def neutron_wavelength(energy: ArrayLike) -> NDArray:
+def neutron_wavelength(energy: float|NDArray) -> NDArray:
     r"""
     Convert neutron energy to wavelength.
 
@@ -336,7 +336,7 @@ def neutron_wavelength(energy: ArrayLike) -> NDArray:
     return sqrt(ENERGY_FACTOR / asarray(energy))
 
 # TODO: why is neutron_wavelength_from_velocity not using asarray() ?
-def neutron_wavelength_from_velocity(velocity: float) -> float:
+def neutron_wavelength_from_velocity(velocity: float|NDArray) -> float|NDArray:
     r"""
     Convert neutron velocity to wavelength.
 
@@ -360,7 +360,7 @@ def neutron_wavelength_from_velocity(velocity: float) -> float:
     """
     return VELOCITY_FACTOR / velocity
 
-def neutron_energy(wavelength: ArrayLike) -> NDArray:
+def neutron_energy(wavelength: float|NDArray) -> NDArray:
     r"""
     Convert neutron wavelength to energy.
 
@@ -558,7 +558,7 @@ class Neutron:
         return self.b_c is not None and self._number_density is not None
 
     # PAK 2021-04-05: allow energy dependent b_c
-    def scattering_by_wavelength(self, wavelength: ArrayLike) -> tuple[ArrayLike, ArrayLike]|tuple[None, None]:
+    def scattering_by_wavelength(self, wavelength: float | NDArray) -> tuple[float | NDArray, float | NDArray]|tuple[None, None]:
         r"""
         Return scattering length and total cross section for each wavelength.
 
@@ -588,10 +588,10 @@ class Neutron:
         #b_c = np.interp(energy, self.nsf_table[0], self.nsf_table[1])
         b_c = np.interp(wavelength, self.nsf_table[0], self.nsf_table[1])
         # TODO: sigma_s should include an incoherent contribution
-        sigma_s = _4PI_100*abs(b_c)**2 # 1 barn = 1 fm^2 1e-2 barn/fm^2
+        sigma_s = _4PI_100*np.abs(b_c)**2 # 1 barn = 1 fm^2 1e-2 barn/fm^2
         return b_c, sigma_s
 
-    def sld(self, *, wavelength: ArrayLike=ABSORPTION_WAVELENGTH) -> NDArray|None:
+    def sld(self, *, wavelength: float | NDArray =ABSORPTION_WAVELENGTH) -> NDArray|None:
         r"""
         Returns scattering length density for the element at natural
         abundance and density.
@@ -612,7 +612,7 @@ class Neutron:
             return None
         return self.scattering(wavelength=wavelength)[0]
 
-    def scattering(self, *, wavelength: ArrayLike=ABSORPTION_WAVELENGTH) -> tuple[NDArray, NDArray, NDArray]|tuple[None, None, None]:
+    def scattering(self, *, wavelength: float | NDArray=ABSORPTION_WAVELENGTH) -> tuple[NDArray, NDArray, NDArray]|tuple[None, None, None]:
         r"""
         Returns neutron scattering information for the element at natural
         abundance and density.
@@ -661,8 +661,8 @@ def energy_dependent_init(table: PeriodicTable) -> None:
     # Lu nat missing from Lynn and Seeger, so mix Lu[175] and Lu[176]
     Lu175 = table.Lu[175]
     Lu176 = table.Lu[176]
-    bc_175 = Lu175.neutron.b_c_complex
-    wavelength, bc_176 = Lu176.neutron.nsf_table
+    bc_175 = cast(complex, Lu175.neutron.b_c_complex)
+    wavelength, bc_176 = cast(tuple[DoubleArray, DoubleArray], Lu176.neutron.nsf_table)
     bc_nat = (bc_175*Lu175.abundance + bc_176*Lu176.abundance)/100.0 # 1 fm = 1fm * %/100
     table.Lu.neutron.nsf_table = wavelength, cast(DoubleArray, bc_nat)
     #table.Lu.neutron.total = 0.  # zap total cross section
@@ -782,8 +782,8 @@ if TYPE_CHECKING:
 def neutron_scattering(
         compound: "FormulaInput", *,
         density: float|None=None,
-        wavelength: ArrayLike|None=None,
-        energy: ArrayLike|None=None,
+        wavelength: float|NDArray|None=None,
+        energy: float|NDArray|None=None,
         natural_density: float|None=None,
         table: PeriodicTable|None=None,
         ) -> tuple[NDArray, NDArray, NDArray]|tuple[None, None, None]:
@@ -1042,7 +1042,8 @@ def neutron_scattering(
 
     # Sum over the quantities (note: formulas can have fractional atoms)
     molar_mass, num_atoms = 0., 0.
-    b_c, sigma_s = 0., 0.
+    b_c: float|NDArray = 0.
+    sigma_s: float|NDArray = 0.
     is_energy_dependent = False
     for element, quantity in compound.atoms.items():
         # TODO: use NaN rather than None
@@ -1051,7 +1052,7 @@ def neutron_scattering(
         molar_mass += element.mass*quantity
         num_atoms += quantity
         # PAK 2021-04-05: allow energy dependent b_c, b''
-        b_ck, sigma_sk = element.neutron.scattering_by_wavelength(wavelength)
+        b_ck, sigma_sk = cast(tuple[float|NDArray, float|NDArray], element.neutron.scattering_by_wavelength(wavelength))
         #print(f"{element=}; {b_ck=}; {sigma_sk=}")
         b_c += quantity * b_ck
         sigma_s += quantity * sigma_sk
@@ -1060,7 +1061,7 @@ def neutron_scattering(
     # If nothing to sum, return values for a vacuum.  This might be because
     # the material has no atoms or it might be because the density is zero.
     if molar_mass*compound.density == 0:
-        return (0, 0, 0), (0, 0, 0), inf
+        return (0, 0, 0), (0, 0, 0), inf  # type: ignore[return-value]
 
     # Turn weighted sums into scattering factors
     b_c /= num_atoms
@@ -1373,7 +1374,7 @@ def neutron_composite_sld(materials, wavelength=ABSORPTION_WAVELENGTH):
     return _compute
 
 
-def sld_plot(table=None):
+def sld_plot(table: PeriodicTable|None=None) -> None:
     r"""
     Plots SLD as a function of element number.
 
@@ -1387,9 +1388,12 @@ def sld_plot(table=None):
 
     table = default_table(table)
 
-    SLDs: dict[Atom, float] = dict(
-        (el, el.neutron.sld()[0]) for el in table if el.neutron.has_sld())
-    SLDs[table.D] = table.D.neutron.sld()[0]
+    def sld_re(atom) -> float:
+        sld = atom.neutron.sld()
+        return sld[0]
+
+    SLDs: dict[Atom, float] = {el: sld_re(el) for el in table if el.neutron.has_sld()}
+    SLDs[table.D] = sld_re(table.D)
 
     table_plot(SLDs, label='Scattering length density ($10^{-6}$ Nb)',
                title='Neutron SLD for elements in natural abundance')
@@ -1872,7 +1876,7 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
 
     Note: requires the uncertainties package, which is not otherwise required by periodictable.
     """
-    from uncertainties import ufloat as U
+    from uncertainties import ufloat as U # type: ignore[import-untyped]
 
     head = """\
 <head>
@@ -1929,21 +1933,21 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
         return f"{re_str}{im_str}"
 
     rows = []
-    rows.append(f"""\
-        <tr>
-            <th></th>
-            <th>Z</th>
-            <th>A</th>
-            <th>I(π)</th>
-            <th>abundance %</th>
-            <th>b<sub>c</sub> {Neutron.b_c_units}</th>
-            <th>b<sub>+</sub> {Neutron.bp_units}</th>
-            <th>b<sub>–</sub> {Neutron.bm_units}</th>
-            <th>σ<sub>c</sub> {Neutron.coherent_units}</th>
-            <th>σ<sub>i</sub> {Neutron.incoherent_units}</th>
-            <th>σ<sub>s</sub> {Neutron.total_units}</th>
-            <th>σ<sub>a</sub> {Neutron.absorption_units}</th>
-        </tr>""")
+    rows.append(f"""
+    <tr>
+        <th></th>
+        <th>Z</th>
+        <th>A</th>
+        <th>I(π)</th>
+        <th>abundance %</th>
+        <th>b<sub>c</sub> {Neutron.b_c_units}</th>
+        <th>b<sub>+</sub> {Neutron.bp_units}</th>
+        <th>b<sub>–</sub> {Neutron.bm_units}</th>
+        <th>σ<sub>c</sub> {Neutron.coherent_units}</th>
+        <th>σ<sub>i</sub> {Neutron.incoherent_units}</th>
+        <th>σ<sub>s</sub> {Neutron.total_units}</th>
+        <th>σ<sub>a</sub> {Neutron.absorption_units}</th>
+    </tr>""")
 
     # Generate table rows
     for el in [table.n, *table]:
@@ -1954,21 +1958,21 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
         if element_number <= 96 and not singleton:
             # Multiple isotopes: put element summary above
             n = el.neutron
-            rows.append(f"""\
-            <tr class="element-row" id="{el}">
-                <td>{el}</td>
-                <td>{element_number}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
-                <td>{format_num(n.bp, n.bp_unc, n.bp_i, n.bp_i_unc)}</td>
-                <td>{format_num(n.bm, n.bm_unc, n.bm_i, n.bm_i_unc)}</td>
-                <td>{format_num(n.coherent, n.coherent_unc)}</td>
-                <td>{format_num(n.incoherent, n.incoherent_unc)}</td>
-                <td>{format_num(n.total, n.total_unc)}</td>
-                <td>{format_num(n.absorption, n.absorption_unc)}</td>
-            </tr>""")
+            rows.append(f"""
+    <tr class="element-row" id="{el}">
+        <td>{el}</td>
+        <td>{element_number}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
+        <td>{format_num(n.bp, n.bp_unc, n.bp_i, n.bp_i_unc)}</td>
+        <td>{format_num(n.bm, n.bm_unc, n.bm_i, n.bm_i_unc)}</td>
+        <td>{format_num(n.coherent, n.coherent_unc)}</td>
+        <td>{format_num(n.incoherent, n.incoherent_unc)}</td>
+        <td>{format_num(n.total, n.total_unc)}</td>
+        <td>{format_num(n.absorption, n.absorption_unc)}</td>
+    </tr>""")
 
         for iso in isotopes:
             isotope_number = iso.isotope
@@ -1980,22 +1984,24 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
                 else "" if iso.abundance == 0.0
                 else f"{iso.abundance}"
             )
-            rows.append(f"""\
-            <tr{f' class="element-row" id="{el}"' if singleton else ''}>
-                <td>{el if singleton else ''}</td>
-                <td>{element_number if singleton else ''}</td>
-                <td>{isotope_number}</td>
-                <td class="centered">{spin}</td>
-                <td>{abundance}</td>
-                <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
-                <td>{format_num(n.bp, n.bp_unc, n.bp_i, n.bp_i_unc)}</td>
-                <td>{format_num(n.bm, n.bm_unc, n.bm_i, n.bm_i_unc)}</td>
-                <td>{format_num(n.coherent, n.coherent_unc)}</td>
-                <td>{format_num(n.incoherent, n.incoherent_unc)}</td>
-                <td>{format_num(n.total, n.total_unc)}</td>
-                <td>{format_num(n.absorption, n.absorption_unc)}</td>
-            </tr>""")
+            rows.append(f"""
+    <tr{f' class="element-row" id="{el}"' if singleton else ''}>
+        <td>{el if singleton else ''}</td>
+        <td>{element_number if singleton else ''}</td>
+        <td>{isotope_number}</td>
+        <td class="centered">{spin}</td>
+        <td>{abundance}</td>
+        <td>{format_num(n.b_c, n.b_c_unc, n.b_c_i, n.b_c_i_unc)}</td>
+        <td>{format_num(n.bp, n.bp_unc, n.bp_i, n.bp_i_unc)}</td>
+        <td>{format_num(n.bm, n.bm_unc, n.bm_i, n.bm_i_unc)}</td>
+        <td>{format_num(n.coherent, n.coherent_unc)}</td>
+        <td>{format_num(n.incoherent, n.incoherent_unc)}</td>
+        <td>{format_num(n.total, n.total_unc)}</td>
+        <td>{format_num(n.absorption, n.absorption_unc)}</td>
+    </tr>""")
 
+    # Note: don't need \n between rows since we add it to each.
+    formatted_table = ''.join(rows)
     html = f"""
 <html>
 {head}
@@ -2003,7 +2009,7 @@ def scattering_table_html(path: Path|str|None=None, table: PeriodicTable|None=No
 <p>Scattering lengths and cross sections for various isotopes evaluated at 2200 m s<sup>–1</sup>
 </p>
 <table>
-{'\n'.join(rows)}
+{formatted_table}
 </table>
 <p>This table has been compiled from various sources for the user's convenience and does not represent a critical evaluation by the NIST Center for Neutron Research.
 See <a href="https://github.com/python-periodictable/periodictable/blob/master/periodictable/nsf.py">python-periodictable</a> on github for a list of citations.</p>
@@ -2338,7 +2344,7 @@ def bp_bm_bc_comparison_table(table=None, tol=None):
         # print(f"Processing isotope {el}")
         # print(f"   {el} {el.abundance} {el.nuclear_spin} b+={el.neutron.bp} b-={el.neutron.bm}")
         spinstr, bp, bm = iso.nuclear_spin, iso.neutron.bp, iso.neutron.bm
-        if not spinstr or bp is None:
+        if not spinstr or bp is None or bm is None:
             return np.nan
         spin = int(spinstr[:-2])/2 if spinstr.endswith('/2') else int(spinstr)
         b_coh = ((spin+1)*bp + spin*bm) / (2*spin+1)
@@ -2371,9 +2377,9 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
         if iselement(atom):
             el = cast(Element, atom)
             # print(f"Processing element {el}")
-            sum_b_coh = 0
-            sum_b_coh_sq = 0
-            sum_weight = 0
+            sum_b_coh = 0.
+            sum_b_coh_sq = 0.
+            sum_weight = 0.
             for iso in el:
                 if not iso.neutron.has_sld():
                     continue
@@ -2390,7 +2396,7 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
                 #   b_i complex: 149Sm 151Eu 155,157Gd 176Lu
                 #   b_i unknown: 95,97Mo 99Tc 99,101Ru 105Pd 111,113Cd 231Pa 237Np 243Am
                 # The remaining missing entries have b_i > 0 so inversion should work.
-                b_inc = np.sqrt(iso.neutron.incoherent/_4PI_100) if iso.neutron.incoherent else 0
+                b_inc = np.sqrt(iso.neutron.incoherent/_4PI_100) if iso.neutron.incoherent else 0.
 
                 # # List the isotopes which don't have b+ defined.
                 # if bp is None and b_inc != 0:
@@ -2409,7 +2415,7 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
                     # Checking that all spin=0 have no incoherent scattering recorded
                     # if spin == 0 and b_inc != 0:
                     #     print(f"!!! {iso} has spin {spin} and {b_inc=}")
-                    if bp is None:
+                    if bp is None or bm is None:
                         # Using the b_coh and b_inc defined as:
                         #     b_c = ((I+1) b+ + I b-) / (2I+1)
                         #     b_i = √I(I+1)] (b+ - b-) / (2I+1)
@@ -2422,6 +2428,7 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
                         # to b- = b_coh when spin is zero since b_inc is zero in those cases
                         bp = b_coh + b_inc * np.sqrt(spin/(spin + 1))
                         bm = b_coh - b_inc * np.sqrt((spin + 1)/spin) if spin != 0 else b_coh
+                    bp, bm = cast(float, bp), cast(float, bm)
 
                     # calc_bc = ((spin+1)*bp + spin*bm) / (2*spin + 1)
                     # calc_bi = np.sqrt(spin*(spin+1)) * (bp - bm) / (2*spin + 1)
@@ -2457,7 +2464,7 @@ def bp_bm_bi_comparison_table(table=None, tol=None):
         #print(f":: {el} {el.abundance} {el.nuclear_spin} b+={el.neutron.bp} b-={el.neutron.bm}")
         iso = cast(Isotope, atom)
         spinstr, bp, bm = iso.nuclear_spin, iso.neutron.bp, iso.neutron.bm
-        if not spinstr or bp is None:
+        if not spinstr or bp is None or bm is None:
             return np.nan # exclude from the table
             return iso.neutron.incoherent
         spin = int(spinstr[:-2])/2 if spinstr.endswith('/2') else int(spinstr)
