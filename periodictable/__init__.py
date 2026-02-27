@@ -26,7 +26,7 @@ whose conditions may differ from those of your experiment.
 """
 
 __docformat__ = 'restructuredtext en'
-__version__ = "2.0.2"
+__version__ = "2.1.0"
 
 __all__ = ['elements'] # Lazy symbols and individual elements added later
 
