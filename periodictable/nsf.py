@@ -1171,7 +1171,7 @@ def neutron_sld_from_atoms(*args, **kw):
 
 def D2O_match(compound, **kw):
     """
-    Find the D2O contrast match point for the compound.
+    Find the D2O contrast match point for the compound at 20 C (density=0.9982 g/cm^3).
 
     *wavelength* or *energy* select neutron wavelength or energy.
 
@@ -1210,7 +1210,7 @@ def D2O_sld(compound, volume_fraction=1., D2O_fraction=0., **kw):
     The D2O contrast mixture is assumed to be made using pure H2O (with
     its natural H:D ratios) and pure D2O with no H present, so H[1] will be
     substituted alternately with H and D when computing mixture SLD.
-    Solvent SLD is calculated using the density at 20 C.
+    Solvent SLD is calculated using the density at 20 C (density=0.9982 g/cm^3).
 
     Only the coherent scattering crosssection will be matched. Incoherent
     and absorption crosssections are likely to be different for the compound
@@ -2474,13 +2474,13 @@ def print_scattering(compound, wavelength=ABSORPTION_WAVELENGTH):
     from . import formulas
     compound = formulas.formula(compound)
     density = compound.density if compound.density is not None else 1.0
-    sld, xs, penetration = neutron_scattering(compound, wavelength=wavelength,
-                                              density=density)
-    print("%s at %g Ang  (density=%g g/cm^3)"
-          % (str(compound), wavelength, density))
-    print("  sld: %g + %g j  (%g incoherent)  1e-6/Ang^2"%sld)
-    print("  Σ_c: %g  Σ_a: %g  Σ_i: %g  1/cm"%xs)
-    print("  μ: %g 1/cm  1/e penetration: %g cm"%(1/penetration, penetration))
+    sld, xs, penetration = neutron_scattering(compound, wavelength=wavelength, density=density)
+    frac, match_sld = D2O_match(compound, wavelength=wavelength, density=density)
+    print(f"{compound} at {wavelength:g} Ang  (density={density:g} g/cm^3)")
+    print(f"  sld: {sld[0]:g} + {sld[1]:g} j  ({sld[2]:g} incoherent)  1e-6/Ang^2")
+    print(f"  Σ_c: {xs[0]:g}  Σ_a: {xs[1]:g}  Σ_i: {xs[2]:g}  1/cm")
+    print(f"  μ: {1/penetration:g} 1/cm  1/e penetration: {penetration:g} cm")
+    print(f"  D₂O match {frac*100:.1f}% (sld={match_sld:g})")
 
 def main():
     """
