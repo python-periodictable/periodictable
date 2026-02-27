@@ -23,11 +23,13 @@ Known issues
 Change history
 ==============
 
-2026-02-xx R2.0.3
+2026-02-27 R2.1.0
 -----------------
 
 Modified:
 
+* Use NUBASE2020 for half-life values in activation. The following change by 20% or more:
+  32Si, 38Clm, 41Ca, 79Se, 97Tc, 108Ag, 121Snm, 126Sn, 135Cs, 157Tb, 177Lum
 * Update b_c bp bm and incoherent attributes for 13C
 * Update b_c for Li 6Li 7Li 141Pr Nd 142-146,148,150Nd 144,147-150,152,154Sm 153Eu 174Yb
 * Update nuclear_spin for 77Se 177Hf 182W
