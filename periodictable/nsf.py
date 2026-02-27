@@ -90,36 +90,59 @@ for the scattering length of an element or isotope may be inconsistent with
 the values measured for the corresponding cross section. The comparison table
 functions highlight these differences.
 
-Tables from Sears\ [#Sears1992]_\ [#Sears2006]_, Rauch\ [#Rauch2003]_ and
-Dawidowski\ [#Dawidowski2013]_ make different choices for the recommended
+Tables from Sears (1992)\ [#Sears1992]_\ [#Sears2006]_, Rauch (2003)\ [#Rauch2003]_ and
+Dawidowski (2013)\ [#Dawidowski2013]_ make different choices for the recommended
 values. These are noted in periodictable issue #59
 `<https://github.com/python-periodictable/periodictable/issues/59>`_
 with changes from Sears to Rauch
 `(a) <https://github.com/python-periodictable/periodictable/issues/59#issuecomment-1693686953>`__
 and from Rauch to Dawidowski
 `(b) <https://github.com/python-periodictable/periodictable/issues/59#issuecomment-1690212205>`__.
+Mughabghab (2018)\ [#Mughabghab2018]_ provides further updates, including calculated
+values for those values that have not been measured. These are not yet incorporated into the
+the table.
 
 The following newer measurements from the literature are included::
 
     1H b_c -3.7423(12) => -3.7395(11) [1]
     2H b_c 6.674(6) => 6.6681(27) [1]
     4He b_c 3.26(3) => 3.0982(21) [3] (see also [5], which gives 3.075(6))
-    4He coherent = total cross sections computed from 4 pi b_c^2/100
-    natHe computed from isotopic weighting of 3He and 4He
-    natC b_c 6.6484(13) => 6.6472(9) [1]
+    natHe b_c 3.26(3) => 3.0985(21) [3] computed from 3He and 4He
+    6Li b_c 2.0(1) => 2.27(2) [8]
+    7Li b_c -2.22(2) => -2.28(2) [8]
+    natLi b_c -1.90(3) => -1.93(2) [8]
+    12C b_c 6.6535(13) => 6.6472(9) [1]
     13C b_c 6.19(9) => 6.542(3); bp 5.6(5) => 6.30(14); bm 6.2(5) => 7.27(42); incoherent 0.034(11) => 0.022(20) [7]
-    natO b_c 5.805(4) => 5.8037(29) [1]
+    16O b_c 5.805(4) => 5.8037(29) [1]
     17O b_c 5.6(5) => 5.867(4) [2]
     18O b_c 5.84(7) => 6.009(5) [2]
-    natSn b_c 6.225(2) => 6.2239(13) [1]
-    154Sm b_c 8.0(1.0) => 8.97(6) [4]
-    153Eu b_c 8.22(12) => 8.85(3) [4]
+    119Sn b_c 6.225(2) => 6.2239(13) [1]
+    70Zn b_c 6.9(1.0) => 6.0(1.0) [OCR misidentified the the number]
+    141Pr b_c 4.58(5) => 4.44(4) [9]
+    natNd b_c 7.69(5) => 7.87(11) [9]
+    142Nd b_c 7.7(3) => 7.24(4) [9]
+    143Nd b_c 14.0(2.0) => 17.51(6) [9]
+    144Nd b_c 2.8(3) => 3.06(7) [9]
+    145Nd b_c 14.0(2.0) => 10.40(12) [9]
+    146Nd b_c 8.7(2) => 8.56(9) [9]
+    148Nd b_c 5.7(3) => 4.44(13) [9]
+    150Nd b_c 5.28(20) => 6.87(5) [9]
+    144Sm b_c -3.0(4.0) => 4.63(4) [11] calculated
+    147Sm b_c 14.0(3.0) => 6.68(5) [9]
+    148Sm b_c -3.0(4.0) => 6.67(7) [9]
+    149Sm b_c 18.7(28) => 17.84(28) [11]
+    150Sm b_c 14.0(3.0) => 10.05(10) [9]
+    152Sm b_c -5.0(6) =? -6.14(12) [9]
+    154Sm b_c 8.0(1.0) => 8.97(6) [4] => 9.34(9) [9]
+    151Eu b_c => 6.92(15) [from 94Mug1; value was missing from ATI table]
+    153Eu b_c 8.22(12) => 8.85(3) [4] => 8.33(11) [9]
+    174Yb b_c 19.2(1) => 22.02(7) [9]
     191Ir b_c => 12.1(9) [6]
     193Ir b_c => 9.71(18) [6]
-    natPb b_c 9.401(2) => 9.4024(13) [1]
-    natBi b_c 8.532(2) => 8.5242(18) [1]
+    207Pb b_c 9.401(2) => 9.4024(13) [1]
+    209Bi b_c 8.532(2) => 8.5242(18) [1]
 
-    He total 1.34(2) => 1.188(5) [5] (ignored; using 4 pi b_c^2/100)
+    He coh, total 1.34(2) => 1.188(5) [5] => 1.2065(16) [3] (using 4 pi b_c^2/100)
     Ar total 0.683(4) => 0.683(5) [5] (ignored; existing value is more precise)
     Kr total 7.68(13) => 7.685(26) [5]
     Xe total --- => 4.344(17) [5]
@@ -131,6 +154,22 @@ The following newer measurements from the literature are included::
     [5] Haddock (2019) 10.1103/PhysRevC.100.064002
     [6] Hannon (2018) 10.1107/S1600576718006064
     [7] Fischer (2008) 10.1088/0953-8984/20/04/045221
+    [8] Gehlhaar (2025) 10.1088/1361-648X/add3a6
+    [9] Gehlhaar (2026) 10.1088/1361-648X/ae1ec0
+    [10] Mughabghab (2018) 10.1016/C2015-0-00522-6 [Z=1-60]
+    [11] Mughabghab (2018) 10.1016/C2015-0-00524-X [Z=61-102]
+
+Use energy dependent b_c and σ_a from\ [#Lynn1990]_. The values at the standard
+wavelength do not match the recommended values for that wavelength from other sources.
+The following elements and isotopes are affected::
+
+    natSm 149Sm
+    natEu 151Eu
+    natGd 155Gd 157Gd
+    164Dy
+    natEr 167Er
+    natYb 168Yb 174Yb
+    natLu 176Lu
 
 Other measurements since 2000 (incomplete list)::
 
@@ -156,23 +195,18 @@ Other measurements since 2000 (incomplete list)::
     Huffman (2004) 0.1103/PhysRevC.70.014004
         3He bc' = 5.853(7)
 
-    Gehlhaar (2025) 10.1088/1361-648X/add3a6
-        Li bc, various isotopes
-
-    Gehlhaar (2026) 10.1088/1361-648X/ae1ec0
-        bc for Pr, Nd, Sm, Eu, Yb, including various isotopes
+    Kohlmann (2016) Zeitschrift fuer Kristallographie-Crystalline Materials 231.9 (2016): 517-523.
+        154Sm b_c = 8.97(6)
 
     Von Dreele (2024) 10.1107/S1600576724005375
         A fit to the Lynn and Seeger fitted resonance curves for the rare earths
         using a simpler model. Also provides parameters for 103Rh, 113Cd, and 239,240Pu
 
-
-The Atlas of Neutron Resonances gives evaluated values for
-some of the entries missing from the table of measurements.
-
-    Mughabghab (2018)
-    Z=1-60:  10.1016/C2015-0-00522-6
-    Z=61-102: 10.1016/C2015-0-00524-X
+    Gehlhaar (2026) 10.1088/1361-648X/ae1ec0
+        170Yb b_c = 4.83(3) ignored: they note their value is not yet recommendable
+        because of uncertainty in b_c for other isotopes in their sample.
+        natSm b_c = 5.29(5) ignored: it was measured at 330.3(9) meV not 25.3 meV
+        natEu b_c = 5.84(5) ignored: it was measured at 168.10(5) meV not 25.3 meV
 
 .. [#Rauch2003] Rauch, H. and Waschkowski, W. (2003)
     Neutron Scattering Lengths in ILL
@@ -215,11 +249,17 @@ some of the entries missing from the table of measurements.
     J. Appl. Cryst. 44, 618-624. doi:10.1107/S0021889811008223
 
 .. [#Dawidowski2013] Dawidowski, J., Granada, J. R., Santisteban,
-    J. R., Cantargi, F., & Palomino, L. A. R. (2013).
+    J. R., Cantargi, F., & Palomino, L. A. R. (2013)
     Appendix—Neutron Scattering Lengths and Cross Sections.
     In F. Fernandez-Alonso & D. L. Price (Eds.),
     Experimental Methods in the Physical Sciences (Vol. 44, pp. 471–528).
     Academic Press. doi:10.1016/B978-0-12-398374-9.09989-7
+
+.. [#Mughabghab2018] Mughabghab (2018)
+    Atlas of Neutron Resonances (Sixth Edition). Elsevier.
+    Vol I (Z=1-60) 10.1016/C2015-0-00522-6
+    Vol II (Z=61-102) 10.1016/C2015-0-00524-X
+
 """
 
 #.. [#Koester1991] Koester, L., Rauch, H., Seymann. E. (1991)
@@ -1391,16 +1431,7 @@ def sld_plot(table: PeriodicTable|None=None) -> None:
 # Numbers followed by '*' are estimated.
 # Numbers may be given as limit, e.g., <1.0e-6
 #
-# [Paul Kienzle]
-# * Fix typos such as 70Zn b_c 6.9(1.0) => 6.0(1.0).
-# * Update bound coherent scattering length for H-1, H-2, He-4, C-12,
-#   O-16, O-17, O-18, Sn-119, Sm-154, Eu-153, Pb-207, Bi-209
-# * Update b_c, bp, bm for C-13 and compute incoherent from bp and bm
-# * Update total cross section for He, Kr, Xe
-# * Usd 63-Eu-151 b_c from 84Mug1. This change is moot since this isotope
-#   has energy dependent isotope coeffs.
-# * Use calculated values for 4He coh and total, and natHe b_c, coh and total.
-# * Update Se-77 to spin -1/2; Hf-177 to spin -7/2; W-182 to spin 0
+# Changes to the table are listed in the docstring at the top of the file.
 
 # TODO: check isotope spin; some of them were wrong.
 # TODO: add missing b+, b- to table using b_i values from Sears table
@@ -1435,9 +1466,9 @@ nsftable = """\
 2-He,,,3.0985(21),,,,1.2065(16),0,1.2065(16),0.00747(1)
 2-He-3,0.013,1/2,5.74(7),4.7(5),8.8(1.4),E,4.42(10),1.6(4),6.0(4),5333.0(7.0)
 2-He-4,99.987,0,3.0982(21),,,,1.2062(16),0,1.2062(16),0
-3-Li,,,-1.90(3),,,,0.454(10),0.92(3),1.37(3),70.5(3)
-3-Li-6,7.5,1,2.0(1),0.67(14),4.67(17),+/-,0.51(5),0.46(5),0.97(7),940.0(4.0)
-3-Li-7,92.5,3/2,-2.22(2),-4.15(6),1.00(8),+/-,0.619(11),0.78(3),1.40(3),0.0454(3)
+3-Li,,,-1.93(2),,,,0.454(10),0.92(3),1.37(3),70.5(3)
+3-Li-6,7.5,1,2.27(2),0.67(14),4.67(17),+/-,0.51(5),0.46(5),0.97(7),940.0(4.0)
+3-Li-7,92.5,3/2,-2.28(4),-4.15(6),1.00(8),+/-,0.619(11),0.78(3),1.40(3),0.0454(3)
 4-Be-9,100,3/2,7.79(1),,,,7.63(2),0.0018(9),7.63(2),0.0076(8)
 5-B,,,5.30(4),,,,3.54(5),1.70(12),5.24(11),767.0(8.0)
 5-B-10,19.4,3,-0.2(4),-4.2(4),5.2(4),,0.144(6),3.0(4),3.1(4),3835.0(9.0)
@@ -1662,27 +1693,27 @@ nsftable = """\
 58-Ce-138,0.26,0,6.65(9),,,,5.64(15),0,5.64(15),1.1(3)
 58-Ce-140,88.48,0,4.81(9),,,,2.94(11),0,2.94(11),0.57(4)
 58-Ce-142,11.07,0,4.72(9),,,,2.84(11),0,2.84(11),0.95(5)
-59-Pr-141,100,5/2,4.58(5),,,+/-,2.64(6),0.015(3),2.66(6),11.5(3)
-60-Nd,,,7.69(5),,,,7.43(19),9.2(8),16.6(8),50.5(1.2)
-60-Nd-142,27.11,0,7.7(3),,,,7.5(6),0,7.5(6),18.7(7)
-60-Nd-143,12.17,7/2,14.0(2.0)*,,,,25.0(7.0),55.0(7.0),80.0(2.0),337.0(10.0)
-60-Nd-144,23.85,0,2.8(3),,,,1.0(2),0,1.0(2),3.6(3)
-60-Nd-145,8.5,7/2,14.0(2.0)*,,,,25.0(7.0),5.0(5.0)*,30.0(9.0),42.0(2.0)
-60-Nd-146,17.22,0,8.7(2),,,,9.5(4),0,9.5(4),1.4(1)
-60-Nd-148,5.7,0,5.7(3),,,,4.1(4),0,4.1(4),2.5(2)
-60-Nd-150,5.6,0,5.28(20),,,,3.5(3),0,3.5(3),1.2(2)
+59-Pr-141,100,5/2,4.44(4),,,+/-,2.64(6),0.015(3),2.66(6),11.5(3)
+60-Nd,,,7.87(11),,,,7.43(19),9.2(8),16.6(8),50.5(1.2)
+60-Nd-142,27.11,0,7.24(4),,,,7.5(6),0,7.5(6),18.7(7)
+60-Nd-143,12.17,7/2,17.51(6)*,,,,25.0(7.0),55.0(7.0),80.0(2.0),337.0(10.0)
+60-Nd-144,23.85,0,3.06(7),,,,1.0(2),0,1.0(2),3.6(3)
+60-Nd-145,8.5,7/2,10.40(12)*,,,,25.0(7.0),5.0(5.0)*,30.0(9.0),42.0(2.0)
+60-Nd-146,17.22,0,8.56(9),,,,9.5(4),0,9.5(4),1.4(1)
+60-Nd-148,5.7,0,4.44(13),,,,4.1(4),0,4.1(4),2.5(2)
+60-Nd-150,5.6,0,6.87(5),,,,3.5(3),0,3.5(3),1.2(2)
 61-Pm-147,2.62 Y,7/2,12.6(4),,,,20.0(1.3),1.3(2.0),21.3(1.5),168.4(3.5)
 62-Sm,,,0.00(5),,,E,0.422(9),39.0(3.0),39.4(3.0),5922.0(56.0)
-62-Sm-144,3.1,0,-3.0(4.0)*,,,,1.0(3.0),0,1.0(3.0),0.7(3)
-62-Sm-147,15,7/2,14.0(3.0),,,,25.0(11.0),14.0(19.0),39.0(16.0),57.0(3.0)
-62-Sm-148,11.2,0,-3.0(4.0)*,,,,1.0(3.0),0,1.0(3.0),2.4(6)
-62-Sm-149,13.8,7/2,18.7(28),,,E,63.5(6),137.0(5.0),200.0(5.0),42080.0(400.0)
-62-Sm-150,7.4,0,14.0(3.0),,,,25.0(11.0),0,25.0(11.0),104.0(4.0)
-62-Sm-152,26.7,0,-5.0(6),,,,3.1(8),0,3.1(8),206.0(6.0)
-62-Sm-154,22.8,0,8.97(6),,,,11.0(2.0),0,11.0(2.0),8.4(5)
+62-Sm-144,3.1,0,4.63(4)*,,,,1.0(3.0),0,1.0(3.0),0.7(3)
+62-Sm-147,15,7/2,6.68(5),,,,25.0(11.0),14.0(19.0),39.0(16.0),57.0(3.0)
+62-Sm-148,11.2,0,6.67(7)*,,,,1.0(3.0),0,1.0(3.0),2.4(6)
+62-Sm-149,13.8,7/2,17.84(28),,,E,63.5(6),137.0(5.0),200.0(5.0),42080.0(400.0)
+62-Sm-150,7.4,0,10.05(10),,,,25.0(11.0),0,25.0(11.0),104.0(4.0)
+62-Sm-152,26.7,0,-6.14(12),,,,3.1(8),0,3.1(8),206.0(6.0)
+62-Sm-154,22.8,0,9.34(9),,,,11.0(2.0),0,11.0(2.0),8.4(5)
 63-Eu,,,5.3(3),,,E,6.57(4),2.5(4),9.2(4),4530.0(40.0)
 63-Eu-151,47.8,5/2,6.92(15),,,E,5.5(2),3.1(4),8.6(4),9100.0(100.0)
-63-Eu-153,52.8,5/2,8.85(3),,,,8.5(2),1.3(7),9.8(7),312.0(7.0)
+63-Eu-153,52.8,5/2,8.33(11),,,,8.5(2),1.3(7),9.8(7),312.0(7.0)
 64-Gd,,,9.5(2),,,E,29.3(8),151.0(2.0),180.0(2.0),49700.0(125.0)
 64-Gd-152,0.2,0,10.0(3.0)*,,,,13.0(8.0),0,13.0(8.0),735.0(20.0)
 64-Gd-154,2.2,0,10.0(3.0)*,,,,13.0(8.0),0,13.0(8.0),85.0(12.0)
@@ -1715,7 +1746,7 @@ nsftable = """\
 70-Yb-171,14.3,1/2,9.7(1),6.5(2),19.4(4),,11.7(2),3.9(2),15.6(3),48.6(2.5)
 70-Yb-172,21.9,0,9.5(1),,,,11.2(2),0,11.2(2),0.8(4)
 70-Yb-173,16.3,5/2,9.56(10),2.5(2),13.3(3),,11.5(2),3.5,15,17.1(1.3)
-70-Yb-174,31.8,0,19.2(1),,,,46.8(5),0,46.8(5),69.4(5.0)
+70-Yb-174,31.8,0,22.02(7),,,,46.8(5),0,46.8(5),69.4(5.0)
 70-Yb-176,12.7,0,8.7(1),,,,9.6(2),0,9.6(2),2.85(5)
 71-Lu,,,7.21(3),,,,6.53(5),0.7(4),7.2(4),74.0(2.0)
 71-Lu-175,97.4,7/2,7.28(9),,,,6.59(5),0.6(4),7.2(4),21.0(3.0)
