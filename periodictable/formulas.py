@@ -712,7 +712,7 @@ def _isotope_substitution(compound: "Formula", source: Atom, target: Atom, porti
 
 # TODO: Grammar should be independent of table
 # TODO: Parser can't handle meters as 'm' because it conflicts with the milli prefix
-LENGTH_UNITS = {'nm': 1e-9, 'um': 1e-6, 'μm': 1e-6, 'mm': 1e-3, 'cm': 1e-2}
+LENGTH_UNITS = {'nm': 1e-9, 'um': 1e-6, 'μm': 1e-6, 'mm': 1e-3, 'cm': 1e-2, 'Ang': 1e-10, 'Å': 1e-10}
 MASS_UNITS = {'ng': 1e-9, 'ug': 1e-6, 'mg': 1e-3, 'g': 1e+0, 'kg': 1e+3}
 VOLUME_UNITS = {'nL': 1e-9, 'uL': 1e-6, 'mL': 1e-3, 'L': 1e+0}
 LENGTH_RE = '('+'|'.join(LENGTH_UNITS.keys())+')'
