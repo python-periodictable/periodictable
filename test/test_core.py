@@ -64,7 +64,7 @@ def test():
         Fe.ion[-3]
         raise Exception("accepts invalid ions")
     except ValueError as msg:
-        assert str(msg) == "-3 is not a valid charge for Fe"
+        assert str(msg) == "valence 3- is not valid for Fe"
 
     assert data_files()[0][0] == "periodictable-data/xsf"
 

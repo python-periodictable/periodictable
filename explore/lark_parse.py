@@ -838,6 +838,7 @@ def check():
                 density = getattr(tree, 'density', None)
                 density_str = f" @ {density:.2f}" if density else ""
                 mode = 'unicode' # unicode latex html plain
+                # mode = 'plain'
                 print(f" => {pretty_formula(tree, mode)}{density_str}")
                 # print(f"    {getattr(tree, 'structure', None)}")
             except Exception as exc:

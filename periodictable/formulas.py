@@ -675,7 +675,7 @@ class Formula:
         return ret
 
     def __str__(self):
-        return self.name if self.name else _str_atoms(self.structure)
+        return self.name if self.name else "".join(_str_atoms(self.structure))
 
     def __repr__(self):
         return "formula('%s')"%(str(self))
@@ -1073,24 +1073,41 @@ def _convert_to_hill_notation(atoms: dict[Atom, float]) -> Structure:
     """
     return tuple((atoms[el], el) for el in sorted(atoms.keys(), key=_hill_key))
 
-def _str_atoms(seq) -> str:
+def _str_one_atom(atom: Atom) -> str:
+    """
+    Format a single atom as SYMBOL[ISOTOPE]{VALENCE}.
+
+    Can't use str(atom) => ISOTOPE-SYMBOL{VALENCE} or repr(atom) => SYMBOL[ISOTOPE].ion[VALENCE]
+    """
+    valence = isotope = ""
+    if ision(atom):
+        ion = cast(Ion, atom)
+        charge = '-' if ion.charge < 0 else '+'
+        magnitude = abs(ion.charge)
+        valence = charge*magnitude if magnitude < 2 else f"{magnitude}{charge}"
+        valence = "{%s}"%valence
+        atom = ion.element
+    if isisotope(atom):
+        iso = cast(Isotope, atom)
+        if iso.symbol == iso.element.symbol:
+            isotope = f"[{iso.isotope}]"
+    return f"{atom.symbol}{isotope}{valence}"
+
+def _str_atoms(seq) -> list[str]:
     """
     Convert formula structure to string.
     """
     #print "str", seq
-    ret = ""
+    ret = []
     for count, fragment in seq:
         if isatom(fragment):
-            ret += str(fragment)
+            ret.append(_str_one_atom(fragment))
             if count != 1:
-                ret += "%g"%count
+                ret.append(f"{count:g}")
+        elif count == 1:
+            ret.extend(_str_atoms(fragment))
         else:
-            if count == 1:
-                piece = _str_atoms(fragment)
-            else:
-                piece = "(%s)%g"%(_str_atoms(fragment), count)
-            #ret = ret+" "+piece if ret else piece
-            ret += piece
+            ret.extend(("(", *_str_atoms(fragment), ")", f"{count:g}"))
 
     return ret
 
@@ -1200,8 +1217,6 @@ class PrettyFormula:
         self.superscript = SUPERSCRIPT[mode]
 
     def walk_atom(self, atom):
-        if self.mode == 'plain':
-            return str(atom)
         if ision(atom):
             charge = '-' if atom.charge < 0 else '+'
             magnitude = abs(atom.charge)
