@@ -36,7 +36,8 @@ percentage : NUMBER SPACE? "%" SPACE  # Allows "3 % "
 # Note: `[token]` leaves a None placeholder in the tree, unlike `token?`
 compound   : (composite | fasta) [density]
 fasta      : FASTA ":" SEQUENCE
-FASTA      : /dna|rna|aa/
+FASTA      : /[a-z]+/ # Generic "str:sequence" syntax allows better error reporting
+#FASTA     : /dna|rna|aa/
 SEQUENCE   : /[A-Z -*]+/
 composite  : [NUMBER] group (SEPARATOR [NUMBER] group)*
 group      : ((atom | "(" formula ")") [COUNT])+
@@ -45,10 +46,12 @@ atom       : SYMBOL [isotope] [charge]
 SYMBOL     : /[A-Z][a-z]*/
 isotope    : "[" INTEGER "]"
 charge     : "{" [INTEGER] CHARGE "}" | [SUPERINT] SUPERCHARGE
-density    : SPACE? "@" SPACE? NUMBER [DENSITYMODE]
+density    : SPACE? "@" SPACE? DENSITY [DENSITYMODE]
+DENSITY    : NUMBER  # using alias DENSITY for number for better error reporting
 
 # Tokens
 CHARGE     : /[+]+|[-]+/  # allow charge using {++} or {--}
+SUPERINT   : /(\u2070|[\u00B9\u00B2\u00B3\u2074-\u2079][\u2070\u00B9\u00B2\u00B3\u2074-\u2079]*)/
 SUPERCHARGE: /\u207A+|\u207B+/  # Allow Ca++ and Cl- using superscript + and -
 DENSITYMODE: /[ni]/
 MIX        : SPACE? "//" SPACE?
@@ -57,7 +60,7 @@ WEIGHTPCT  : /%w((eigh)?t)?/ | /w((eigh)?t)?%/ | /%m(ass)?/ | /m(ass)?%/
 VOLUMEPCT  : /%v(ol(ume)?)?/ | /v(ol(ume)?)?%/
 MASS       : "kg" | "g" | "mg" | "ug" | "μg" | "ng"
 VOLUME     : "L" | "mL" | "uL" | "μL" | "nL"
-LENGTH     : "cm" | "mm" | "um" | "μm" | "nm"
+LENGTH     : "cm" | "mm" | "um" | "μm" | "nm" | "Ang" | "Å"
 
 SEPARATOR  : SPACE? /[+•·]/ SPACE? | SPACE
 SPACE      : /[ \\t\\n\\r]+/
@@ -68,10 +71,10 @@ FRACTION   : /([1-9][0-9]*|0)?[.][0-9]*/  # allow all floats?
 SUBNUM     : SUBINT | SUBFRAC
 SUBINT     : /(\u2080|[\u2081-\u2089][\u2080-\u2089]*)/
 SUBFRAC    : /(\u2080|[\u2081-\u2089][\u2080-\u2089]*|)([.][\u2080-\u2089]*)/
-SUPERINT   : /(\u2070|[\u00B9\u00B2\u00B3\u2074-\u2079][\u2070\u00B9\u00B2\u00B3\u2074-\u2079]*)/
 """
 
-parser = lark.Lark(grammar)
+# propagate_positions saves start_pos and end_pos for each rule as well as each terminal.
+formula_parser = lark.Lark(grammar, propagate_positions=True)
 
 def from_superscript(value: str) -> str:
     """
@@ -99,6 +102,9 @@ class StripJunk(lark.Transformer):
 
     This is done separately from the formula composer so that we can show the cleaned tree
     before debugging the conversion.
+
+    Note: could get the same effect by renaming the unused terminals with leading underscore,
+    but that makes the grammar harder to read.
     """
     def SEPARATOR(self, _):
         """Strip token for molecular fragment separator (+ or center dot or spaces)."""
@@ -158,6 +164,7 @@ class ConvertTokens(lark.Transformer):
         counts to molecule fragments.
         """
         return int_or_float(token.value)
+    DENSITY = NUMBER  # We've aliased DENSITY and NUMBER in the grammar
     def INTEGER(self, token: lark.Token) -> int:
         """
         Convert string to float or integer
@@ -257,12 +264,12 @@ class ConvertTokens(lark.Transformer):
         # Ca{++} => [None, '++'] = Ca.ion[2]
         # Ca{3--} => [3, '--'] = Ca.ion[-3]  # value has precedence over charge
         """
-        print("in charge with", tokens)
+        # print("in charge with", tokens)
         value, charge = tokens
         if value is None:
             value = len(charge)
         elif value and len(charge) > 1:
-            self._raise_error(None, f"Using values of {value} for {value}{charge}")
+            raise ValueError(f"Use {value}{charge[0]} instead of {value}{charge} for valence")
         valence = value if charge[0] == '+' else -value
         return valence
     def atom(self, tokens):
@@ -486,9 +493,10 @@ class ConvertTokens(lark.Transformer):
 
         Example: [76.95, D2O, H2O] => (D2O)3H2O
         """
+        # TODO: structure not preserved in mixtures
         total = sum(tokens[:-1:2])
         if total > 100:
-            raise ValueError(f"Total weight {total}% is more than 100%")
+            raise ValueError(f"Total weight {total}% is more than 100% in wt% mixture")
         pairs = [(compound, percent) for percent, compound in zip(tokens[:-1:2], tokens[1:-1:2])]
         pairs.append((tokens[-1], 100-total))
         # return 'byweight', [*pairs, last_pair]
@@ -511,7 +519,7 @@ class ConvertTokens(lark.Transformer):
         # print("by volume", tokens)
         total = sum(tokens[:-1:2])
         if total > 100:
-            raise ValueError(f"Total volume {total}% is more than 100%")
+            raise ValueError(f"Total volume {total}% is more than 100% in vol% mixture")
         pairs = [(compound, percent) for percent, compound in zip(tokens[:-1:2], tokens[1:-1:2])]
         pairs.append((tokens[-1], 100-total))
         # print("byvolume pairs", pairs)
@@ -560,6 +568,9 @@ class ConvertTokens(lark.Transformer):
 
         Example: [('length', 10.006, 'nm'), Ni, ('length', 3, 'mm'), Si] => NiSi164000
         """
+        # # Sanity check: make sure all units are length units. This won't happen
+        # # because the parser only accepts proper formulas.
+        # assert all(units in LENGTH_UNITS for dim, value, units in tokens[::2])
         values = [value*LENGTH_UNITS[units] for dim, value, units in tokens[::2]]
         total = sum(values)
         percent = [(m/total)*100 for m in values]
@@ -619,6 +630,61 @@ class ConvertTokens(lark.Transformer):
         formula.source = self._context
         return formula
 
+# TODO: improve error reporting for "allowed"
+def _allowed(allowed):
+    # * SPACE, SEPARATOR: Generally ignored
+    # * LPAR occurs whereever a symbol could be expected, so skip it
+    # * COLON: If asking then it probably thinks it is looking for a fasta sequence, but
+    # instead it should be looking for an element, so replace COLON with SYMBOL.
+    # * AT: Looking for @DENSITY
+    # * LPAR, RPAR: "(" and ")" are more readable
+    # * LSQB: end of element, looking for isotope, so skip
+    # * LBRACE, SUPERINT, SUPERCHARGE: end of element, looking for valence, so skip
+    skip = set("SPACE SEPARATOR LPAR LSQB LBRACE SUPERINT SUPERCHARGE".split())
+    # TODO: use order of elements in subst to sort the allowed list (currently alphabetical)
+    subst = dict(
+        NUMBER="NUMBER", # start of compound or start of mixture
+        #FASTA="[dna|rna|aa]:SEQ",
+        FASTA="aa:SEQ",
+        COLON="aa:SEQ",
+        SEQUENCE="aa:SEQ",
+        SEPARATOR="+", # generic group separator in composite
+        SPACE="SPACE",
+        SYMBOL="SYMBOL",
+        CHARGE="CHARGE[+-]",
+        LPAR='(',
+        RPAR=')',
+        LSQB='[',
+        RSQB=']',
+        LBRACE='{', # equivalent to SUPERINT and SUPERCHARGE
+        RBRACE='}',
+        VOLUMEPCT="vol%",
+        WEIGHTPCT="wt%",
+        MASS="UNIT[mg]",
+        VOLUME="UNIT[mL]",
+        LENGTH="UNIT[mm]",
+        PERCENT="%",
+        # I don't think all three of these can be concurrently allowed so no need to
+        # deduplicate. Moot since the set operation happens again after substition below.
+        AT="@DENSITY[ni]", # only the @ is expected, but better for doc
+        DENSITY="@DENSITY[ni]", # only the number is expected, but better for doc
+        DENSITYMODE="@DENSITY[ni]", # only the [ni] is expected, but better for doc
+        MIX="//",
+        # SUBNUM SUBINT SUBFRAC covered by COUNT
+        # INTEGER and FRACTION covered by NUMBER
+        # SUPERINT SUPERCHARGE LSQB LBRACE coexist with COUNT so stripped
+        SUPERCHARGE="SUPERSCRIPT[+-]", # If you see a superscript number then you need a sign
+        )
+    stripped = set(s for s in allowed if s not in skip)
+    if not stripped:
+        stripped = allowed
+    # Perform substitution for document strings
+    stripped = set(subst.get(s, s) for s in stripped)
+    if len(stripped) > 1:
+        message = f"one of {' '.join(sorted(stripped))}"
+    else:
+        message = [*stripped][0]
+    return message
 
 def parse_formula(formula_str: str, table: PeriodicTable|None=None) -> Formula:
     """
@@ -627,12 +693,62 @@ def parse_formula(formula_str: str, table: PeriodicTable|None=None) -> Formula:
     """
     cleanup = StripJunk()
     convert = ConvertTokens(formula_str, table=table)
-    tree = parser(formula_str)
+    try:
+        tree = formula_parser.parse(formula_str)
+    except lark.exceptions.UnexpectedCharacters as exc:
+        # import pprint; pprint.pprint(exc.__dict__)
+        context = exc.get_context(formula_str).rstrip()
+        #context = exc._context.rstrip()
+        message = f"Expected {_allowed(exc.allowed)} in\n{context}"
+        raise ValueError(message)
+    except lark.exceptions.UnexpectedEOF as exc:
+        # import pprint; pprint.pprint(exc.__dict__)
+        context = exc.get_context(formula_str).rstrip()
+        message = f"Expected {_allowed(exc.expected)} in\n{context}"
+        raise ValueError(message)
+    except Exception as exc:
+        # TODO: are other exceptions possible from the Earley parser?
+        raise exc from None
     tree = cleanup.transform(tree)
-    tree = convert.transform(tree)
+    try:
+        tree = convert.transform(tree)
+    except lark.exceptions.VisitError as exc:
+        # Unwind the VistorError exception capture and reraise the original exception
+        # This requires that error messages in the transformer give enough context to
+        # correct the error.
+        raise exc.orig_exc from None
     return tree
 
+# Error conditions are marked with '!' so the exception is ignored
 examples = """
+! DNA:CAGT  # incorrect case for FASTA type not properly identified
+! dna CAGT  # missing colon in FASTA
+! O²  # SUPERCHARGE should be the only valid token here
+! ₃H2O  # badly placed subscript
+! // 3g Ca  # // is not a comment
+! 3g Ca@ // 5g Si # missing density value
+! Ca@i  # missing density value
+! Ca ⁺⁺  # extra space before valence
+! Ca++  # missing braces in valence
+! Ca{2}  # missing charge in valence
+! 37 vol% H2O@1 / 5% D2O@1  # missing /
+! 37 vol% H2O@1 /// 5% D2O@1  # extra /
+! H2O@1h  # bad density mode
+! 37 vol% H2O@1 // 5% D2O@1  # no percent in last part
+! 37 vol% H2O@1 // 5 vol% D2O@1  # only % in subsequent parts
+! 37% H2O@1 // D2O@1  # missing vol% or wt%
+! 37 val% H2O@1 // D2O@1  # bad spelling of vol%
+! Fe[56O2 # bad isotope syntax
+! Co[181]  # bad isotope
+! Ca{2+O2  # bad valence syntax
+! Co{17-}  # bad valence
+! 3..5 mg NaCl
+! 3.5 fm Si # bad units at the start; could be wt%/vol% or LENGTH, VOLUME, MASS 
+! 3.5 mm Si // 2.5 nm SiO2 //
+! 3.5 mm Si // 2.5 nm SiO2 // 35 mm cG
+! ((Co) # mismatched LPAR
+! Co)  # mismatched RPAR
+! bad:CAGT  # bad sequence type
 Co
 dna:CAGT
 (Co@5)
@@ -646,7 +762,7 @@ CaCO3 (H2O)6
 (Ca(CO3)((H2O)6))
 CaCO₃·6H₂O
 DHO
-!Ca{2++}  # could be interpreted as Ca{2+}
+!Ca{2++}  # bad valence string
 Ca⁺⁺  # also Ca{2+}
 O²⁻
 H[1]
@@ -661,52 +777,48 @@ C3H4H[1]NO@1.29n
 78.2H2O[16] + 21.8H2O[18] @1n
 50 wt% Co // Ti
 33 wt% Co // 33% Fe // Ti
-! 93 wt% Co // 33% Fe // Ti  # More than 100%
+! 93 wt% Co // 33% Fe // Ti  # More than 100 wt%
+! 93 vol% Co // 33% Fe // Ti  # More than 100 vol%
 20 vol% (10 wt% NaCl@2.16 // H2O@1) // D2O@1n
 NaCl(H2O)29.1966(D2O)122.794@1.10i
 5g NaCl // 50mL H2O@1
 5g NaCl@2.16 // 50mL H2O@1
+! 5g NaCl // 50mL H2O   # Need density for H2O to convert volume to mass
 50 mL (45 mL H2O@1 // 5 g NaCl)@1.0707 // 20 mL D2O@1n
 1 cm Si // 5 nm Cr // 10 nm Au
 aa:RELEELNVPGEIVESLSSSEESITRINKKIEKFQSEEQQQTEDELQDKIHPFAQTQSLVYPFPGPIPNSLPQNIPPLTQTPVVVPPFLQPEVMGVSKVKEAMAPKHKEMPFPKYPVEPFTESQSLTLTDVENLHLPLPLLQSWMHQPHQPLPPTVMFPPQSVLSLSQSKVLPVPQKAVPYPQRDMPIQAFLLYQEPVLGPVRGPFPIIV
 
-# Error conditions. Mark with '!' so the exception is ignored
-! Bl2Oh
-! 5 Mg NaCl // 50mL H2O@1
-! 4 nm NaCl@2.17// 50 g Si
+! Bl2Oh   # Bad symbol
+! 5 Mg NaCl // 50mL H2O@1  # Bad units
+! 4 nm NaCl@2.17// 50 g Si  # Can't use mass in layer mixture
 
 """
 
 def check():
-    cleanup = StripJunk()
-    def filt(tree):
-        #return tree
-        tree = cleanup.transform(tree)
-        # import pprint; pprint.pprint(tree)
-        tree = convert.transform(tree)
-        return tree
-
     for line in examples.split('\n'):
         formula = line.split('#')[0]
-        bad = formula.startswith('!')
+        bad = line.startswith('!')
         if bad:
             formula = formula[1:]
         if formula:
-            print(f"*** {line}")
-            convert = ConvertTokens(text=formula)
+            if bad:
+                print(f"!!! {line[1:]}")
+            else:
+                print(f"*** {line}")
             try:
-                tree = filt(parser.parse(formula))
-                #print(f" => {tree.pretty()}")
+                tree = parse_formula(formula)
                 density = getattr(tree, 'density', None)
                 density_str = f" @ {density:.2f}" if density else ""
                 print(f" => {tree}{density_str}")
-                # TODO: structure not preserved in mixtures
-                print(f"    {getattr(tree, 'structure', None)}")
+                # print(f"    {getattr(tree, 'structure', None)}")
             except Exception as exc:
                 if bad:
-                    print(f"!!! Error: {exc}")
+                    print(f"{exc}")
                 else:
-                    raise
+                    raise exc from None
+            else:
+                if bad:
+                    raise RuntimeError(f"Exception not raised for <{formula}>")
 
 if __name__ == "__main__":
     check()
