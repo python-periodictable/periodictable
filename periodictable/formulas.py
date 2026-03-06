@@ -1073,19 +1073,6 @@ def _convert_to_hill_notation(atoms: dict[Atom, float]) -> Structure:
     """
     return tuple((atoms[el], el) for el in sorted(atoms.keys(), key=_hill_key))
 
-def _str_one_atom(fragment: Atom) -> str:
-    # Normal isotope string form is #-Yy, but we want Yy[#]
-    if isisotope(fragment) and 'symbol' not in fragment.__dict__:
-        ret = "%s[%d]"%(fragment.symbol, cast(Isotope, fragment).isotope)
-    else:
-        ret = fragment.symbol
-    if fragment.charge != 0:
-        sign = '+' if fragment.charge > 0 else '-'
-        value = str(abs(fragment.charge)) if abs(fragment.charge) > 1 else ''
-        ret += '{'+value+sign+'}'
-    return ret
-
-# TODO: add typing to _str_atoms
 def _str_atoms(seq) -> str:
     """
     Convert formula structure to string.
@@ -1094,7 +1081,7 @@ def _str_atoms(seq) -> str:
     ret = ""
     for count, fragment in seq:
         if isatom(fragment):
-            ret += _str_one_atom(fragment)
+            ret += str(fragment)
             if count != 1:
                 ret += "%g"%count
         else:
@@ -1113,7 +1100,7 @@ def from_subscript(value: str) -> str:
     Convert unicode subscript characters to normal characters. This allows us to parse,
     for example, H₂O as H2O.
     """
-    subscript_codepoints = {
+    codepoints = {
         '\u2080': '0', '\u2081': '1', '\u2082': '2', '\u2083': '3',
         '\u2084': '4', '\u2085': '5', '\u2086': '6', '\u2087': '7',
         '\u2088': '8', '\u2089': '9', '\u208a': '+', '\u208b': '-',
@@ -1124,11 +1111,26 @@ def from_subscript(value: str) -> str:
         '\u2098': 'm', '\u2099': 'n', '\u209a': 'p', '\u209b': 's',
         '\u209c': 't',
     }
-    return ''.join(subscript_codepoints.get(char, char) for char in str(value))
+    return ''.join(codepoints.get(char, char) for char in str(value))
+
+def from_superscript(value: str) -> str:
+    """
+    Convert unicode superscript characters to normal characters. This allows us to parse,
+    for example, Ca²⁺ as Ca{2+}.
+    """
+    codepoints = {
+        '\u2070': '0', '\u00B9': '1', '\u00B2': '2', '\u00B3': '3',
+        '\u2074': '4', '\u2075': '5', '\u2076': '6', '\u2077': '7',
+        '\u2078': '8', '\u2079': '9', '\u207a': '+', '\u207b': '-',
+        '\u207c': '=', '\u207d': '(', '\u207e': ')',
+
+        '\u2071': 'i', '\u207f': 'n',
+    }
+    return ''.join(codepoints.get(char, char) for char in str(value))
 
 def unicode_subscript(value: str) -> str:
     # Unicode subscript codepoints. Note that decimal point looks okay as subscript
-    subscript_codepoints = {
+    codepoints = {
         '0': '\u2080', '1': '\u2081', '2': '\u2082', '3': '\u2083',
         '4': '\u2084', '5': '\u2085', '6': '\u2086', '7': '\u2087',
         '8': '\u2088', '9': '\u2089', '+': '\u208a', '-': '\u208b',
@@ -1142,11 +1144,11 @@ def unicode_subscript(value: str) -> str:
         '\u2013': '\u208b', # en-dash is same as dash
         '\u2014': '\u208b', # em-dash is same as dash
     }
-    return ''.join(subscript_codepoints.get(char, char) for char in str(value))
+    return ''.join(codepoints.get(char, char) for char in str(value))
 
 def unicode_superscript(value: str) -> str:
     # Unicode subscript codepoints. Note that decimal point looks okay as subscript
-    superscript_codepoints = {
+    codepoints = {
         #'.': '\u00B0',  # degree symbol looks too much like zero
         #'.': ' \u02D9',  # dot above modifier looks okay in a floating string, but risky
         #'.': ' \u0307',  # space with dot above?
@@ -1162,7 +1164,7 @@ def unicode_superscript(value: str) -> str:
         '\u2013': '\u207b', # en-dash is same as dash
         '\u2014': '\u207b', # em-dash is same as dash
     }
-    return ''.join(superscript_codepoints.get(char, char) for char in str(value))
+    return ''.join(codepoints.get(char, char) for char in str(value))
 
 SUBSCRIPT: dict[str, Callable[[str], str]] = {
     # The latex renderer should work for github style markdown
@@ -1171,32 +1173,82 @@ SUBSCRIPT: dict[str, Callable[[str], str]] = {
     'unicode': unicode_subscript,
     'plain': lambda text: text
 }
+SUPERSCRIPT: dict[str, Callable[[str], str]] = {
+    # The latex renderer should work for github style markdown
+    'latex': lambda text: f'$^{{{text}}}$',
+    'html': lambda text: f'<sup>{text}</sup>',
+    'unicode': unicode_superscript,
+    'plain': lambda text: text,
+}
+
+class PrettyFormula:
+    """
+    Formula pretty-printer.
+
+    Formats formuls for output, using superscripts for isotope and valence and
+    subscripts for element counts.
+
+    *mode* is unicode, latex, html or plain for no special formatting.
+    """
+    mode: str
+    superscript: Callable[[str], str]
+    subscript: Callable[[str], str]
+
+    def __init__(self, mode):
+        self.mode = mode
+        self.subscript = SUBSCRIPT[mode]
+        self.superscript = SUPERSCRIPT[mode]
+
+    def walk_atom(self, atom):
+        if self.mode == 'plain':
+            return str(atom)
+        if ision(atom):
+            charge = '-' if atom.charge < 0 else '+'
+            magnitude = abs(atom.charge)
+            valence = charge*magnitude if magnitude < 2 else f"{magnitude}{charge}"
+            valence = self.superscript(valence)
+            atom = atom.element
+        else:
+            valence = ""
+        if isisotope(atom) and atom.symbol == atom.element.symbol:
+            isotope = self.superscript(str(atom.isotope))
+        else:
+            isotope = ""
+        return f"{isotope}{atom.symbol}{valence}"
+
+    def format(self, compound: Formula):
+        if self.mode == 'plain':
+            return str(compound)
+        return self.walk(compound.structure)
+
+    def walk(self, structure):
+        parts = []
+        for count, part in structure:
+            if isinstance(part, tuple):
+                if count == 1:
+                    parts.append(self.walk(part))
+                else:
+                    parts.append(f'({self.walk(part)}){self.subscript(count)}')
+            elif count == 1:
+                parts.append(self.walk_atom(part))
+            else:
+                parts.append(f'{self.walk_atom(part)}{self.subscript(count)}')
+        return ''.join(parts)
+
+
 def pretty(compound: Formula, mode: str='unicode') -> str:
     """
-    Convert the formula to a string. The *mode* can be 'unicode', 'html' or
-    'latex' depending on how subscripts should be rendered. If *mode* is 'plain'
-    then don't use subscripts for the element quantities.
+    Convert the formula to a string.
+
+    *mode* is unicode, html, latex, plain [default = unicode]
+
+    If *mode* is 'plain' then don't use superscipts and subscripts for rendering.
 
     Use *pretty(compound.hill)* for a more compact representation.
     """
-    return _pretty(compound.structure, SUBSCRIPT[mode])
-
-# TODO: type hinting for _pretty
-def _pretty(structure, subscript: Callable[[str], str]) -> str:
-    # TODO: if superscript is not None then render O[16] as {}^{16}O
-    parts = []
-    for count, part in structure:
-        if isinstance(part, tuple):
-            if count == 1:
-                parts.append(_pretty(part, subscript))
-            else:
-                parts.append(f'({_pretty(part, subscript)}){subscript(count)}')
-        elif count == 1:
-            parts.append(f'{_str_one_atom(part)}')
-        else:
-            parts.append(f'{_str_one_atom(part)}{subscript(count)}')
-    return ''.join(parts)
-
+    if mode is None:
+        mode = 'unicode'
+    return PrettyFormula(mode).format(compound)
 
 def demo():
     import sys

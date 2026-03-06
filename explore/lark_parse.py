@@ -2,8 +2,15 @@ import lark
 import periodictable as pt
 from periodictable.core import PeriodicTable
 from periodictable.core import default_table
-from periodictable.formulas import from_subscript, Formula, _mix_by_weight_pairs, _mix_by_volume_pairs
-from periodictable.formulas import VOLUME_UNITS, MASS_UNITS, LENGTH_UNITS
+from periodictable.formulas import (
+    from_subscript, from_superscript,
+    Formula,
+    _mix_by_weight_pairs, _mix_by_volume_pairs,
+    VOLUME_UNITS, MASS_UNITS, LENGTH_UNITS,
+    pretty as pretty_formula
+)
+
+# TODO: valence belongs to a group rather than element
 
 grammar = """
 start      : SPACE? formula SPACE? # strip blank space from start and end
@@ -40,17 +47,18 @@ FASTA      : /[a-z]+/ # Generic "str:sequence" syntax allows better error report
 #FASTA     : /dna|rna|aa/
 SEQUENCE   : /[A-Z -*]+/
 composite  : [NUMBER] group (SEPARATOR [NUMBER] group)*
-group      : ((atom | "(" formula ")") [COUNT])+
-atom       : SYMBOL [isotope] [charge]
+group      : ((atom | isoatom | "(" formula ")") [COUNT])+
+atom       : SYMBOL [isotope] [valence]
+isoatom    : SUPERINT SYMBOL [valence]
 # could list all elements, but better error reporting if element symbol lookup fails
 SYMBOL     : /[A-Z][a-z]*/
 isotope    : "[" INTEGER "]"
-charge     : "{" [INTEGER] CHARGE "}" | [SUPERINT] SUPERCHARGE
+valence    : "{" [INTEGER] CHARGE "}" | [SUPERINT] SUPERCHARGE
 density    : SPACE? "@" SPACE? DENSITY [DENSITYMODE]
 DENSITY    : NUMBER  # using alias DENSITY for number for better error reporting
 
 # Tokens
-CHARGE     : /[+]+|[-]+/  # allow charge using {++} or {--}
+CHARGE     : /[+]+|[-]+/  # allow valence using {++} or {--}
 SUPERINT   : /(\u2070|[\u00B9\u00B2\u00B3\u2074-\u2079][\u2070\u00B9\u00B2\u00B3\u2074-\u2079]*)/
 SUPERCHARGE: /\u207A+|\u207B+/  # Allow Ca++ and Cl- using superscript + and -
 DENSITYMODE: /[ni]/
@@ -75,21 +83,6 @@ SUBFRAC    : /(\u2080|[\u2081-\u2089][\u2080-\u2089]*|)([.][\u2080-\u2089]*)/
 
 # propagate_positions saves start_pos and end_pos for each rule as well as each terminal.
 formula_parser = lark.Lark(grammar, propagate_positions=True)
-
-def from_superscript(value: str) -> str:
-    """
-    Convert unicode superscript characters to normal characters. This allows us to parse,
-    for example, Ca²⁺ as Ca{2+}.
-    """
-    codepoints = {
-        '\u2070': '0', '\u00B9': '1', '\u00B2': '2', '\u00B3': '3',
-        '\u2074': '4', '\u2075': '5', '\u2076': '6', '\u2077': '7',
-        '\u2078': '8', '\u2079': '9', '\u207a': '+', '\u207b': '-',
-        '\u207c': '=', '\u207d': '(', '\u207e': ')',
-
-        '\u2071': 'i', '\u207f': 'n',
-    }
-    return ''.join(codepoints.get(char, char) for char in str(value))
 
 def int_or_float(s):
     f = float(s)
@@ -184,7 +177,7 @@ class ConvertTokens(lark.Transformer):
         """
         Return the integer value of a sequence of superscript digits.
 
-        This is used in the charge rule as part of the valence specification for the atom.
+        This is used to specify the valence or to specify the isotope.
         """
         return int(from_superscript(token.value))
     def DENSITYMODE(self, token):
@@ -198,14 +191,14 @@ class ConvertTokens(lark.Transformer):
         Return a sequence of plus and minus characters. By grammar rules they must all have
         the same sign.
 
-        This is used in the charge rule as part of the valence specification for the atom.
+        This is used in the valence rule to specify the charge for the atom.
         """
         return token.value
     def SUPERCHARGE(self, token):
         """
         Convert sequence of superscript plus and minus characters to ASCII plus and minus.
 
-        This is used in the charge rule as part of the valence specification for the atom.
+        This is used in the valence rule to specify the charge for the atom.
         """
         return from_superscript(token.value)
     def SYMBOL(self, token):
@@ -243,7 +236,7 @@ class ConvertTokens(lark.Transformer):
         Transform: [isotope] => isotope
         """
         return tokens[0]
-    def charge(self, tokens):
+    def valence(self, tokens):
         """
         Return valence from number and sign.
 
@@ -261,10 +254,12 @@ class ConvertTokens(lark.Transformer):
         Transform: [number|None, 'charge'] => valence
 
         Example: ['{1+}'] => [1, '+'] = Ca.ion[1]
-        # Ca{++} => [None, '++'] = Ca.ion[2]
-        # Ca{3--} => [3, '--'] = Ca.ion[-3]  # value has precedence over charge
+
+        Example: Ca{++} => [None, '++'] = Ca.ion[2]
+
+        Example: Ca{3--} => ValueError
         """
-        # print("in charge with", tokens)
+        # print("in valence with", tokens)
         value, charge = tokens
         if value is None:
             value = len(charge)
@@ -280,15 +275,10 @@ class ConvertTokens(lark.Transformer):
         provided to the ConvertTokens constructor then that will be used to retrieve the element
         from the symbol.
 
-        Isotope and charge are optional. By using the rule "SYMBOL [isotope] [charge|supercharge]"
-        with "[opt]" for the optional components rather "opt?", the missing components appear
-        as None in the list of tokens. The "supercharge" option allows unicode superscripts to
-        be used to specify charge rather than curly braces "{charge}".
-
         Raises an error if the symbol does not exist, does not have that isotope or doesn't
-        allow that charge.
+        allow that valence.
 
-        Transform: ['symbol', isotope|None, charge|None] => atom
+        Transform: ['symbol', isotope|None, valence|None] => atom
 
         Example: ['H', 1, 1] => H[1]{+}
 
@@ -306,6 +296,28 @@ class ConvertTokens(lark.Transformer):
             atom = el
         #print(f"atom {tokens} => {atom}")
         return atom
+
+    def isoatom(self, tokens):
+        """
+        Returns an isotope from the periodic table.
+
+        Usually this will use elements from the default table, but if an alternate table is
+        provided to the ConvertTokens constructor then that will be used to retrieve the element
+        from the symbol.
+
+        Raises an error if the symbol does not exist, does not have that isotope or doesn't
+        allow that valence.
+
+        Transform: [isotope, 'symbol', valence|None] => atom
+
+        Example ²H⁺: [2, 'H', 1] => D{+}
+        """
+        # print("isoatom", tokens)
+        iso, el, ion = tokens
+        atom = el[iso].ion[ion] if ion else el[iso]
+        # print(f"isoatom {tokens} => {atom}")
+        return atom
+
 
     def group(self, tokens):
         """
@@ -630,7 +642,7 @@ class ConvertTokens(lark.Transformer):
         formula.source = self._context
         return formula
 
-# TODO: improve error reporting for "allowed"
+# TODO: if the next character is ":" then report error as bad fasta sequence type
 def _allowed(allowed):
     # * SPACE, SEPARATOR: Generally ignored
     # * LPAR occurs whereever a symbol could be expected, so skip it
@@ -646,7 +658,8 @@ def _allowed(allowed):
         NUMBER="NUMBER", # start of compound or start of mixture
         #FASTA="[dna|rna|aa]:SEQ",
         FASTA="aa:SEQ",
-        COLON="aa:SEQ",
+        COLON=":",
+        #COLON="aa:SEQ",
         SEQUENCE="aa:SEQ",
         SEPARATOR="+", # generic group separator in composite
         SPACE="SPACE",
@@ -682,8 +695,12 @@ def _allowed(allowed):
     stripped = set(subst.get(s, s) for s in stripped)
     if len(stripped) > 1:
         message = f"one of {' '.join(sorted(stripped))}"
-    else:
+    elif stripped:
         message = [*stripped][0]
+    else:
+        # This occurs when the middle part of percent mixtures have no percentage.
+        # We could look for '//' in the string to report a better error message.
+        message = "end of formula"
     return message
 
 def parse_formula(formula_str: str, table: PeriodicTable|None=None) -> Formula:
@@ -696,7 +713,7 @@ def parse_formula(formula_str: str, table: PeriodicTable|None=None) -> Formula:
     try:
         tree = formula_parser.parse(formula_str)
     except lark.exceptions.UnexpectedCharacters as exc:
-        # import pprint; pprint.pprint(exc.__dict__)
+        #import pprint; pprint.pprint(exc.__dict__)
         context = exc.get_context(formula_str).rstrip()
         #context = exc._context.rstrip()
         message = f"Expected {_allowed(exc.allowed)} in\n{context}"
@@ -730,12 +747,14 @@ examples = """
 ! 3g Ca@ // 5g Si # missing density value
 ! Ca@i  # missing density value  ##
 ! Ca ⁺⁺  # extra space before valence
-! Ca++  # missing braces in valence
+! Ca++  # missing braces in valence: the + is acting as SEPARATOR
+! Ca2+  # missing braces in valence: the 2 is acting as COUNT and the + as SEPARATOR
 ! Ca{2}  # missing charge in valence
 ! 37 vol% H2O@1 / 5% D2O@1  # missing /
 ! 37 vol% H2O@1 /// 5% D2O@1  # extra /
 ! H2O@1h  # bad density mode
-! 37 vol% H2O@1 // 5% D2O@1  # no percent in last part
+! 37 vol% NaCl@2.16 // H2O@1 // D2O@1  # percent missing in middle part
+! 37 vol% H2O@1 // 5% D2O@1  # percent not allowed in last part
 ! 37 vol% H2O@1 // 5 vol% D2O@1  # only % in subsequent parts
 ! 37% H2O@1 // D2O@1  # missing vol% or wt%
 ! 37 val% H2O@1 // D2O@1  # bad spelling of vol%
@@ -767,6 +786,10 @@ DHO
 Ca⁺⁺  # also Ca{2+}  ##
 O²⁻   ##
 H[1]
+²H⁺    # D{+} ##
+O²H⁻   # OD{-} ##
+O²⁻H⁺  # O{2-}H{+} ##
+O²⁻²H⁺ # O{2-}D{+} ##
 H2O@1
 D2O@1n
 D2O @ 1.11  ##
@@ -775,7 +798,8 @@ HO{1-}
 H[1]{1-}O
 H2SO4
 C3H4H[1]NO@1.29n
-78.2H2O[16] + 21.8H2O[18] @1n
+78.2H2O[16] + 21.8H2O[18] @1n  # density applies to composite
+dna:CAGT @1n  # fasta density override
 50 wt% Co // Ti
 33 wt% Co // 33% Fe // Ti
 ! 93 wt% Co // 33% Fe // Ti  # More than 100 wt%
@@ -785,6 +809,7 @@ NaCl(H2O)29.1966(D2O)122.794@1.10i
 5g NaCl // 50mL H2O@1
 5g NaCl@2.16 // 50mL H2O@1
 ! 5g NaCl // 50mL H2O   # Need density for H2O to convert volume to mass
+(10 wt% NaCl // H2O)@1.07n # set density of a mixture
 50 mL (45 mL H2O@1 // 5 g NaCl)@1.0707 // 20 mL D2O@1n
 1 cm Si // 5 nm Cr // 10 nm Au
 aa:RELEELNVPGEIVESLSSSEESITRINKKIEKFQSEEQQQTEDELQDKIHPFAQTQSLVYPFPGPIPNSLPQNIPPLTQTPVVVPPFLQPEVMGVSKVKEAMAPKHKEMPFPKYPVEPFTESQSLTLTDVENLHLPLPLLQSWMHQPHQPLPPTVMFPPQSVLSLSQSKVLPVPQKAVPYPQRDMPIQAFLLYQEPVLGPVRGPFPIIV
@@ -812,7 +837,8 @@ def check():
                 #tree = pt.formula(formula) if "##" not in line else "!!! pyparsing fails"
                 density = getattr(tree, 'density', None)
                 density_str = f" @ {density:.2f}" if density else ""
-                print(f" => {tree}{density_str}")
+                mode = 'unicode' # unicode latex html plain
+                print(f" => {pretty_formula(tree, mode)}{density_str}")
                 # print(f"    {getattr(tree, 'structure', None)}")
             except Exception as exc:
                 if bad:
