@@ -720,6 +720,7 @@ def parse_formula(formula_str: str, table: PeriodicTable|None=None) -> Formula:
     return tree
 
 # Error conditions are marked with '!' so the exception is ignored
+# Lines marked ## fail on the existing parser
 examples = """
 ! DNA:CAGT  # incorrect case for FASTA type not properly identified
 ! dna CAGT  # missing colon in FASTA
@@ -727,7 +728,7 @@ examples = """
 ! ₃H2O  # badly placed subscript
 ! // 3g Ca  # // is not a comment
 ! 3g Ca@ // 5g Si # missing density value
-! Ca@i  # missing density value
+! Ca@i  # missing density value  ##
 ! Ca ⁺⁺  # extra space before valence
 ! Ca++  # missing braces in valence
 ! Ca{2}  # missing charge in valence
@@ -751,8 +752,8 @@ examples = """
 ! bad:CAGT  # bad sequence type
 Co
 dna:CAGT
-(Co@5)
-(((Co@5)@6))
+(Co@5) ##
+(((Co@5)@6)) ##
 CaCO3
 CaCO₃
 CaCO3+6H2O
@@ -760,15 +761,15 @@ CaCO3 6H2O
 CaCO3(H2O)6
 CaCO3 (H2O)6
 (Ca(CO3)((H2O)6))
-CaCO₃·6H₂O
+CaCO₃·6H₂O  ##
 DHO
 !Ca{2++}  # bad valence string
-Ca⁺⁺  # also Ca{2+}
-O²⁻
+Ca⁺⁺  # also Ca{2+}  ##
+O²⁻   ##
 H[1]
 H2O@1
 D2O@1n
-D2O @ 1.11
+D2O @ 1.11  ##
 D2O@1.11i
 HO{1-}
 H[1]{1-}O
@@ -806,7 +807,9 @@ def check():
             else:
                 print(f"*** {line}")
             try:
+                # Toggle the following to test pyparsing vs lark
                 tree = parse_formula(formula)
+                #tree = pt.formula(formula) if "##" not in line else "!!! pyparsing fails"
                 density = getattr(tree, 'density', None)
                 density_str = f" @ {density:.2f}" if density else ""
                 print(f" => {tree}{density_str}")
@@ -817,6 +820,7 @@ def check():
                 else:
                     raise exc from None
             else:
+                if '##' in line: continue  # pyparsing should fail but doesn't
                 if bad:
                     raise RuntimeError(f"Exception not raised for <{formula}>")
 
