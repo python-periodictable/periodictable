@@ -1,10 +1,9 @@
 import lark
-import periodictable as pt
-from periodictable.core import PeriodicTable
+from periodictable.core import PeriodicTable, Element, Atom, Isotope
 from periodictable.core import default_table
 from periodictable.formulas import (
     from_subscript, from_superscript,
-    Formula,
+    Formula, Structure,
     _mix_by_weight_pairs, _mix_by_volume_pairs,
     VOLUME_UNITS, MASS_UNITS, LENGTH_UNITS,
     pretty as pretty_formula
@@ -89,12 +88,15 @@ def int_or_float(s):
     i = int(f)
     return i if i == f else f
 
-class StripJunk(lark.Transformer):
+class StripPunctuation(lark.Transformer):
     """
     Token stripper visitor class.
 
     This is done separately from the formula composer so that we can show the cleaned tree
     before debugging the conversion.
+
+    Unnamed punctuation characters []{}():% and units (kg, mL, nm, ...) which are represented
+    as quoted strings in the grammar have no associated token.
 
     Note: could get the same effect by renaming the unused terminals with leading underscore,
     but that makes the grammar harder to read.
@@ -173,20 +175,20 @@ class ConvertTokens(lark.Transformer):
         return it as an integer.
         """
         return int_or_float(from_subscript(token.value))
-    def SUPERINT(self, token):
+    def SUPERINT(self, token) -> int:
         """
         Return the integer value of a sequence of superscript digits.
 
         This is used to specify the valence or to specify the isotope.
         """
         return int(from_superscript(token.value))
-    def DENSITYMODE(self, token):
+    def DENSITYMODE(self, token) -> str:
         """
         Return the value of the DENSITYMODE token, either "n" or "i". If no mode is specified
         then a token value of None will be given to the density rule.
         """
         return token.value
-    def CHARGE(self, token):
+    def CHARGE(self, token) -> int:
         """
         Return a sequence of plus and minus characters. By grammar rules they must all have
         the same sign.
@@ -194,14 +196,14 @@ class ConvertTokens(lark.Transformer):
         This is used in the valence rule to specify the charge for the atom.
         """
         return token.value
-    def SUPERCHARGE(self, token):
+    def SUPERCHARGE(self, token) -> int:
         """
         Convert sequence of superscript plus and minus characters to ASCII plus and minus.
 
         This is used in the valence rule to specify the charge for the atom.
         """
         return from_superscript(token.value)
-    def SYMBOL(self, token):
+    def SYMBOL(self, token) -> Element:
         """
         Look up the element in the periodic table and return it.
 
@@ -211,32 +213,24 @@ class ConvertTokens(lark.Transformer):
             return self._table.symbol(token.value)
         except Exception:
             raise ValueError(f"Element {token.value} doesn't exist")
-    def FASTA(self, token):
+    def FASTA(self, token) -> str:
         """
         Return the token value as the fasta sequence type: "dna", "rna" or "aa".
         """
         return token.value
-    def SEQUENCE(self, token):
+    def SEQUENCE(self, token) -> str:
         """
         Return the token value as the fasta sequence string.
         """
         return token.value
-    def fasta(self, tokens):
-        """
-        Return a fasta sequence and its type.
-
-        Transform: [type, sequence] => ('fasta', type, sequence)
-        """
-        stype, sequence = tokens
-        return 'fasta', stype, sequence
-    def isotope(self, tokens):
+    def isotope(self, tokens) -> int:
         """
         Return the isotope number for the atom.
 
         Transform: [isotope] => isotope
         """
         return tokens[0]
-    def valence(self, tokens):
+    def valence(self, tokens) -> int:
         """
         Return valence from number and sign.
 
@@ -267,7 +261,7 @@ class ConvertTokens(lark.Transformer):
             raise ValueError(f"Use {value}{charge[0]} instead of {value}{charge} for valence")
         valence = value if charge[0] == '+' else -value
         return valence
-    def atom(self, tokens):
+    def atom(self, tokens) -> Atom:
         """
         Returns an atom from the periodic table.
 
@@ -297,7 +291,7 @@ class ConvertTokens(lark.Transformer):
         #print(f"atom {tokens} => {atom}")
         return atom
 
-    def isoatom(self, tokens):
+    def isoatom(self, tokens) -> Atom:
         """
         Returns an isotope from the periodic table.
 
@@ -319,37 +313,46 @@ class ConvertTokens(lark.Transformer):
         return atom
 
 
-    def group(self, tokens):
+    def group(self, tokens) -> Structure:
         """
         Returns a sequence of (count, item) pairs, where item is an atom or a nested formula.
         Missing counts default to 1.
 
         Transform: [atom|formula, count|None, ...] => ((count, atom|formula), ...)
+
+        Example CaCO3: [Ca, None, C, None, O, 3]
+        => ((1, Ca), (1, C), (3, O))
         """
+        # print("group tokens", tokens)
         tokens = [1 if value is None else value for value in tokens]
         pairs = tuple((count, item) for item, count in zip(tokens[::2], tokens[1::2]))
+        # print("group output", pairs)
         return pairs
 
-    def composite(self, tokens):
+    def composite(self, tokens) -> Structure:
         """
         Returns a sequence of (number, group) pairs. Each group is a sequence of (count, item)
         pairs, where item is an atom or a nested formula. Missing numbers default to 1.
 
         Transform: [number|None, group, ...] => ((number, group), ...) | ((count, atom), ...)
 
-        Example CaCO3 6H2O: None, ((1, Ca), (1, C), (3, O)), 6, ((2, H), (1, O))]
+        Example CaCO3 6H2O: [None, ((1, Ca), (1, C), (3, O)), 6, ((2, H), (1, O))]
         => ((1, ((1, Ca), (1, C), (3, O))), (6, ((2, H), (1, O))))
 
-        Example CaCO3(H20)6: [[None, ((1, Ca), (1, C), (3, O), (6, formula('H2O')))]
-        => ((1, Ca), (1, C), (3, O), (6, formula('H2O')))
+        Example CaCO3(H2O)6: [None, ((1, Ca), (1, C), (3, O), (6, formula('H2O')))]
+        => ((1, ((1, Ca), (1, C), (3, O), (6, formula('H2O')))),)
+
+        Example CaCO3 (H2O)6: [None, ((1, Ca), (1, C), (3, O)), None, ((6, formula('H2O')),)]
+        => ((1, ((1, Ca), (1, C), (3, O))), (1, ((6, formula('H2O')),)))
         """
-        # print("in composite", tokens)
+        # print("composite tokens", tokens)
         numbers = [1 if v is None else v for v in tokens[::2]]
         groups = tokens[1::2]
         pairs = tuple((number, group) for number, group in zip(numbers, groups))
+        # print("composite output", pairs)
         return pairs
 
-    def fasta(self, tokens):
+    def fasta(self, tokens) -> Structure:
         """
         Returns the formula corresponding to the FASTA sequence, with the natural
         density set. Labile hydrogen use H[1] in the formula.
@@ -359,23 +362,25 @@ class ConvertTokens(lark.Transformer):
 
         Transform: [ /aa|dna|rna/, /[A-Z -*]+/ ] => (1, ((1, formula),))
 
-        Example dna:CAGT: ['dna', 'CAGT'] => (1, ((1, C39H37H[1]10N15O25P4@1.69),))
+        Example dna:CAGT: ['dna', 'CAGT']
+        => ((1, ((1, formula('C39H37H[1]10N15O25P4')),)),)
         """
         # TODO: fasta is ignoring table when parsing
         # TODO: avoid circular imports
         # TODO: support other biochemicals (carbohydrate residues, lipids)
-        from periodictable import fasta
+        from periodictable.fasta import CODE_TABLES, Sequence
 
-        # print("in fasta", tokens)
+        # print("fasta input", tokens)
         seq_type, seq = tokens
-        if seq_type not in fasta.CODE_TABLES:
+        if seq_type not in CODE_TABLES:
             raise ValueError(f"Invalid fasta sequence type '{seq_type}:'")
-        seq = fasta.Sequence(name=None, sequence=seq, type=seq_type)
-        group = ((1, seq.labile_formula),)
-        composite = ((1, group),)
+        seq = Sequence(name=None, sequence=seq, type=seq_type)
+        pairs = ((1, seq.labile_formula),)
+        composite = ((1, pairs), )
+        # print("fasta output", composite)
         return composite
 
-    def density(self, tokens):
+    def density(self, tokens) -> tuple[str, float, str]:
         """
         Returns a density tuple from the @density construct. Density mode 'n' for
         natural or 'i' for isotopic defaults to isotopic. That is, D2O@1.11 is the
@@ -394,7 +399,7 @@ class ConvertTokens(lark.Transformer):
         mode = 'i' if not tokens[1] else tokens[1]
         return 'density', value, mode
 
-    def compound(self, tokens):
+    def compound(self, tokens) -> Formula:
         """
         Returns the formula for the compound, with optional density set.
 
@@ -411,15 +416,15 @@ class ConvertTokens(lark.Transformer):
 
         Transform: [((number, group), ...), ('density', value, mode)|None] => formula
 
-        Example NaCl@2.16i: [(1, ((1, Na), (1, Cl))), ('density', 2.16, 'i')] => NaCl@2.16i
+        Example NaCl@2.16i: [((1, ((1, Na), (1, Cl))),), ('density', 2.16, 'i')] => NaCl@2.16i
 
-        Example dna:CAGT: [((1, ((1, C39H37H[1]10N15O25P4@1.69n),)),), None] => C39H37H[1]10N15O25P4@1.69n
+        Example dna:CAGT: [((1, ((1, formula('C39H37H[1]10N15O25P4')),)),), None] => C39H37H[1]10N15O25P4@1.69n
 
         Example CaCO3 6H2O: [((1, ((1, Ca), (1, C), (3, O))), (6, ((2, H), (1, O)))), None] => CaCO3(H2O)6
 
-        Example CaCO3(H20)6: [((1, ((1, Ca), (1, C), (3, O), (6, H2O@None))),), None] => CaCO3(H2O)6
+        Example CaCO3(H2O)6: [((1, ((1, Ca), (1, C), (3, O), (6, formula('H2O')))),), None] => CaCO3(H2O)6
         """
-        # print("in compound with", tokens)
+        # print("compound tokens", tokens)
         components, density_tuple = tokens
         if density_tuple is None:
             density, density_mode = None, 'i'
@@ -458,10 +463,10 @@ class ConvertTokens(lark.Transformer):
             else:
                 formula.density = density
 
-        # print(f"compound = {formula} @ {formula.density}")
+        # print(f"compound output {formula} @ {formula.density}")
         return formula
 
-    def weightpct(self, tokens):
+    def weightpct(self, tokens) -> float:
         """
         Returns the percentage. The value has already be converted to a number.
 
@@ -473,7 +478,7 @@ class ConvertTokens(lark.Transformer):
         """
         return tokens[0]
 
-    def volumepct(self, tokens):
+    def volumepct(self, tokens) -> float:
         """
         Returns the percentage. The value has already be converted to a number.
 
@@ -485,7 +490,7 @@ class ConvertTokens(lark.Transformer):
         """
         return tokens[0]
 
-    def percentage(self, tokens):
+    def percentage(self, tokens) -> float:
         """
         Returns the percentage. The value has already be converted to a number.
 
@@ -495,7 +500,7 @@ class ConvertTokens(lark.Transformer):
         """
         return tokens[0]
 
-    def byweight(self, tokens):
+    def byweight(self, tokens) -> Formula:
         """
         Returns mixture by wt% of the various components in the system.
 
@@ -516,7 +521,7 @@ class ConvertTokens(lark.Transformer):
         # print(f"byweight => {formula} @ {formula.density}")
         return formula
 
-    def byvolume(self, tokens):
+    def byvolume(self, tokens) -> Formula:
         """
         Returns mixture by vol% of the various components in the system. Volumes are converted
         to mass using density.
@@ -540,7 +545,7 @@ class ConvertTokens(lark.Transformer):
         formula = _mix_by_volume_pairs(pairs)
         return formula
 
-    def byamount(self, tokens):
+    def byamount(self, tokens) -> Formula:
         """
         Returns mixture by mass of the various components in the system. Volumes are converted
         to mass using density.
@@ -568,7 +573,7 @@ class ConvertTokens(lark.Transformer):
         formula.total_mass = total
         return formula
 
-    def layers(self, tokens):
+    def layers(self, tokens) -> Formula:
         """
         Returns the mixture by volume of the various layers in the system.
 
@@ -590,7 +595,7 @@ class ConvertTokens(lark.Transformer):
         formula.thickness = total
         return formula
 
-    def mixture(self, tokens):
+    def mixture(self, tokens) -> Formula:
         """
         Returns the formula representing the mixture, either byweight, byvolume, byamount or layers
 
@@ -598,7 +603,7 @@ class ConvertTokens(lark.Transformer):
         """
         return tokens[0]
 
-    def formula(self, tokens):
+    def formula(self, tokens) -> Formula:
         """
         Return the formula representing the compound or mixture.
 
@@ -606,7 +611,7 @@ class ConvertTokens(lark.Transformer):
         """
         return tokens[0]
 
-    def thickness(self, tokens):
+    def thickness(self, tokens) -> tuple[str, float, str]:
         """
         Returns (dimension, value, unit) with dimension equal 'length'
 
@@ -617,7 +622,7 @@ class ConvertTokens(lark.Transformer):
         value, (dim, units) = tokens
         return dim, value, units
 
-    def quantity(self, tokens):
+    def quantity(self, tokens) -> tuple[str, float, str]:
         """
         Returns (dimension, value, unit) with dimension equal 'mass' or 'volume'
 
@@ -628,7 +633,7 @@ class ConvertTokens(lark.Transformer):
         value, (dim, units) = tokens
         return dim, value, units
 
-    def start(self, tokens):
+    def start(self, tokens) -> Formula:
         """
         Return the final formula, with the original text attached.
 
@@ -708,7 +713,7 @@ def parse_formula(formula_str: str, table: PeriodicTable|None=None) -> Formula:
     Parse a chemical formula, returning a structure with elements from the
     given periodic table.
     """
-    cleanup = StripJunk()
+    cleanup = StripPunctuation()
     convert = ConvertTokens(formula_str, table=table)
     try:
         tree = formula_parser.parse(formula_str)
@@ -821,6 +826,8 @@ aa:RELEELNVPGEIVESLSSSEESITRINKKIEKFQSEEQQQTEDELQDKIHPFAQTQSLVYPFPGPIPNSLPQNIPPL
 """
 
 def check():
+    from periodictable.formulas import parse_formula as old_parser
+
     for line in examples.split('\n'):
         formula = line.split('#')[0]
         bad = line.startswith('!')
@@ -833,8 +840,8 @@ def check():
                 print(f"*** {line}")
             try:
                 # Toggle the following to test pyparsing vs lark
-                tree = parse_formula(formula)
-                #tree = pt.formula(formula) if "##" not in line else "!!! pyparsing fails"
+                #tree = parse_formula(formula)
+                tree = old_parser(formula) if "##" not in line else "!!! pyparsing fails"
                 density = getattr(tree, 'density', None)
                 density_str = f" @ {density:.2f}" if density else ""
                 mode = 'unicode' # unicode latex html plain
@@ -847,9 +854,15 @@ def check():
                 else:
                     raise exc from None
             else:
-                if '##' in line: continue  # pyparsing should fail but doesn't
+                if '##' in line:
+                    continue  # pyparsing should fail but doesn't
                 if bad:
                     raise RuntimeError(f"Exception not raised for <{formula}>")
 
 if __name__ == "__main__":
-    check()
+    import sys
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            print(parse_formula(arg))
+    else:
+        check()
