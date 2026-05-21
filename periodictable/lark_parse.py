@@ -1,13 +1,16 @@
+from typing import cast
+
 import lark
+
 from .core import PeriodicTable, Element, Atom, Isotope
 from .core import default_table
 from .formulas import (
-    from_subscript, from_superscript,
     Formula, Structure,
     _mix_by_weight_pairs, _mix_by_volume_pairs,
     VOLUME_UNITS, MASS_UNITS, LENGTH_UNITS,
     pretty as pretty_formula
 )
+from .util import from_subscript, from_superscript
 
 # TODO: valence belongs to a group rather than element
 
@@ -196,7 +199,7 @@ class ConvertTokens(lark.Transformer):
         This is used in the valence rule to specify the charge for the atom.
         """
         return token.value
-    def SUPERCHARGE(self, token) -> int:
+    def SUPERCHARGE(self, token) -> str:
         """
         Convert sequence of superscript plus and minus characters to ASCII plus and minus.
 
@@ -374,11 +377,12 @@ class ConvertTokens(lark.Transformer):
         seq_type, seq = tokens
         if seq_type not in CODE_TABLES:
             raise ValueError(f"Invalid fasta sequence type '{seq_type}:'")
-        seq = Sequence(name=None, sequence=seq, type=seq_type)
+        seq = Sequence(name="seq", sequence=seq, type=seq_type)
         pairs = ((1, seq.labile_formula),)
-        composite = ((1, pairs), )
+        composite = ((1, pairs),)
         # print("fasta output", composite)
-        return composite
+        # return tuple[tuple[int, tuple[tuple[int, Formula]]]] as Structure
+        return cast(Structure, composite)
 
     def density(self, tokens) -> tuple[str, float, str]:
         """

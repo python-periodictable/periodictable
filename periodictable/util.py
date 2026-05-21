@@ -53,6 +53,78 @@ def parse_uncertainty(s: str) -> tuple[float, float]|tuple[None, None]:
     # Plain value with no uncertainty
     return float(s), 0
 
+def from_subscript(value: str) -> str:
+    """
+    Convert unicode subscript characters to normal characters. This allows us to parse,
+    for example, H₂O as H2O.
+    """
+    codepoints = {
+        '\u2080': '0', '\u2081': '1', '\u2082': '2', '\u2083': '3',
+        '\u2084': '4', '\u2085': '5', '\u2086': '6', '\u2087': '7',
+        '\u2088': '8', '\u2089': '9', '\u208a': '+', '\u208b': '-',
+        '\u208c': '=', '\u208d': '(', '\u208e': ')',
+
+        '\u2090': 'a', '\u2091': 'e', '\u2092': 'o', '\u2093': 'x',
+        '\u2095': 'h', '\u2096': 'k', '\u2097': 'l',
+        '\u2098': 'm', '\u2099': 'n', '\u209a': 'p', '\u209b': 's',
+        '\u209c': 't',
+    }
+    return ''.join(codepoints.get(char, char) for char in str(value))
+
+def from_superscript(value: str) -> str:
+    """
+    Convert unicode superscript characters to normal characters. This allows us to parse,
+    for example, Ca²⁺ as Ca{2+}.
+    """
+    codepoints = {
+        '\u2070': '0', '\u00B9': '1', '\u00B2': '2', '\u00B3': '3',
+        '\u2074': '4', '\u2075': '5', '\u2076': '6', '\u2077': '7',
+        '\u2078': '8', '\u2079': '9', '\u207a': '+', '\u207b': '-',
+        '\u207c': '=', '\u207d': '(', '\u207e': ')',
+
+        '\u2071': 'i', '\u207f': 'n',
+    }
+    return ''.join(codepoints.get(char, char) for char in str(value))
+
+def unicode_subscript(value: str) -> str:
+    # Unicode subscript codepoints. Note that decimal point looks okay as subscript
+    codepoints = {
+        '0': '\u2080', '1': '\u2081', '2': '\u2082', '3': '\u2083',
+        '4': '\u2084', '5': '\u2085', '6': '\u2086', '7': '\u2087',
+        '8': '\u2088', '9': '\u2089', '+': '\u208a', '-': '\u208b',
+        '=': '\u208c', '(': '\u208d', ')': '\u208e',
+
+        'a': '\u2090', 'e': '\u2091', 'o': '\u2092', 'x': '\u2093',
+        'h': '\u2095', 'k': '\u2096', 'l': '\u2097',
+        'm': '\u2098', 'n': '\u2099', 'p': '\u209a', 's': '\u209b',
+        't': '\u209c',
+
+        '\u2013': '\u208b', # en-dash is same as dash
+        '\u2014': '\u208b', # em-dash is same as dash
+    }
+    return ''.join(codepoints.get(char, char) for char in str(value))
+
+def unicode_superscript(value: str) -> str:
+    # Unicode subscript codepoints. Note that decimal point looks okay as subscript
+    codepoints = {
+        #'.': '\u00B0',  # degree symbol looks too much like zero
+        #'.': ' \u02D9',  # dot above modifier looks okay in a floating string, but risky
+        #'.': ' \u0307',  # space with dot above?
+        #'.': '\u22C5', # math dot operator
+        '.': '\u1427',  # Canadian aboriginal extended block dot (looks good on mac)
+        '2': '\u00B2', '3': '\u00B3',
+        '1': '\u00B9',
+        '0': '\u2070', 'i': '\u2071',
+        '4': '\u2074', '5': '\u2075', '6': '\u2076', '7': '\u2077',
+        '9': '\u2078', '0': '\u2079', '+': '\u207a', '-': '\u207b',
+        '=': '\u207c', '(': '\u207d', ')': '\u207e', 'n': '\u207f',
+
+        '\u2013': '\u207b', # en-dash is same as dash
+        '\u2014': '\u207b', # em-dash is same as dash
+    }
+    return ''.join(codepoints.get(char, char) for char in str(value))
+
+
 def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None) -> float:
     r"""
     Compute cell volume from lattice parameters.
