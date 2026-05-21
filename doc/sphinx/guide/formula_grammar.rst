@@ -159,28 +159,50 @@ The grammar used for parsing formula strings is the following:
 
 ::
 
-    formula    :: compound | mixture | nothing
-    mixture    :: quantity | percentage
-    quantity   :: number unit part ('//' number unit part)*
-    percentage :: number 'wt%|vol%' part ('//' number '%' part)* '//' part
-    part       :: compound | '(' mixture ')'
-    compound   :: (composite | fasta) density?
-    fasta      :: ('dna' | 'rna' | 'aa') ':' [A-Z -*]+
-    composite  :: group (separator group)*
-    group      :: number element+ | '(' formula ')' number
-    element    :: symbol isotope? ion? number?
-    symbol     :: [A-Z][a-z]*
-    isotope    :: '[' integer ']'
-    ion        :: '{' integer? [+-] '}'
-    density    :: '@' number [ni]?
-    number     :: integer | fraction
-    integer    :: [1-9][0-9]*
-    fraction   :: ([1-9][0-9]* | 0)? '.' [0-9]*
-    separator  :: space? '+'? space?
-    unit       :: mass | volume | length
-    mass       :: 'kg' | 'g' | 'mg' | 'ug' | 'ng'
-    volume     :: 'L' | 'mL' | 'uL' | 'nL'
-    length     :: 'cm' | 'mm' | 'um' | 'nm'
+    formula    : compound | mixture
+
+    # Mixture definitions:  quantity compound // quantity compound // quantity compound
+    mixture    : byamount | byvolume | byweight | layers
+    byamount   : quantity compound (MIX quantity compound)*
+    byvolume   : volumepct compound (MIX percentage compound)* MIX compound
+    byweight   : weightpct compound (MIX percentage compound)* MIX compound
+    layers     : thickness compound (MIX thickness compound)*
+    quantity   : NUMBER SPACE? (MASS | VOLUME) SPACE
+    weightpct  : NUMBER SPACE? WEIGHTPCT SPACE
+    volumepct  : NUMBER SPACE? VOLUMEPCT SPACE
+    thickness  : NUMBER SPACE? LENGTH SPACE
+    percentage : NUMBER SPACE? "%" SPACE  # Allows "3 % "
+
+    # Compound definition: number group ... @density where group is El count El count ...
+    # FASTA sequences: (rna|dna|aa) : SEQUENCE @ density
+    # Density applies to the entire formula, such as "NaCl + 29.2H2O @ 1.07n"
+    # For the density of a mixture you need parentheses: "(10 wt% NaCl // H2O)@1.07n"
+    compound   : (composite | fasta) [density]
+    fasta      : FASTA ":" SEQUENCE
+    composite  : [NUMBER] group (SEPARATOR [NUMBER] group)*
+    group      : ((atom | isoatom | "(" formula ")") [COUNT])+
+    atom       : SYMBOL [isotope] [valence]
+    isoatom    : SUPERINT SYMBOL [valence]    # For example ²H for deuterium
+    isotope    : "[" INTEGER "]"
+    valence    : "{" [INTEGER] CHARGE "}" | [SUPERINT] SUPERCHARGE
+    density    : SPACE? "@" SPACE? DENSITY [DENSITYMODE]
+
+    # Tokens
+    #FASTA     : /dna|rna|aa/  # Sequence type is limited to these values but ...
+    FASTA      : /[a-z]+/      # "type:sequence" syntax allows better error reporting
+    SEQUENCE   : /[-A-Z *]+/
+    # could list all elements, but better error reporting if element symbol lookup fails
+    SYMBOL     : /[A-Z][a-z]*/
+    CHARGE     : /[+]+|[-]+/  # allow valence using {++} or {--}
+    DENSITY    : NUMBER  # using alias DENSITY for number for better error reporting
+    DENSITYMODE: /[ni]/       # n=natural density, i=isotopic density
+    MIX        : SPACE? "//" SPACE?
+    WEIGHTPCT  : /%w((eigh)?t)?/ | /w((eigh)?t)?%/ | /%m(ass)?/ | /m(ass)?%/
+    VOLUMEPCT  : /%v(ol(ume)?)?/ | /v(ol(ume)?)?%/
+    MASS       : "kg" | "g" | "mg" | "ug" | "μg" | "ng"
+    VOLUME     : "L" | "mL" | "uL" | "μL" | "nL"
+    LENGTH     : "cm" | "mm" | "um" | "μm" | "nm" | "Ang" | "Å"
+    COUNT      : NUMBER | SUBNUM  # atom counts can be normal numbers or unicode subscripts
 
 Formulas can also be constructed from atoms or other formulas:
 

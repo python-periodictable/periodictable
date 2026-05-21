@@ -6,13 +6,8 @@ Chemical formula parser.
 
 from copy import copy
 from math import pi, sqrt
-from typing import cast, Union, Any, Iterable
+from typing import cast, Union, Any, Iterable, TYPE_CHECKING
 from collections.abc import Sequence, Callable
-
-# Requires that the pyparsing module is installed.
-
-from pyparsing import (ParserElement, Literal, Optional, White, Regex,
-                       ZeroOrMore, OneOrMore, Forward, StringEnd, Group)
 
 from .core import default_table, isatom, isisotope, ision, change_table
 from .core import Atom, Isotope, Ion, PeriodicTable # for typing
@@ -227,7 +222,7 @@ def formula(
             change in cell volume.
 
         *name* : string
-            Common name for the molecule.
+            Common name for the material.
 
         *table* : PeriodicTable
             Private table to use when parsing string formulas.
@@ -288,6 +283,7 @@ def formula(
     display purposes.
     """
     from .formulas import Formula # For running as __main__
+    from .lark_parse import parse_formula
 
     structure: Structure
     if compound is None or compound == '':
@@ -328,10 +324,25 @@ class Formula:
     Simple chemical formula representation.
     """
     structure: Structure
+    """Nested structure ((count, atom|structure), ...)"""
     density: float|None
+    """
+    |g/cm^3|
+
+    Density of the material.
+    """
     name: str|None
+    """
+    Name of the material. Default is the input string for the formula parser.
+    """
     total_mass: float|None = None
+    """
+    For mixture by mass, the total mass of the mixture (g).
+    """
     thickness: float|None = None
+    """
+    For mixture by layer, the total thickness of the mixture (cm).
+    """
 
     def __init__(self,
             structure: Structure=tuple(),
@@ -413,7 +424,7 @@ class Formula:
         """
         |g/cm^3|
 
-        Density of the formula with specific isotopes of each element
+        Density of the material with specific isotopes of each element
         replaced by the naturally occurring abundance of the element
         without changing the cell volume.
         """
@@ -677,7 +688,8 @@ class Formula:
         return ret
 
     def __str__(self):
-        return self.name if self.name else "".join(_str_atoms(self.structure))
+        # return self.name if self.name else "".join(_str_atoms(self.structure))
+        return "".join(_str_atoms(self.structure))
 
     def __repr__(self):
         return "formula('%s')"%(str(self))
@@ -711,15 +723,12 @@ def _isotope_substitution(compound: "Formula", source: Atom, target: Atom, porti
         density = compound.density
     return formula(atoms, density=density)
 
+if TYPE_CHECKING:
+    from pyparsing import ParserElement
 
 # TODO: Grammar should be independent of table
-# TODO: Parser can't handle meters as 'm' because it conflicts with the milli prefix
-LENGTH_UNITS = {'nm': 1e-9, 'um': 1e-6, 'μm': 1e-6, 'mm': 1e-3, 'cm': 1e-2, 'Ang': 1e-10, 'Å': 1e-10}
-MASS_UNITS = {'ng': 1e-9, 'ug': 1e-6, 'mg': 1e-3, 'g': 1e+0, 'kg': 1e+3}
-VOLUME_UNITS = {'nL': 1e-9, 'uL': 1e-6, 'mL': 1e-3, 'L': 1e+0}
-LENGTH_RE = '('+'|'.join(LENGTH_UNITS.keys())+')'
-MASS_VOLUME_RE = '('+'|'.join(list(MASS_UNITS.keys())+list(VOLUME_UNITS.keys()))+')'
-def formula_grammar(table: PeriodicTable) -> ParserElement:
+
+def formula_grammar(table: PeriodicTable) -> "ParserElement":
     """
     Construct a parser for molecular formulas.
 
@@ -736,11 +745,22 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
             an *element* or a list of pairs (*count, fragment*).
 
     """
+    # Requires that the pyparsing module is installed.
+
+    from pyparsing import (
+        Literal, Optional, White, Regex, ZeroOrMore, OneOrMore, Forward, StringEnd, Group,
+        )
+
     # TODO: fix circular imports
     # This ickiness is because the formula class returned from the circular
     # import of fasta does not match the local formula class.
     from .formulas import Formula
-    from .util import from_subscript, from_superscript
+    from .util import from_subscript
+    from .lark_parse import LENGTH_UNITS, MASS_UNITS, VOLUME_UNITS
+
+    LENGTH_RE = '('+'|'.join(LENGTH_UNITS.keys())+')'
+    MASS_VOLUME_RE = '('+'|'.join(list(MASS_UNITS.keys())+list(VOLUME_UNITS.keys()))+')'
+
 
     # Recursive
     composite = Forward()
@@ -989,8 +1009,8 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
     grammar.set_name('Chemical Formula')
     return grammar
 
-_PARSER_CACHE: dict[PeriodicTable, ParserElement] = {}
-def parse_formula(formula_str: str, table: PeriodicTable|None=None) -> Formula:
+_PARSER_CACHE: dict[PeriodicTable, "ParserElement"] = {}
+def old_parser(formula_str: str, table: PeriodicTable|None=None) -> Formula:
     """
     Parse a chemical formula, returning a structure with elements from the
     given periodic table.

@@ -14,12 +14,19 @@ def check_parse_fails(s):
     raise Exception(f'formula("{s}") should fail to parse')
 
 def test():
+    # CaCO3(H2O)6 is a tuple of (count, atom) followed by (6, H2O)
+    # CaCO3+6H2O is ((1, CaCO3), (6, H2O))
     ikaite = formula()
-    # Note: this should be a tuple of tuples
     ikaite.structure = ((1, Ca), (1, C), (3, O), (6, ((2, H), (1, O))))
+    ikaite.name = "CaCO3(H2O)6"
+    ikaite_grouped = formula()
+    ikaite_grouped.structure = ((1, ((1, Ca), (1, C), (3, O))), (6, ((2, H), (1, O))))
+    ikaite_grouped.name = "CaCO3+6H2O"
 
     # Test print
     assert str(ikaite) == "CaCO3(H2O)6"
+    assert str(ikaite_grouped) == "CaCO3(H2O)6"
+    # TODO: parsing a printed structure should produce the same structure
 
     # Test constructors
     assert ikaite == formula([(1, Ca), (1, C), (3, O), (6, [(2, H), (1, O)])])
@@ -31,9 +38,9 @@ def test():
     assert formula("Ca") == formula([(1, Ca)])
     assert formula("Ca") == formula(Ca)
     assert formula("CaCO3") == formula([(1, Ca), (1, C), (3, O)])
-    assert ikaite == formula("CaCO3+6H2O")
-    assert ikaite == formula("(CaCO3+6H2O)1")
-    assert ikaite == formula("CaCO3 6H2O")
+    assert ikaite_grouped == formula("CaCO3+6H2O")
+    assert ikaite_grouped == formula("(CaCO3+6H2O)1")
+    assert ikaite_grouped == formula("CaCO3 6H2O")
     assert ikaite == formula("CaCO3(H2O)6")
     assert ikaite == formula("(CaCO3(H2O)6)1")
     assert ikaite.hill == formula("CCaO3(H2O)6").hill
@@ -43,7 +50,7 @@ def test():
     # Unicode, latex and html subscripts
     assert formula([(0.75, Fe), (0.25, Ni)]) == formula("Fe₀.₇₅Ni₀.₂₅")
     assert ikaite == formula("CaCO₃(H₂O)₆")
-    assert ikaite == formula("CaCO₃6H₂O") # with subscripts we know it isn't O36
+    assert ikaite_grouped == formula("CaCO₃ 6H₂O") # with subscripts we know it isn't O36
     assert pretty(ikaite, 'unicode') == "CaCO₃(H₂O)₆"
     assert pretty(ikaite, 'html') == "CaCO<sub>3</sub>(H<sub>2</sub>O)<sub>6</sub>"
     assert pretty(ikaite, 'latex') == "CaCO$_{3}$(H$_{2}$O)$_{6}$"
@@ -116,14 +123,15 @@ def test():
 
     # Check that names work
     permalloy = formula('Ni8Fe2', 8.692, name='permalloy')
-    assert str(permalloy) == 'permalloy'
+    assert str(permalloy) == 'Ni8Fe2'
+    assert permalloy.name == 'permalloy'
 
     # Check that get/restore state works
     assert deepcopy(permalloy).__dict__ == permalloy.__dict__
 
     # Check that copy constructor works
-    #print permalloy.__dict__
-    #print formula(permalloy).__dict__
+    # print(permalloy.__dict__)
+    # print(formula(permalloy).__dict__)
     assert formula(permalloy).__dict__ == permalloy.__dict__
     assert formula('Si', name='Silicon').__dict__ != formula('Si').__dict__
 

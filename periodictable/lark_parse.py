@@ -7,25 +7,29 @@ from .core import default_table
 from .formulas import (
     Formula, Structure,
     _mix_by_weight_pairs, _mix_by_volume_pairs,
-    VOLUME_UNITS, MASS_UNITS, LENGTH_UNITS,
     pretty as pretty_formula
 )
 from .util import from_subscript, from_superscript
 
 # TODO: valence belongs to a group rather than element
 
+# TODO: Parser can't handle meters as 'm' because it conflicts with the milli prefix
+LENGTH_UNITS = {'nm': 1e-9, 'um': 1e-6, 'μm': 1e-6, 'mm': 1e-3, 'cm': 1e-2, 'Ang': 1e-10, 'Å': 1e-10}
+MASS_UNITS = {'ng': 1e-9, 'ug': 1e-6, 'mg': 1e-3, 'g': 1e+0, 'kg': 1e+3}
+VOLUME_UNITS = {'nL': 1e-9, 'uL': 1e-6, 'mL': 1e-3, 'L': 1e+0}
+
+# TODO: use grammar string directly in the sphinx/guide/formula_grammar.rst
 grammar = """
-start      : SPACE? formula SPACE? # strip blank space from start and end
+start      : SPACE? formula SPACE?  # strip blank space from start and end
 formula    : compound | mixture
 
 # Mixture definitions:  quantity compound // quantity compound // quantity compound
 # Activation only cares about total mass, so you can freely mix masses and volumes if
-# you have the density for each component. Scattering cares about density of the mixture,
-# which in general is different from the mixture of densities.
-# To convert layers to masses for activation estimates we need density. Also need to scale by
-# area to convert density and thickness to mass. Assume unit area is cm^2, so for
-# example "4 (5 nm Ni // 2 mm Si)" is a 4 cm^2 wafer of nickel on silicon. If you
-# were to add a polymer you would need its density: "4 (20 nm C5H10@1.2
+# you have the density for each component. For scattering you need the density of the
+# mixture. When this is different from the mixture of densities use (mixture)@density.
+# For thin film samples, allow stacking of layers with the thickness of each layer.
+# With density for each layer the relative quantities of each element in the stack can
+# be calculated. Convert to mass by multiplying by thickness (cm) and area (cm²).
 
 mixture    : byamount | byvolume | byweight | layers
 byamount   : quantity compound (MIX quantity compound)*
@@ -38,49 +42,48 @@ volumepct  : NUMBER SPACE? VOLUMEPCT SPACE
 thickness  : NUMBER SPACE? LENGTH SPACE
 percentage : NUMBER SPACE? "%" SPACE  # Allows "3 % "
 
-# Compound definition: number group ... @ density where group is El count El count ...
+# Composite: number group ... @density where group is El count El count ...
+# Density applies to the entire composite, such as "NaCl + 29.2H2O @ 1.07n"
+# For the density of a mixture you need parentheses: "(10 wt% NaCl // H2O)@1.07n"
 # FASTA sequences: (rna|dna|aa) : SEQUENCE @ density
-# Density applies to the entire formula, such as "NaCl + 29.2H2O @ 1.07n"
-# If you do this as a mixture you need parentheses: "(10 wt% NaCl // H2O)@1.07n"
-# Note: `[token]` leaves a None placeholder in the tree, unlike `token?`
+# Note: optional `[token]` leaves a None placeholder in the tree, unlike `token?`
 compound   : (composite | fasta) [density]
 fasta      : FASTA ":" SEQUENCE
-FASTA      : /[a-z]+/ # Generic "str:sequence" syntax allows better error reporting
-#FASTA     : /dna|rna|aa/
-SEQUENCE   : /[A-Z -*]+/
 composite  : [NUMBER] group (SEPARATOR [NUMBER] group)*
 group      : ((atom | isoatom | "(" formula ")") [COUNT])+
 atom       : SYMBOL [isotope] [valence]
-isoatom    : SUPERINT SYMBOL [valence]
-# could list all elements, but better error reporting if element symbol lookup fails
-SYMBOL     : /[A-Z][a-z]*/
+isoatom    : SUPERINT SYMBOL [valence]    # For example ²H for deuterium
 isotope    : "[" INTEGER "]"
 valence    : "{" [INTEGER] CHARGE "}" | [SUPERINT] SUPERCHARGE
 density    : SPACE? "@" SPACE? DENSITY [DENSITYMODE]
-DENSITY    : NUMBER  # using alias DENSITY for number for better error reporting
 
 # Tokens
+#FASTA     : /dna|rna|aa/  # Sequence type is limited to these values but ...
+FASTA      : /[a-z]+/      # "str:sequence" syntax allows better error reporting
+SEQUENCE   : /[-A-Z *]+/
+# could list all elements, but better error reporting if element symbol lookup fails
+SYMBOL     : /[A-Z][a-z]*/
 CHARGE     : /[+]+|[-]+/  # allow valence using {++} or {--}
-SUPERINT   : /(\u2070|[\u00B9\u00B2\u00B3\u2074-\u2079][\u2070\u00B9\u00B2\u00B3\u2074-\u2079]*)/
-SUPERCHARGE: /\u207A+|\u207B+/  # Allow Ca++ and Cl- using superscript + and -
-DENSITYMODE: /[ni]/
+DENSITY    : NUMBER  # using alias DENSITY for number for better error reporting
+DENSITYMODE: /[ni]/       # n=natural density, i=isotopic density
 MIX        : SPACE? "//" SPACE?
-# maybe drop "wt%" and "vol%"
 WEIGHTPCT  : /%w((eigh)?t)?/ | /w((eigh)?t)?%/ | /%m(ass)?/ | /m(ass)?%/
 VOLUMEPCT  : /%v(ol(ume)?)?/ | /v(ol(ume)?)?%/
 MASS       : "kg" | "g" | "mg" | "ug" | "μg" | "ng"
 VOLUME     : "L" | "mL" | "uL" | "μL" | "nL"
 LENGTH     : "cm" | "mm" | "um" | "μm" | "nm" | "Ang" | "Å"
+COUNT      : NUMBER | SUBNUM  # atom counts can be normal numbers or unicode subscripts
 
 SEPARATOR  : SPACE? /[+•·]/ SPACE? | SPACE
 SPACE      : /[ \\t\\n\\r]+/
-COUNT      : NUMBER | SUBNUM  # atom counts can be normal numbers or unicode subscripts
 NUMBER     : INTEGER | FRACTION
 INTEGER    : /[1-9][0-9]*/
 FRACTION   : /([1-9][0-9]*|0)?[.][0-9]*/  # allow all floats?
 SUBNUM     : SUBINT | SUBFRAC
 SUBINT     : /(\u2080|[\u2081-\u2089][\u2080-\u2089]*)/
 SUBFRAC    : /(\u2080|[\u2081-\u2089][\u2080-\u2089]*|)([.][\u2080-\u2089]*)/
+SUPERINT   : /(\u2070|[\u00B9\u00B2\u00B3\u2074-\u2079][\u2070\u00B9\u00B2\u00B3\u2074-\u2079]*)/
+SUPERCHARGE: /\u207A+|\u207B+/  # Allow Ca++ and Cl- using superscript + and -
 """
 
 # propagate_positions saves start_pos and end_pos for each rule as well as each terminal.
@@ -356,17 +359,16 @@ class ConvertTokens(lark.Transformer):
         return pairs
 
     def fasta(self, tokens) -> Structure:
-        """
+        r"""
         Returns the formula corresponding to the FASTA sequence, with the natural
         density set. Labile hydrogen use H[1] in the formula.
 
         The extra level of nesting in the return value is so that the fasta structure
         is like a composite with a single group containing a nested formula.
 
-        Transform: [ /aa|dna|rna/, /[A-Z -*]+/ ] => (1, ((1, formula),))
+        Transform: [ 'aa|dna|rna', '[-A-Z \*]+' ] => (1, ((1, formula),))
 
-        Example dna:CAGT: ['dna', 'CAGT']
-        => ((1, ((1, formula('C39H37H[1]10N15O25P4')),)),)
+        Example: dna:CAGT: ['dna', 'CAGT'] x=> ((1, ((1, formula('C39H37H[1]10N15O25P4')),)),)
         """
         # TODO: fasta is ignoring table when parsing
         # TODO: avoid circular imports
@@ -596,7 +598,7 @@ class ConvertTokens(lark.Transformer):
         total = sum(values)
         percent = [(m/total)*100 for m in values]
         formula = _mix_by_volume_pairs(zip(tokens[1::2], percent))
-        formula.thickness = total
+        formula.thickness = 100*total # convert meters to centimeters for cgs units
         return formula
 
     def mixture(self, tokens) -> Formula:
@@ -641,14 +643,13 @@ class ConvertTokens(lark.Transformer):
         """
         Return the final formula, with the original text attached.
 
-        Sets formula.source to 'parse string' before returning.
+        Sets formula.name to the parser input string before returning.
 
         Transform: [formula] => formula
         """
         formula = tokens[0]
-        # TODO: add the source string to the formula class attributes
         # Remember the string which was parsed
-        formula.source = self._context
+        formula.name = self._context
         return formula
 
 # TODO: if the next character is ":" then report error as bad fasta sequence type
@@ -830,7 +831,7 @@ aa:RELEELNVPGEIVESLSSSEESITRINKKIEKFQSEEQQQTEDELQDKIHPFAQTQSLVYPFPGPIPNSLPQNIPPL
 """
 
 def check():
-    from periodictable.formulas import parse_formula as old_parser
+    from periodictable.formulas import old_parser
 
     for line in examples.split('\n'):
         formula = line.split('#')[0]
@@ -868,7 +869,11 @@ def main():
 
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
-            print(parse_formula(arg))
+            formula = parse_formula(arg)
+            mass = f" {formula.total_mass:.4g} g" if formula.total_mass else ""
+            density = f"@{formula.density:.4g}" if formula.density else ""
+            thickness = f" {10*formula.thickness:.4g} mm" if formula.thickness else ""
+            print(f"{formula}{density}{mass}{thickness}")
     else:
         check()
 
