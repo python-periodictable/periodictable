@@ -831,8 +831,6 @@ aa:RELEELNVPGEIVESLSSSEESITRINKKIEKFQSEEQQQTEDELQDKIHPFAQTQSLVYPFPGPIPNSLPQNIPPL
 """
 
 def check():
-    from periodictable.formulas import old_parser
-
     for line in examples.split('\n'):
         formula = line.split('#')[0]
         bad = line.startswith('!')
@@ -844,9 +842,7 @@ def check():
             else:
                 print(f"*** {line}")
             try:
-                # Toggle the following to test pyparsing vs lark
                 tree = parse_formula(formula)
-                #tree = old_parser(formula) if "##" not in line else "!!! pyparsing fails"
                 density = getattr(tree, 'density', None)
                 density_str = f" @ {density:.2f}" if density else ""
                 mode = 'unicode' # unicode latex html plain

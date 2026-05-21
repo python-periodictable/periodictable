@@ -23,6 +23,13 @@ Known issues
 Change history
 ==============
 
+2026-05-21 R2.2.0
+-----------------
+
+Modified:
+
+* Use lark for better error reporting from the formula parser
+
 2026-02-27 R2.1.0
 -----------------
 
