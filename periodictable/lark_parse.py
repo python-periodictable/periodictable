@@ -1,7 +1,7 @@
 import lark
-from periodictable.core import PeriodicTable, Element, Atom, Isotope
-from periodictable.core import default_table
-from periodictable.formulas import (
+from .core import PeriodicTable, Element, Atom, Isotope
+from .core import default_table
+from .formulas import (
     from_subscript, from_superscript,
     Formula, Structure,
     _mix_by_weight_pairs, _mix_by_volume_pairs,
@@ -663,7 +663,7 @@ def _allowed(allowed):
         NUMBER="NUMBER", # start of compound or start of mixture
         #FASTA="[dna|rna|aa]:SEQ",
         FASTA="aa:SEQ",
-        COLON=":",
+        COLON=":SEQ",
         #COLON="aa:SEQ",
         SEQUENCE="aa:SEQ",
         SEPARATOR="+", # generic group separator in composite
@@ -840,8 +840,8 @@ def check():
                 print(f"*** {line}")
             try:
                 # Toggle the following to test pyparsing vs lark
-                #tree = parse_formula(formula)
-                tree = old_parser(formula) if "##" not in line else "!!! pyparsing fails"
+                tree = parse_formula(formula)
+                #tree = old_parser(formula) if "##" not in line else "!!! pyparsing fails"
                 density = getattr(tree, 'density', None)
                 density_str = f" @ {density:.2f}" if density else ""
                 mode = 'unicode' # unicode latex html plain
@@ -859,10 +859,14 @@ def check():
                 if bad:
                     raise RuntimeError(f"Exception not raised for <{formula}>")
 
-if __name__ == "__main__":
+def main():
     import sys
+
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             print(parse_formula(arg))
     else:
         check()
+
+if __name__ == "__main__":
+    main()
