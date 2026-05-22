@@ -839,6 +839,7 @@ def check():
         if bad:
             formula = formula[1:]
         if formula:
+            print()
             if bad:
                 print(f"!!! {line[1:]}")
             else:
