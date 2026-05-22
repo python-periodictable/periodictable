@@ -19,18 +19,24 @@ MASS_UNITS = {'ng': 1e-9, 'ug': 1e-6, 'mg': 1e-3, 'g': 1e+0, 'kg': 1e+3}
 VOLUME_UNITS = {'nL': 1e-9, 'uL': 1e-6, 'mL': 1e-3, 'L': 1e+0}
 
 # TODO: use grammar string directly in the sphinx/guide/formula_grammar.rst
+# Any changes to the grammar below should be copied to formula_grammar.rst
 grammar = """
 start      : SPACE? formula SPACE?  # strip blank space from start and end
-formula    : compound | mixture
 
-# Mixture definitions:  quantity compound // quantity compound // quantity compound
+# formula: composite @ density | str:sequence @ density | mixture
+formula    : compound | mixture
+compound   : (composite | fasta) [density]
+# Density applies to the entire composite, such as "NaCl + 29.2H2O @ 1.07n"
+# For the density of a mixture you need parentheses: "(10 wt% NaCl // H2O)@1.07n"
+
 # Activation only cares about total mass, so you can freely mix masses and volumes if
 # you have the density for each component. For scattering you need the density of the
 # mixture. When this is different from the mixture of densities use (mixture)@density.
 # For thin film samples, allow stacking of layers with the thickness of each layer.
 # With density for each layer the relative quantities of each element in the stack can
-# be calculated. Convert to mass by multiplying by thickness (cm) and area (cm²).
+# be calculated. Convert to mass by multiplying density by thickness (cm) and area (cm²).
 
+# mixture:  quantity compound // quantity compound // quantity compound
 mixture    : byamount | byvolume | byweight | layers
 byamount   : quantity compound (MIX quantity compound)*
 byvolume   : volumepct compound (MIX percentage compound)* MIX compound
@@ -41,14 +47,21 @@ weightpct  : NUMBER SPACE? WEIGHTPCT SPACE
 volumepct  : NUMBER SPACE? VOLUMEPCT SPACE
 thickness  : NUMBER SPACE? LENGTH SPACE
 percentage : NUMBER SPACE? "%" SPACE  # Allows "3 % "
+MIX        : SPACE? "//" SPACE?
+WEIGHTPCT  : /%w((eigh)?t)?/ | /w((eigh)?t)?%/ | /%m(ass)?/ | /m(ass)?%/
+VOLUMEPCT  : /%v(ol(ume)?)?/ | /v(ol(ume)?)?%/
+MASS       : "kg" | "g" | "mg" | "ug" | "μg" | "ng"
+VOLUME     : "L" | "mL" | "uL" | "μL" | "nL"
+LENGTH     : "cm" | "mm" | "um" | "μm" | "nm" | "Ang" | "Å"
 
-# Composite: number group ... @density where group is El count El count ...
-# Density applies to the entire composite, such as "NaCl + 29.2H2O @ 1.07n"
-# For the density of a mixture you need parentheses: "(10 wt% NaCl // H2O)@1.07n"
-# FASTA sequences: (rna|dna|aa) : SEQUENCE @ density
-# Note: optional `[token]` leaves a None placeholder in the tree, unlike `token?`
-compound   : (composite | fasta) [density]
+# FASTA sequence:   (rna|dna|aa):SEQUENCE @ density
 fasta      : FASTA ":" SEQUENCE
+FASTA      : /[a-z]+/  # str:sequence reports better errors than /dna|rna|aa/:sequence
+SEQUENCE   : /[-A-Z *]+/
+
+# composite: number group number group ... @density
+# group: El count El count ...
+# Note: optional `[token]` leaves a None placeholder in the tree, unlike `token?`
 composite  : [NUMBER] group (SEPARATOR [NUMBER] group)*
 group      : ((atom | isoatom | "(" formula ")") [COUNT])+
 atom       : SYMBOL [isotope] [valence]
@@ -56,25 +69,15 @@ isoatom    : SUPERINT SYMBOL [valence]    # For example ²H for deuterium
 isotope    : "[" INTEGER "]"
 valence    : "{" [INTEGER] CHARGE "}" | [SUPERINT] SUPERCHARGE
 density    : SPACE? "@" SPACE? DENSITY [DENSITYMODE]
-
-# Tokens
-#FASTA     : /dna|rna|aa/  # Sequence type is limited to these values but ...
-FASTA      : /[a-z]+/      # "str:sequence" syntax allows better error reporting
-SEQUENCE   : /[-A-Z *]+/
 # could list all elements, but better error reporting if element symbol lookup fails
 SYMBOL     : /[A-Z][a-z]*/
 CHARGE     : /[+]+|[-]+/  # allow valence using {++} or {--}
+SUPERCHARGE: /\u207A+|\u207B+/ # unicode valence such as Ca⁺⁺ and O²⁻
 DENSITY    : NUMBER  # using alias DENSITY for number for better error reporting
 DENSITYMODE: /[ni]/       # n=natural density, i=isotopic density
-MIX        : SPACE? "//" SPACE?
-WEIGHTPCT  : /%w((eigh)?t)?/ | /w((eigh)?t)?%/ | /%m(ass)?/ | /m(ass)?%/
-VOLUMEPCT  : /%v(ol(ume)?)?/ | /v(ol(ume)?)?%/
-MASS       : "kg" | "g" | "mg" | "ug" | "μg" | "ng"
-VOLUME     : "L" | "mL" | "uL" | "μL" | "nL"
-LENGTH     : "cm" | "mm" | "um" | "μm" | "nm" | "Ang" | "Å"
 COUNT      : NUMBER | SUBNUM  # atom counts can be normal numbers or unicode subscripts
+SEPARATOR  : SPACE? /[+•·]/ SPACE? | SPACE   # For example, CaCO₃·6H₂O
 
-SEPARATOR  : SPACE? /[+•·]/ SPACE? | SPACE
 SPACE      : /[ \\t\\n\\r]+/
 NUMBER     : INTEGER | FRACTION
 INTEGER    : /[1-9][0-9]*/
@@ -83,7 +86,6 @@ SUBNUM     : SUBINT | SUBFRAC
 SUBINT     : /(\u2080|[\u2081-\u2089][\u2080-\u2089]*)/
 SUBFRAC    : /(\u2080|[\u2081-\u2089][\u2080-\u2089]*|)([.][\u2080-\u2089]*)/
 SUPERINT   : /(\u2070|[\u00B9\u00B2\u00B3\u2074-\u2079][\u2070\u00B9\u00B2\u00B3\u2074-\u2079]*)/
-SUPERCHARGE: /\u207A+|\u207B+/  # Allow Ca++ and Cl- using superscript + and -
 """
 
 # propagate_positions saves start_pos and end_pos for each rule as well as each terminal.
