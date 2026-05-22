@@ -37,6 +37,7 @@
         {include-group = "build"},
         {include-group = "docs"},
         {include-group = "test"},
+        "periodictable",
     ]
 
 [project.urls]
