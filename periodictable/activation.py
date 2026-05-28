@@ -844,7 +844,7 @@ def activity(
             # print(f"{ai.daughter} {activity=} {last_activity=}")
         else:
             result[ai] = [activity*exp(-lam*Ti) for Ti in rest_times]
-        # 2025-05-17 PAK: Hack to use 151Nd activation intensity rather than
+        # 2025-05-27 PAK: Hack to use 151Nd activation intensity rather than
         # the 151Pm intensity when computing the buildup of the 151Sm granddaugter.
         if ai.daughter != "Pm-151":
             last_activity = activity
