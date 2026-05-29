@@ -749,86 +749,106 @@ def parse_formula(formula_str: str, table: PeriodicTable|None=None) -> Formula:
     return tree
 
 # Error conditions are marked with '!' so the exception is ignored
-# Lines marked ## fail on the existing parser
+# Lines marked ## fail on the pyparsing parser
 examples = """
-! DNA:CAGT  # incorrect case for FASTA type not properly identified
-! dna CAGT  # missing colon in FASTA
-! O²  # SUPERCHARGE should be the only valid token here
-! ₃H2O  # badly placed subscript
-! // 3g Ca  # // is not a comment
-! 3g Ca@ // 5g Si # missing density value
-! Ca@i  # missing density value  ##
-! Ca ⁺⁺  # extra space before valence
-! Ca++  # missing braces in valence: the + is acting as SEPARATOR
-! Ca2+  # missing braces in valence: the 2 is acting as COUNT and the + as SEPARATOR
-! Ca{2}  # missing charge in valence
-! 37 vol% H2O@1 / 5% D2O@1  # missing /
-! 37 vol% H2O@1 /// 5% D2O@1  # extra /
-! H2O@1h  # bad density mode
-! 37 vol% NaCl@2.16 // H2O@1 // D2O@1  # percent missing in middle part
-! 37 vol% H2O@1 // 5% D2O@1  # percent not allowed in last part
-! 37 vol% H2O@1 // 5 vol% D2O@1  # only % in subsequent parts
-! 37% H2O@1 // D2O@1  # missing vol% or wt%
-! 37 val% H2O@1 // D2O@1  # bad spelling of vol%
-! Fe[56O2 # bad isotope syntax
-! Co[181]  # bad isotope
-! Ca{2+O2  # bad valence syntax
-! Co{17-}  # bad valence
-! 3..5 mg NaCl
-! 3.5 fm Si # bad units at the start; could be wt%/vol% or LENGTH, VOLUME, MASS 
-! 3.5 mm Si // 2.5 nm SiO2 //
-! 3.5 mm Si // 2.5 nm SiO2 // 35 mm cG
-! ((Co) # mismatched LPAR
-! Co)  # mismatched RPAR
-! bad:CAGT  # bad sequence type
+
+# === Composite tests ===
 Co
-dna:CAGT
-(Co@5) ##
-(((Co@5)@6)) ##
+H2SO4
 CaCO3
 CaCO₃
+(Co@5)       ##
+(((Co@5)@6)) ##
 CaCO3+6H2O
 CaCO3 6H2O
 CaCO3(H2O)6
 CaCO3 (H2O)6
 (Ca(CO3)((H2O)6))
-CaCO₃·6H₂O  ##
+CaCO₃·6H₂O   ##
+! Bl2Oh   # bad symbol
+! (Co     # mismatched LPAR
+! Co)     # mismatched RPAR
+! ((Co)   # mismatched LPAR
+! ₃H2O    # badly placed subscript
+
+# === Isotope tests ===
 DHO
-!Ca{2++}  # bad valence string
-Ca⁺⁺  # also Ca{2+}  ##
-O²⁻   ##
 H[1]
-²H⁺    # D{+} ##
-O²H⁻   # OD{-} ##
-O²⁻H⁺  # O{2-}H{+} ##
-O²⁻²H⁺ # O{2-}D{+} ##
-H2O@1
-D2O@1n
-D2O @ 1.11  ##
-D2O@1.11i
-HO{1-}
+¹⁸O₂
+! Fe[56O2  # bad isotope syntax
+! Co[181]  # bad isotope
+
+# === Valence tests ===
+Ca{2+}
+Ca{++}
+Ca⁺⁺   ##
+O{2-}
+O{--}
+O²⁻    ##
+H{+}
+H{-}
+HO{1-}    # HO- applies to the group, but valence is attached to O
 H[1]{1-}O
-H2SO4
-C3H4H[1]NO@1.29n
+²H⁺       # D{+} ##
+O²H⁻      # no ambiguity since valence requires a trailing + or - ##
+O²⁻H⁺     # O{2-}H{+} ##
+O²⁻²H⁺    # O{2-}D{+} ##
+! Ca{2}   # missing charge in valence
+! Ca{2++} # can't use number++
+! Ca{2+O2 # missing close brace on valence
+! Co{17-} # bad valence value
+! Ca ⁺⁺   # extra space before valence
+! Ca++    # missing braces in valence: the + is acting as SEPARATOR
+! Ca2+    # missing braces in valence: the 2 is acting as COUNT and the + as SEPARATOR
+! O²      # Should be looking for SUPERCHARGE (e.g., O²⁻) or SYMBOL (e.g., O²H)
+
+# === Density tests ===
+H2O@1               # density is 1, where H and O use natural abundance
+H2O @ 1             # spaces allowed around '@' ##
+D2O@1n              # natural density "n" is 1 so isotopic density is 1.11
+D2O@1.11i           # isotopic density is 1.11
+D2O@1.11            # default is "i" for isotopic density
+C3H4H[1]NO@1.29n    # another natural density example
 78.2H2O[16] + 21.8H2O[18] @1n  # density applies to composite
-dna:CAGT @1n  # fasta density override
-50 wt% Co // Ti
-33 wt% Co // 33% Fe // Ti
-! 93 wt% Co // 33% Fe // Ti  # More than 100 wt%
-! 93 vol% Co // 33% Fe // Ti  # More than 100 vol%
+! 3g Ca@ // 5g Si   # missing density value
+! Ca@i              # missing density value  ##
+! H2O@1h            # bad density mode
+
+# === Mixture tests ===
+50 wt% Co // Ti                 # mix by mass; final component does need percentage
+33 wt% Co // 33% Fe // Ti       # intermediate components need percentage
+! 93 wt% Co // 33% Fe // Ti     # more than 100 wt%
+! 93 vol% Co // 33% Fe // Ti    # more than 100 vol%
 20 vol% (10 wt% NaCl@2.16 // H2O@1) // D2O@1n
-NaCl(H2O)29.1966(D2O)122.794@1.10i
-5g NaCl // 50mL H2O@1
-5g NaCl@2.16 // 50mL H2O@1
-! 5g NaCl // 50mL H2O   # Need density for H2O to convert volume to mass
-(10 wt% NaCl // H2O)@1.07n # set density of a mixture
+5g NaCl // 50mL H2O@1           # volume components need density to determine mass fraction
+5g NaCl@2.16 // 50mL H2O@1      # need component densities to estimate mixture density
+NaCl(H2O)29.1966(D2O)122.794@1.10i  # mixture rendered as formula
+! 5g NaCl // 50mL H2O           # need density for H2O to convert volume to mass
+(10 wt% NaCl // H2O)@1.07n      # set density of a mixture
 50 mL (45 mL H2O@1 // 5 g NaCl)@1.0707 // 20 mL D2O@1n
 1 cm Si // 5 nm Cr // 10 nm Au
-aa:RELEELNVPGEIVESLSSSEESITRINKKIEKFQSEEQQQTEDELQDKIHPFAQTQSLVYPFPGPIPNSLPQNIPPLTQTPVVVPPFLQPEVMGVSKVKEAMAPKHKEMPFPKYPVEPFTESQSLTLTDVENLHLPLPLLQSWMHQPHQPLPPTVMFPPQSVLSLSQSKVLPVPQKAVPYPQRDMPIQAFLLYQEPVLGPVRGPFPIIV
+! 4 nm NaCl@2.17// 50 g Si      # can't use mass in layer mixture
+! 3..5 mg NaCl                  # bad number format
+! 5 Mg NaCl // 50mL H2O@1       # bad units
+! 3.5 fm Si                     # bad units; expecting wt%/vol% or LENGTH, VOLUME, MASS
+! 3.5 mm Si // 2.5 nm SiO2 //   # missing final component of mixture
+! 3.5 mm Si // 2.5 nm SiO2 // 35 mm cG      # bad final component of mixture
+! // 3g Ca                      # // is not a comment
+! 37 vol% H2O@1 / 5% D2O@1      # missing /
+! 37 vol% H2O@1 /// 5% D2O@1    # extra /
+! 37 vol% NaCl@2.16 // H2O@1 // D2O@1  # percent missing in middle part
+! 37 vol% H2O@1 // 5% D2O@1     # percent not allowed in last part
+! 37 vol% H2O@1 // 5 vol% D2O@1 # only % in subsequent parts
+! 37% H2O@1 // D2O@1            # missing vol% or wt%
+! 37 val% H2O@1 // D2O@1        # bad spelling of vol%
 
-! Bl2Oh   # Bad symbol
-! 5 Mg NaCl // 50mL H2O@1  # Bad units
-! 4 nm NaCl@2.17// 50 g Si  # Can't use mass in layer mixture
+# === FASTA tests ===
+dna:CAGT
+dna:CAGT @1n  # can override the density of a FASTA sequence
+aa:RELEELNVPGEIVESLSSSEESITRINKKIEKFQSEEQQQTEDELQDKIHPFAQTQSLVYPFPGPIPNSLPQNIPPLTQTPVVVPPFLQPEVMGVSKVKEAMAPKHKEMPFPKYPVEPFTESQSLTLTDVENLHLPLPLLQSWMHQPHQPLPPTVMFPPQSVLSLSQSKVLPVPQKAVPYPQRDMPIQAFLLYQEPVLGPVRGPFPIIV
+! DNA:CAGT    # incorrect case for FASTA type
+! dna CAGT    # missing colon between FASTA type and sequence
+! bad:CAGT    # bad FASTA sequence type
 
 """
 
@@ -838,7 +858,7 @@ def check():
         bad = line.startswith('!')
         if bad:
             formula = formula[1:]
-        if formula:
+        if formula.strip():
             print()
             if bad:
                 print(f"!!! {line[1:]}")
@@ -862,6 +882,8 @@ def check():
                     continue  # pyparsing should fail but doesn't
                 if bad:
                     raise RuntimeError(f"Exception not raised for <{formula}>")
+        else:
+            print(line)
 
 def main():
     import sys
