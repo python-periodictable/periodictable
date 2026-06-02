@@ -340,32 +340,71 @@ class Sample:
         if not self.rest_times or not self.activity:
             return 0
 
-        # Find the smallest rest time (probably 0 hr)
-        k, t_k = min(enumerate(self.rest_times), key=lambda x: x[1])
-        # Find the activity at that time, and the decay rate
-        data = [
-            (Ia[k], LN2/a.Thalf_hrs)
-            for a, Ia in self.activity.items()
-            # TODO: not sure why Ia is zero, but it messes up the initial value guess if it is there
-            if Ia[k] > 0.0
-            ]
+        # TODO: save intensity at zero separate from self.rest_times
+
+        # Find I(0) for each isotope given I(t) at the first rest time.
+        # Use Bateman equation to compute backward for granddaughter products:
+        #     Id(t) = Id(0)exp(-λd t) + Ip(0)(exp(-λp t) - exp(-λd t))/(1 - λp/λd)
+        # Data is [(I(0), λ, reaction), ...] for each active isotope
+        t = self.rest_times[0]
+        data: list[tuple[float, float, str]] = []
+
         # Need an initial guess near the answer otherwise find_root gets confused.
         # Small but significant activation with an extremely long half-life will
         # dominate at long times, but at short times they will not affect the
-        # derivative. Choosing a time that satisfies the longest half-life seems
+        # derivative. Choosing a time that satisfies the longest decay time seems
         # to work well enough.
-        guess = max(-log(target/Ia)/La + t_k for Ia, La in data)
-        # With times far from zero the time resolution in the exponential is
-        # poor. Adjust the start time to the initial guess, rescaling intensities
-        # to the activity at that time.
-        adj = [(Ia*exp(-La*(guess-t_k)), La) for Ia, La in data]
-        #print(adj)
+        t_guess = 0.
+
+        for a, Ia  in self.activity.items():
+            intensity = Ia[0]
+            La = LN2/a.Thalf_hrs
+            # Estimate activity at t=0, with a check that it hasn't decayed to zero.
+            # The check is necessary because exp(λt) will exceed the floating point
+            # number range when I(t) = I(0)exp(-λt) = 0.
+            if t > 0.:
+                # print(f"{a.isotope} {a.daughter} {a.Thalf_hrs=} {La=}; {intensity=} at {t=}")
+                intensity = intensity * exp(La*t) if intensity > 0. else 0.
+                if a.reaction == "b":
+                    Ip, Lp, _ = data[-1]
+                    #print(f"{intensity=} {Ip=} {Lp=} {Ia[0]=} {La=}")
+                    intensity -= Ip*(expm1((La-Lp)*t)/(1 - Lp/La)) if Ip > 0. else 0.
+            data.append((intensity, La, a.reaction))
+
+            # Daughter intensity will be transformed to granddaughter intensity
+            # over time. Assume it is instantaneous at t=0 for the purpose of guessing
+            # the decay time of the granddaughter. The root finder will correct for
+            # the discrepency.
+            I_buildup = data[-1][0]*La/data[-1][1] if a.reaction == "b" else 0.
+            decay_estimate = -log(target/(intensity + I_buildup))/La if intensity > 0. else 0.
+            t_guess = max(t_guess, decay_estimate)
+        #print("corrected at t=0", [Ia for Ia, La, reaction in data])
+
         # Build f(t) = total activity at time T minus target activity and its
-        # derivative df/dt. f(t) will be zero when activity is at target
-        f = lambda t: sum(Ia*exp(-La*t) for Ia, La in adj) - target
-        df = lambda t: sum(-La*Ia*exp(-La*t) for Ia, La in adj)
-        #print("data", data, [])
-        t, ft = find_root(0, f, df, tol=tol)
+        # derivative df/dt. f(t) will be zero when activity is at target.
+        # 2026-05-27 PAK: include post exposure granddaughter buildup
+        def f(t):
+            total = 0
+            for k, (Ia, La, reaction) in enumerate(data):
+                total += Ia*exp(-La*t)
+                if reaction == "b":
+                    # For delayed β- decay use Bateman equation with parent activity
+                    # and half-life from the previous row in the table.
+                    Ip, Lp, _ = data[k-1]
+                    total += Ip*(exp(-Lp*t) - exp(-La*t))/(1 - Lp/La)
+            return total - target
+        def dfdt(t):
+            total = 0
+            for k, (Ia, La, reaction) in enumerate(data):
+                total += -La*Ia*exp(-La*t)
+                if reaction == "b":
+                    # For delayed β- decay use Bateman equation with parent activity
+                    # and half-life from the previous row in the table.
+                    Ip, Lp, _ = data[k-1]
+                    total += Ip*(La*exp(-La*t) - Lp*exp(-Lp*t))/(1 - Lp/La)
+            return total
+        t, ft = find_root(t_guess, f, dfdt, tol=tol)
+
         percent_error = 100*abs(ft)/target
         if percent_error > 0.1:
             #return 1e100*365*24 # Return 1e100 rather than raising an error
@@ -373,9 +412,9 @@ class Sample:
                 "Failed to compute decay time correctly (%.1g error). Please"
                 " report material, mass, flux and exposure.") % percent_error
             raise RuntimeError(msg)
-        # Return time at least zero hours after removal from the beam. Correct
-        # for time adjustment we used to stablize the fit.
-        return max(t+guess, 0.0)
+
+        # Return time at least zero hours after removal from the beam.
+        return max(t, 0.0)
 
     def _accumulate(self, activity: dict["ActivationResult", list[float]]):
         for el, activity_el in activity.items():
@@ -451,7 +490,7 @@ def find_root(
         x: float,
         f: Callable[[float], float],
         df: Callable[[float], float],
-        max: int=20,
+        maxiter: int=20,
         tol: float=1e-10,
         ):
     r"""
@@ -463,8 +502,8 @@ def find_root(
     Returns x, f(x).
     """
     fx = f(x)
-    for _ in range(max):
-        #print(f"step {_}: {x=} {fx=} df/dx={df(x)} dx={fx/df(x)}")
+    for _ in range(maxiter):
+        # print(f"step {_}: {x=} {fx=} df/dx={df(x)} step={-fx/df(x)}")
         if abs(fx) < tol:
             break
         x -= fx / df(x)
@@ -660,6 +699,9 @@ def activity(
     if not hasattr(isotope, 'neutron_activation'):
         return result
 
+    # Hack to support b-mode 2-stage decay chain
+    # Relies on b line following directly after activation line
+    last_activity = 0.
     for ai in isotope.neutron_activation:
         # Ignore fast neutron interactions if not using fast ratio
         if ai.fast and env.fast_ratio == 0:
@@ -707,7 +749,7 @@ def activity(
         if ai.reaction == 'b':
             # Column N: 0.69/t1/2 [1/h] lambda of parent nuclide
             parent_lam = LN2 / ai.Thalf_parent
-            # Column O: Activation if "b" mode production
+            # Column O: Activation if "b" mode production (i.e., delayed beta)
             # 2022-05-18 PAK: addressed the following
             #    Note: problems resulting from precision limitation not addressed
             #    in "b" mode production
@@ -723,6 +765,7 @@ def activity(
             #             = root * (lam*expm1(x2) - parent_lam*expm1(x1)) / (parent_lam - lam)
             # Checked for each b-mode production that small halflife results are
             # unchanged to four digits and Eu[151] => Gd[152] no longer fails.
+            # TODO: 150Nd => 151Nd => 151Pm => 151Sm => 151Eu
             activity = root/(parent_lam - lam) * (
                 lam*expm1(-parent_lam*exposure) - parent_lam*expm1(-lam*exposure))
             #print("N", parent_lam, "O", activity)
@@ -785,8 +828,26 @@ def activity(
             #data = env.fluence, initialXS, flux, root, U, V, W, precision_correction
             #print(" ".join("%.5e"%v for v in data))
 
-        # TODO: chained activity (e.g., )
-        result[ai] = [activity*exp(-lam*Ti) for Ti in rest_times]
+        # 2026-05-27 PAK: multistage decay such as 209Bi -> 210Bi -> 210Po -> 206Pb
+        # TODO: 151Eu -> 152m2Eu -> 152Eu is missing b-mode 152Gd
+        # TODO: 150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu is treated as a two stage decay
+        # It is present for 151Eu -> 152m1Eu isomer and 151Eu -> 152Eu ground state.
+        if ai.reaction == 'b':
+            # Accumulate build up following the Bateman equation:
+            #   A_d(t) = λ_d/(λ_d - λ_p) A_p(0) (exp(-λ_p t) - exp(-λ_d t))
+            # Add this to decay of the granddaughter at the end of the exposure:
+            #          + A_d(0) exp(-λ_d t)
+            result[ai] = [
+                activity*exp(-lam*Ti) + last_activity * (exp(-parent_lam*Ti) - exp(-lam*Ti)) / (1 - parent_lam/lam)
+                for Ti in rest_times
+            ]
+            # print(f"{ai.daughter} {activity=} {last_activity=}")
+        else:
+            result[ai] = [activity*exp(-lam*Ti) for Ti in rest_times]
+        # 2025-05-27 PAK: Hack to use 151Nd activation intensity rather than
+        # the 151Pm intensity when computing the buildup of the 151Sm granddaugter.
+        if ai.daughter != "Pm-151":
+            last_activity = activity
         #print([(Ti, Ai) for Ti, Ai in zip(rest_times, result[ai])])
 
     return result

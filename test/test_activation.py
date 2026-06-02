@@ -89,7 +89,7 @@ def test():
     # that is radioactive for a very long time.
     sample = Sample('Te', mass=1e13)
     env = ActivationEnvironment(fluence=1e8)
-    sample.calculate_activation(env, rest_times=[1,10,100])
+    sample.calculate_activation(env, rest_times=[1, 10, 100])
     #sample.show_table(cutoff=0)
     target = 1e-5
     t_decay = sample.decay_time(target)
@@ -101,7 +101,7 @@ def test():
     # Al and Si daughters have short half-lives
     sample = Sample('AlSi', mass=1e3)
     env = ActivationEnvironment(fluence=1e8)
-    sample.calculate_activation(env, rest_times=[100,200])
+    sample.calculate_activation(env, rest_times=[100, 200])
     #sample.show_table(cutoff=0)
     target = 1e-5
     t_decay = sample.decay_time(target)
