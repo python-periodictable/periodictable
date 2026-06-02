@@ -424,11 +424,11 @@ class Sample:
 
         percent_error = 100*abs(ft)/target
         if percent_error > 0.1:
-            return 0. #  Decay time failed to compute; silently fail
+            #return 0. #  Decay time failed to compute; silently fail
             #return 1e100*365*24 # Return 1e100 rather than raising an error
             msg = (
-                f"Failed to compute decay time correctly ({percent_error:.1g} error). Please"
-                f" report material ({self.name}), mass, flux and exposure.")
+                f"Failed to compute decay time correctly ({percent_error:.1g} error)."
+                f" Please report material and activation parameters.")
             raise RuntimeError(msg)
 
         # Return time at least zero hours after removal from the beam.
