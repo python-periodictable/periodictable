@@ -354,21 +354,24 @@ class Sample:
         # dominate at long times, but at short times they will not affect the
         # derivative. Choosing a time that satisfies the longest decay time seems
         # to work well enough.
-        t_guess = 0.
+        t_guess = -1e100  # Allow the initial guess to be negative
+        initial_activity = 0.  # Accumulate the intensity at t=0.
 
-        for a, Ia  in self.activity.items():
+        for k, (a, Ia) in enumerate(self.activity.items()):
             intensity = Ia[0]
             La = LN2/a.Thalf_hrs
+            # print(f"{k}: {a.daughter} {intensity=} {La=}")
             # Estimate activity at t=0, with a check that it hasn't decayed to zero.
             # The check is necessary because exp(λt) will exceed the floating point
             # number range when I(t) = I(0)exp(-λt) = 0.
-            if t > 0.:
+            if t > 0. and intensity > 0.:
                 # print(f"{a.isotope} {a.daughter} {a.Thalf_hrs=} {La=}; {intensity=} at {t=}")
-                intensity = intensity * exp(La*t) if intensity > 0. else 0.
+                intensity = intensity * exp(La*t)
                 if a.reaction == "b":
-                    Ip, Lp, _ = data[-1]
+                    Ip, Lp, _ = data[-1] # parent activity and decay constant
                     #print(f"{intensity=} {Ip=} {Lp=} {Ia[0]=} {La=}")
                     intensity -= Ip*(expm1((La-Lp)*t)/(1 - Lp/La)) if Ip > 0. else 0.
+            initial_activity += intensity
             data.append((intensity, La, a.reaction))
 
             # Daughter intensity will be transformed to granddaughter intensity
@@ -380,37 +383,52 @@ class Sample:
             t_guess = max(t_guess, decay_estimate)
         #print("corrected at t=0", [Ia for Ia, La, reaction in data])
 
+        # No need to fit decay time if initial intensity is below target. Even with two-stage
+        # decay chains, we are only looking at daughter products with longer half life than
+        # the parent, so activity of the parent during burnup will decrease more than the
+        # the activity of the daughter can increase.
+        if initial_activity <= target:
+            return 0.
+
+
         # Build f(t) = total activity at time T minus target activity and its
         # derivative df/dt. f(t) will be zero when activity is at target.
         # 2026-05-27 PAK: include post exposure granddaughter buildup
         def f(t):
-            total = 0
+            total = 0.
             for k, (Ia, La, reaction) in enumerate(data):
-                total += Ia*exp(-La*t)
+                intensity = Ia*exp(-La*t)
                 if reaction == "b":
                     # For delayed β- decay use Bateman equation with parent activity
                     # and half-life from the previous row in the table.
                     Ip, Lp, _ = data[k-1]
-                    total += Ip*(exp(-Lp*t) - exp(-La*t))/(1 - Lp/La)
+                    intensity += Ip*(exp(-Lp*t) - exp(-La*t))/(1 - Lp/La)
+                # print(f" f{k}: {activity}")
+                total += intensity
+            # print(f"f({t}) = {total} - {target}\n")
             return total - target
         def dfdt(t):
-            total = 0
+            total = 0.
             for k, (Ia, La, reaction) in enumerate(data):
-                total += -La*Ia*exp(-La*t)
+                delta = -La*Ia*exp(-La*t)
                 if reaction == "b":
                     # For delayed β- decay use Bateman equation with parent activity
                     # and half-life from the previous row in the table.
                     Ip, Lp, _ = data[k-1]
-                    total += Ip*(La*exp(-La*t) - Lp*exp(-Lp*t))/(1 - Lp/La)
+                    delta += Ip*(La*exp(-La*t) - Lp*exp(-Lp*t))/(1 - Lp/La)
+                total += delta
+                # print(f" df{k}: {d_activity}")
+            # print(f"dfdt({t}) = {total}\n")
             return total
         t, ft = find_root(t_guess, f, dfdt, tol=tol)
 
         percent_error = 100*abs(ft)/target
         if percent_error > 0.1:
+            return 0. #  Decay time failed to compute; silently fail
             #return 1e100*365*24 # Return 1e100 rather than raising an error
             msg = (
-                "Failed to compute decay time correctly (%.1g error). Please"
-                " report material, mass, flux and exposure.") % percent_error
+                f"Failed to compute decay time correctly ({percent_error:.1g} error). Please"
+                f" report material ({self.name}), mass, flux and exposure.")
             raise RuntimeError(msg)
 
         # Return time at least zero hours after removal from the beam.
@@ -503,10 +521,11 @@ def find_root(
     """
     fx = f(x)
     for _ in range(maxiter):
-        # print(f"step {_}: {x=} {fx=} df/dx={df(x)} step={-fx/df(x)}")
         if abs(fx) < tol:
             break
-        x -= fx / df(x)
+        dfx = df(x)
+        # print(f"step {_}: {x=} {fx=} df/dx={dfx} step={-fx/dfx}")
+        x -= fx / dfx
         fx = f(x)
     return x, fx
 
