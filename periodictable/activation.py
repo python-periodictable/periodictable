@@ -361,7 +361,7 @@ class Sample:
         for k, (a, Ia) in enumerate(self.activity.items()):
             intensity = Ia[0]
             La = LN2/a.Thalf_hrs
-            # print(f"{k}: {a.daughter} {intensity=} {La=}")
+            # print(f"  {k}: {a.daughter} {intensity=} {a.Thalf_hrs=} {La=}")
             # Estimate activity at t=0, with a check that it hasn't decayed to zero.
             # The check is necessary because exp(λt) will exceed the floating point
             # number range when I(t) = I(0)exp(-λt) = 0.
@@ -375,18 +375,22 @@ class Sample:
             initial_activity += intensity
             data.append((intensity, La, a.reaction))
 
-            # Daughter intensity will be transformed to granddaughter intensity
-            # over time. Assume it is instantaneous at t=0 for the purpose of guessing
+            # Daughter intensity with delayed beta decay will be transformed to granddaughter
+            # intensity over time. Assume it is instantaneous at t=0 for the purpose of guessing
             # the decay time of the granddaughter. The root finder will correct for
             # the discrepency.
-            I_burnup = data[-1][0]*La/data[-1][1] if a.reaction == "b" else 0.
-            t_guess_k = -log(target/(intensity + I_burnup))/La if intensity + I_burnup > 0. else MIN_TIME
+            # Note: data[k-1] != data[-1] because we have already appended to data in the loop
+            # Note: "b" is never the first reaction, so data[k-1] is always valid
+            Ib = data[k-1][0]*La/data[k-1][1] if a.reaction == "b" else 0.
+            t_guess_k = -log(target/(intensity + Ib))/La if intensity + Ib > 0. else MIN_TIME
+            # print(f"  {t_guess_k=} {Ib=} {intensity+Ib=} {La=}")
             t_guess = max(t_guess, t_guess_k)
-        #print("corrected at t=0", [Ia for Ia, La, reaction in data])
+        # print("corrected at t=0", [Ia for Ia, La, reaction in data])
+        # print(f"{t_guess=}")
 
-        # No need to fit decay time if initial intensity is below target. Even with two-stage
-        # decay chains, we are only looking at daughter products with longer half life than
-        # the parent, so activity of the parent during burnup will decrease more than the
+        # No need to fit decay time if initial intensity is below target. Even with delayed
+        # beta decay, we are only looking at daughter products with longer half life than
+        # the parent, so beta decay of the parent decreases its activity more than the
         # the activity of the daughter can increase.
         if initial_activity <= target:
             return 0.
@@ -394,7 +398,7 @@ class Sample:
 
         # Build f(t) = total activity at time T minus target activity and its
         # derivative df/dt. f(t) will be zero when activity is at target.
-        # 2026-05-27 PAK: include post exposure daughter burnup
+        # 2026-05-27 PAK: include post exposure delayed beta activation
         def f(t):
             total = 0.
             for k, (Ia, La, reaction) in enumerate(data):
@@ -404,7 +408,7 @@ class Sample:
                     # and half-life from the previous row in the table.
                     Ip, Lp, _ = data[k-1]
                     intensity += Ip*(exp(-Lp*t) - exp(-La*t))/(1 - Lp/La)
-                # print(f" f{k}: {activity}")
+                # print(f" f{k}: {intensity}")
                 total += intensity
             # print(f"f({t}) = {total} - {target}\n")
             return total - target
@@ -418,7 +422,7 @@ class Sample:
                     Ip, Lp, _ = data[k-1]
                     delta += Ip*(La*exp(-La*t) - Lp*exp(-Lp*t))/(1 - Lp/La)
                 total += delta
-                # print(f" df{k}: {d_activity}")
+                # print(f" df{k}: {delta}")
             # print(f"dfdt({t}) = {total}\n")
             return total
         t, ft = find_root(t_guess, f, dfdt, tol=tol)
@@ -719,9 +723,11 @@ def activity(
     if not hasattr(isotope, 'neutron_activation'):
         return result
 
-    # Hack to support b-mode 2-stage decay chain
-    # Relies on b line following directly after activation line
-    last_activity = 0.
+    # Hack: delayed beta calculation needs activity and decay rate
+    # of the parent. Since the "b" mode reaction line follows directly
+    # after the parent line, save the last activity and the last decay rate
+    # at each step of the loop.
+    last_activity = last_lam = 0.
     for ai in isotope.neutron_activation:
         # Ignore fast neutron interactions if not using fast ratio
         if ai.fast and env.fast_ratio == 0:
@@ -848,26 +854,25 @@ def activity(
             #data = env.fluence, initialXS, flux, root, U, V, W, precision_correction
             #print(" ".join("%.5e"%v for v in data))
 
-        # 2026-05-27 PAK: multistage decay such as 209Bi -> 210Bi -> 210Po -> 206Pb
-        # TODO: 151Eu -> 152m2Eu -> 152Eu is missing b-mode 152Gd
-        # TODO: 150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu is treated as a two stage decay
-        # It is present for 151Eu -> 152m1Eu isomer and 151Eu -> 152Eu ground state.
+        # 2026-05-27 PAK: delayed beta decay such as 209Bi -> 210Bi -> 210Po -> 206Pb
+        # TODO: check 150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu
+        # - It does not include activity from 151Nd in 151Sm, but that should be insignificant.
+        # TODO: check 151Eu -> 152m2Eu -> 152Eu is missing b-mode 152Gd
+        # - It is present for 151Eu -> 152m1Eu isomer and 151Eu -> 152Eu ground state.
         if ai.reaction == 'b':
             # Accumulate build up following the Bateman equation:
             #   A_d(t) = λ_d/(λ_d - λ_p) A_p(0) (exp(-λ_p t) - exp(-λ_d t))
             # Add this to decay of the granddaughter at the end of the exposure:
             #          + A_d(0) exp(-λ_d t)
             result[ai] = [
-                activity*exp(-lam*Ti) + last_activity * (exp(-parent_lam*Ti) - exp(-lam*Ti)) / (1 - parent_lam/lam)
+                activity*exp(-lam*Ti) + last_activity * (exp(-last_lam*Ti) - exp(-lam*Ti)) / (1 - last_lam/lam)
                 for Ti in rest_times
             ]
             # print(f"{ai.daughter} {activity=} {last_activity=}")
         else:
             result[ai] = [activity*exp(-lam*Ti) for Ti in rest_times]
-        # 2025-05-27 PAK: Hack to use 151Nd activation intensity rather than
-        # the 151Pm intensity when computing the activity of the 151Sm granddaugter.
-        if ai.daughter != "Pm-151":
-            last_activity = activity
+        last_lam = lam  # For delayed beta computations (with 151Sm, last_lam != parent_lam)
+        last_activity = activity  # For delayed beta computations
         #print([(Ti, Ai) for Ti, Ai in zip(rest_times, result[ai])])
 
     return result
