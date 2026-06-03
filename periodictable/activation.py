@@ -354,7 +354,8 @@ class Sample:
         # dominate at long times, but at short times they will not affect the
         # derivative. Choosing a time that satisfies the longest decay time seems
         # to work well enough.
-        t_guess = -1e100  # Allow the initial guess to be negative
+        MIN_TIME = -1e100  # Allow the initial guess to be negative
+        t_guess = MIN_TIME
         initial_activity = 0.  # Accumulate the intensity at t=0.
 
         for k, (a, Ia) in enumerate(self.activity.items()):
@@ -378,9 +379,9 @@ class Sample:
             # over time. Assume it is instantaneous at t=0 for the purpose of guessing
             # the decay time of the granddaughter. The root finder will correct for
             # the discrepency.
-            I_buildup = data[-1][0]*La/data[-1][1] if a.reaction == "b" else 0.
-            decay_estimate = -log(target/(intensity + I_buildup))/La if intensity > 0. else 0.
-            t_guess = max(t_guess, decay_estimate)
+            I_burnup = data[-1][0]*La/data[-1][1] if a.reaction == "b" else 0.
+            t_guess_k = -log(target/(intensity + I_burnup))/La if intensity + I_burnup > 0. else MIN_TIME
+            t_guess = max(t_guess, t_guess_k)
         #print("corrected at t=0", [Ia for Ia, La, reaction in data])
 
         # No need to fit decay time if initial intensity is below target. Even with two-stage
@@ -393,7 +394,7 @@ class Sample:
 
         # Build f(t) = total activity at time T minus target activity and its
         # derivative df/dt. f(t) will be zero when activity is at target.
-        # 2026-05-27 PAK: include post exposure granddaughter buildup
+        # 2026-05-27 PAK: include post exposure daughter burnup
         def f(t):
             total = 0.
             for k, (Ia, La, reaction) in enumerate(data):
@@ -864,7 +865,7 @@ def activity(
         else:
             result[ai] = [activity*exp(-lam*Ti) for Ti in rest_times]
         # 2025-05-27 PAK: Hack to use 151Nd activation intensity rather than
-        # the 151Pm intensity when computing the buildup of the 151Sm granddaugter.
+        # the 151Pm intensity when computing the activity of the 151Sm granddaugter.
         if ai.daughter != "Pm-151":
             last_activity = activity
         #print([(Ti, Ai) for Ti, Ai in zip(rest_times, result[ai])])
