@@ -343,7 +343,7 @@ class Sample:
         different from the decay calculation, which uses the full 3-stage Bateman
         equation for the 151Sm activity. As a result, the decay time estimate will
         be slightly long for short exposures and slightly short for long exposures,
-        depending on whether 151Sm activity exceeds the target threshhold.
+        depending on whether 151Sm activity exceeds the target threshold.
         """
         if not self.rest_times or not self.activity:
             return 0
