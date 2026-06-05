@@ -337,11 +337,13 @@ class Sample:
         After determining the activation, compute the number of hours required to achieve
         a total activation level after decay.
 
-        To keep the code simple, the 151Sm decay from 150Nd activation is
-        treated as 151Pm -> 151Sm instead of 151Nd -> 151Pm -> 151Sm. The
-        missing 151Nd activity is added to 151Sm at t=0 to compensate, leading
-        to a slightly long decay time estimate for short exposure times, and
-        a slightly short decay time estimate for long exposure times.
+        To simplify the decay time estimate, the 151Sm decay from 150Nd activation is
+        treated as 151Pm -> 151Sm instead of 151Nd -> 151Pm -> 151Sm, with the
+        missing 151Nd activity added to 151Sm at t=0 to compensate. This is
+        different from the decay calculation, which uses the full 3-stage Bateman
+        equation for the 151Sm activity. As a result, the decay time estimate will
+        be slightly long for short exposures and slightly short for long exposures,
+        depending on whether 151Sm activity exceeds the target threshhold.
         """
         if not self.rest_times or not self.activity:
             return 0
