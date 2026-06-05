@@ -336,6 +336,14 @@ class Sample:
         """
         After determining the activation, compute the number of hours required to achieve
         a total activation level after decay.
+
+        To simplify the decay time estimate, the 151Sm decay from 150Nd activation is
+        treated as 151Pm -> 151Sm instead of 151Nd -> 151Pm -> 151Sm, with the
+        missing 151Nd activity added to 151Sm at t=0 to compensate. This is
+        different from the decay calculation, which uses the full 3-stage Bateman
+        equation for the 151Sm activity. As a result, the decay time estimate will
+        be slightly long for short exposures and slightly short for long exposures,
+        depending on whether 151Sm activity exceeds the target threshold.
         """
         if not self.rest_times or not self.activity:
             return 0
@@ -357,6 +365,7 @@ class Sample:
         MIN_TIME = -1e100  # Allow the initial guess to be negative
         t_guess = MIN_TIME
         initial_activity = 0.  # Accumulate the intensity at t=0.
+        activity_Nd151 = 0.  # Linter doesn't know activity_Nd151 is defined before use
 
         for k, (a, Ia) in enumerate(self.activity.items()):
             intensity = Ia[0]
@@ -372,6 +381,19 @@ class Sample:
                     Ip, Lp, _ = data[-1] # parent activity and decay constant
                     #print(f"{intensity=} {Ip=} {Lp=} {Ia[0]=} {La=}")
                     intensity -= Ip*(expm1((La-Lp)*t)/(1 - Lp/La)) if Ip > 0. else 0.
+            # Hack: Subtract scaled 151Nd activity from 151Sm so that we don't need
+            # to fit with the three stage Bateman equation. This works because there
+            # is a million-fold difference in half-lives. If there is enough activity
+            # in 151Nd to push 151Sm over the threshold then the 151Sm intensity will
+            # determine decay time, otherwise 151Pm will dominate. Because 151Sm activity
+            # is front-loaded, the integrated intensity for short times will be a little
+            # higher than expected, giving a slightly long decay time estimate when
+            # 151Sm activity is below the threshold.
+            if a.daughter.startswith("Nd-151"):  # Nd-151t
+                activity_Nd151 = intensity
+            elif a.isotope == "Nd-150" and a.daughter.startswith("Sm-151"): # Sm-151
+                # print(f"151Nd correction to 151Sm = {activity_Nd151 * a.Thalf_parent / a.Thalf_hrs}")
+                intensity += activity_Nd151 * a.Thalf_parent / a.Thalf_hrs
             initial_activity += intensity
             data.append((intensity, La, a.reaction))
 
@@ -432,7 +454,7 @@ class Sample:
             #return 0. #  Decay time failed to compute; silently fail
             #return 1e100*365*24 # Return 1e100 rather than raising an error
             msg = (
-                f"Failed to compute decay time correctly ({percent_error:.1g} error)."
+                f"Failed to compute decay time correctly ({percent_error:.1g}% error)."
                 f" Please report material and activation parameters.")
             raise RuntimeError(msg)
 
@@ -674,15 +696,24 @@ def activity(
     rest period.
 
     Activations are listed in *isotope.neutron_activation*. Most of the
-    activations (n,g n,p n,a n,2n) define a single step process, where a neutron
-    is absorbed yielding the daughter and some prompt radiation. The daughter
+    activations (n,g n,p n,a) define a single step process, where a neutron is
+    absorbed yielding the daughter and some prompt radiation. The daughter
     itself will decay during exposure, yielding a balance between production and
     emission. Any exposure beyound about eight halflives will not increase
-    activity for that product.
+    activity for that product. Activity for daughter products may undergo
+    further neutron capture, reducing the activity of the daughter product but
+    introducing a grand daughter with its own activity (n,2n).
 
-    Activity for daughter products may undergo further neutron capture, reducing
-    the activity of the daughter product but introducing a grand daughter with
-    its own activity.
+    Active delayed beta products (b mode reactions) accumulate during
+    irradiation, eventually reaching equilibrium. Burn up, where the activated
+    product undergoes further capture before beta decay is not accounted for.
+    The delayed beta product increases in activity until the directly activated
+    product has decayed away following the 2-stage Bateman equation.
+
+    150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu has two transient daughters.
+    During irradiation, the activity for 151Sm is computed directly from 151Nd,
+    skipping 151Pm. After irradiation the 151Pm activity is subtracted from
+    151Sm, and decay calculated using the 3-stage Bateman equation.
 
     The data tables for activation are only precise to about three significant
     figures. Any changes to the calculations below this threshold, e.g., due to
@@ -726,8 +757,8 @@ def activity(
     # Hack: delayed beta calculation needs activity and decay rate
     # of the parent. Since the "b" mode reaction line follows directly
     # after the parent line, save the last activity and the last decay rate
-    # at each step of the loop.
-    last_activity = last_lam = 0.
+    # at each step of the loop. 151Sm also needs the 151Nd activity
+    last_activity = last_lam = activity_151Nd = 0.
     for ai in isotope.neutron_activation:
         # Ignore fast neutron interactions if not using fast ratio
         if ai.fast and env.fast_ratio == 0:
@@ -791,7 +822,6 @@ def activity(
             #             = root * (lam*expm1(x2) - parent_lam*expm1(x1)) / (parent_lam - lam)
             # Checked for each b-mode production that small halflife results are
             # unchanged to four digits and Eu[151] => Gd[152] no longer fails.
-            # TODO: 150Nd => 151Nd => 151Pm => 151Sm => 151Eu
             activity = root/(parent_lam - lam) * (
                 lam*expm1(-parent_lam*exposure) - parent_lam*expm1(-lam*exposure))
             #print("N", parent_lam, "O", activity)
@@ -855,17 +885,39 @@ def activity(
             #print(" ".join("%.5e"%v for v in data))
 
         # 2026-05-27 PAK: delayed beta decay such as 209Bi -> 210Bi -> 210Po -> 206Pb
-        # TODO: check 150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu
-        # - It does not include activity from 151Nd in 151Sm, but that should be insignificant.
         # TODO: check 151Eu -> 152m2Eu -> 152Eu is missing b-mode 152Gd
         # - It is present for 151Eu -> 152m1Eu isomer and 151Eu -> 152Eu ground state.
-        if ai.reaction == 'b':
-            # Accumulate build up following the Bateman equation:
-            #   A_d(t) = λ_d/(λ_d - λ_p) A_p(0) (exp(-λ_p t) - exp(-λ_d t))
-            # Add this to decay of the granddaughter at the end of the exposure:
-            #          + A_d(0) exp(-λ_d t)
+
+        if ai.daughter.startswith("Nd-151"): # Nd-151t
+            # Track 151Nd activity at t=0 so we can correct 151Sm for short exposure
+            activity_151Nd = activity
+
+        elif ai.isotope == "Nd-150" and ai.daughter.startswith("Sm-151"): # Sm-151
+            # Decay chain: 150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu
+            # Because 151Sm uses 151Nd as its parent halflife, all the intensity from the
+            # transient 151Pm is accounted for in the 151Sm activity. We subtract the scaled 151Pm
+            # activity at t=0 from 151Sm. We use the three stage bateman equation to dribble activity
+            # from 151Nd and 151Pm into 151Sm.
+            # print(f"151Sm @ t=0 = {activity}")
+            # print(f"  - (activity_151Pm={last_activity})*{lam}/{last_lam} = {last_activity * lam/last_lam}")
+            # print(f"  = {activity - last_activity * lam/last_lam}")
+            activity -= last_activity * lam/last_lam
+
+            # Show the approximate activity in 151Sm after 151Nd and 151Pm have decayed
+            # print(f"151Sm @ t=280 h = {activity}")
+            # print(f"  + ({activity_151Nd=})*{lam}/{parent_lam} = {activity_151Nd * lam/parent_lam}")
+            # print(f"  + (activity_151Pm={last_activity})*{lam}/{last_lam} = {last_activity * lam/last_lam}")
+            # print(f"  = {activity + activity_151Nd * lam/parent_lam + last_activity * lam/last_lam}")
+
             result[ai] = [
-                activity*exp(-lam*Ti) + last_activity * (exp(-last_lam*Ti) - exp(-lam*Ti)) / (1 - last_lam/lam)
+                bateman3(Ti, activity, lam, last_activity, last_lam, activity_151Nd, parent_lam)
+                for Ti in rest_times
+            ]
+
+        elif ai.reaction == 'b':
+            # Accumulate build up following the Bateman equation:
+            result[ai] = [
+                bateman2(Ti, activity, lam, last_activity, last_lam)
                 for Ti in rest_times
             ]
             # print(f"{ai.daughter} {activity=} {last_activity=}")
@@ -876,6 +928,40 @@ def activity(
         #print([(Ti, Ai) for Ti, Ai in zip(rest_times, result[ai])])
 
     return result
+
+def bateman2(t, act, lam, act_p, lam_p):
+    """
+    Accumulate build up following the Bateman equation::
+
+        A1(t) = A(0) exp(-λ t)
+        A2(t) = λ/(λ - λ_p) A_p(0) (exp(-λ_p t) - exp(-λ t))
+
+        A(t) = A1(t) + A2(t)
+
+    """
+    # simple decay
+    term1 = act*exp(-lam*t)
+    # two-stage decay
+    term2 = lam / (lam - lam_p) * act_p * (exp(-lam_p*t) - exp(-lam*t))
+
+    return term1 + term2
+
+def bateman3(t, act, lam, act_p, lam_p, act_gp, lam_gp):
+    """
+    Accumulate build up following the three stage Bateman equation.
+    """
+    # simple decay
+    term1 = act * exp(-lam*t)
+    # two-stage decay (written in same form as three stage)
+    term2 = act_p * lam * (exp(-lam*t)/(lam_p - lam) + exp(-lam_p*t)/(lam - lam_p))
+    # three-stage decay
+    term3 = act_gp * lam * lam_p * (
+        exp(-lam*t)/((lam_p - lam)*(lam_gp - lam))
+        + exp(-lam_p*t)/((lam - lam_p)*(lam_gp - lam_p))
+        + exp(-lam_gp*t)/((lam - lam_gp)*(lam_p - lam_gp))
+    )
+
+    return term1 + term2 + term3
 
 class ActivationResult:
     r"""
