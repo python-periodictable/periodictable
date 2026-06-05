@@ -337,10 +337,11 @@ class Sample:
         After determining the activation, compute the number of hours required to achieve
         a total activation level after decay.
 
-        To keep the code simple, the 150Nd activation is treated as 151Pm -> 151Sm
-        instead of 151Nd -> 151Pm -> 151Sm. The missing 151Nd activity is added
-        to 151Sm to compensate, leading to a slightly long decay time estimate
-        for short export times.
+        To keep the code simple, the 151Sm decay from 150Nd activation is
+        treated as 151Pm -> 151Sm instead of 151Nd -> 151Pm -> 151Sm. The
+        missing 151Nd activity is added to 151Sm at t=0 to compensate, leading
+        to a slightly long decay time estimate for short exposure times, and
+        a slightly short decay time estimate for long exposure times.
         """
         if not self.rest_times or not self.activity:
             return 0
@@ -451,7 +452,7 @@ class Sample:
             #return 0. #  Decay time failed to compute; silently fail
             #return 1e100*365*24 # Return 1e100 rather than raising an error
             msg = (
-                f"Failed to compute decay time correctly ({percent_error:.1g} error)."
+                f"Failed to compute decay time correctly ({percent_error:.1g}% error)."
                 f" Please report material and activation parameters.")
             raise RuntimeError(msg)
 
@@ -693,24 +694,24 @@ def activity(
     rest period.
 
     Activations are listed in *isotope.neutron_activation*. Most of the
-    activations (n,g n,p n,a) define a single step process, where a neutron
-    is absorbed yielding the daughter and some prompt radiation. The daughter
+    activations (n,g n,p n,a) define a single step process, where a neutron is
+    absorbed yielding the daughter and some prompt radiation. The daughter
     itself will decay during exposure, yielding a balance between production and
     emission. Any exposure beyound about eight halflives will not increase
-    activity for that product.
+    activity for that product. Activity for daughter products may undergo
+    further neutron capture, reducing the activity of the daughter product but
+    introducing a grand daughter with its own activity (n,2n).
 
-    Activity for daughter products may undergo further neutron capture, reducing
-    the activity of the daughter product but introducing a grand daughter with
-    its own activity (2n reactions). Active delayed beta products (b mode reactions)
-    accumulate during irradiation, eventually reaching equilibrium. Burn up, where
-    the activated product undergoes further capture before beta decay is not
-    accounted for. The delayed beta product increases in activity until the
-    directly activated product has decayed away following the 2-stage Bateman
-    equation. 150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu has two transient
-    daughters. During irradiation, the activity for 151Sm is computed
-    directly from 151Nd, skipping 151Pm. After irradiation the 151Pm activity
-    is subtracted from 151Sm, and decay calculated using the 3-stage Bateman
-    equation.
+    Active delayed beta products (b mode reactions) accumulate during
+    irradiation, eventually reaching equilibrium. Burn up, where the activated
+    product undergoes further capture before beta decay is not accounted for.
+    The delayed beta product increases in activity until the directly activated
+    product has decayed away following the 2-stage Bateman equation.
+
+    150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu has two transient daughters.
+    During irradiation, the activity for 151Sm is computed directly from 151Nd,
+    skipping 151Pm. After irradiation the 151Pm activity is subtracted from
+    151Sm, and decay calculated using the 3-stage Bateman equation.
 
     The data tables for activation are only precise to about three significant
     figures. Any changes to the calculations below this threshold, e.g., due to
@@ -819,7 +820,6 @@ def activity(
             #             = root * (lam*expm1(x2) - parent_lam*expm1(x1)) / (parent_lam - lam)
             # Checked for each b-mode production that small halflife results are
             # unchanged to four digits and Eu[151] => Gd[152] no longer fails.
-            # TODO: 150Nd => 151Nd => 151Pm => 151Sm => 151Eu
             activity = root/(parent_lam - lam) * (
                 lam*expm1(-parent_lam*exposure) - parent_lam*expm1(-lam*exposure))
             #print("N", parent_lam, "O", activity)
@@ -883,8 +883,6 @@ def activity(
             #print(" ".join("%.5e"%v for v in data))
 
         # 2026-05-27 PAK: delayed beta decay such as 209Bi -> 210Bi -> 210Po -> 206Pb
-        # TODO: check 150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu
-        # - It does not include activity from 151Nd in 151Sm, but that should be insignificant.
         # TODO: check 151Eu -> 152m2Eu -> 152Eu is missing b-mode 152Gd
         # - It is present for 151Eu -> 152m1Eu isomer and 151Eu -> 152Eu ground state.
 
@@ -892,7 +890,7 @@ def activity(
             # Track 151Nd activity at t=0 so we can correct 151Sm for short exposure
             activity_151Nd = activity
 
-        if ai.isotope == "Nd-150" and ai.daughter.startswith("Sm-151"): # Sm-151
+        elif ai.isotope == "Nd-150" and ai.daughter.startswith("Sm-151"): # Sm-151
             # Decay chain: 150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu
             # Because 151Sm uses 151Nd as its parent halflife, all the intensity from the
             # transient 151Pm is accounted for in the 151Sm activity. We subtract the scaled 151Pm
@@ -909,7 +907,6 @@ def activity(
             # print(f"  + (activity_151Pm={last_activity})*{lam}/{last_lam} = {last_activity * lam/last_lam}")
             # print(f"  = {activity + activity_151Nd * lam/parent_lam + last_activity * lam/last_lam}")
 
-            # Note: table for 151Sm has 151Nd for parent half-life.
             result[ai] = [
                 bateman3(Ti, activity, lam, last_activity, last_lam, activity_151Nd, parent_lam)
                 for Ti in rest_times
