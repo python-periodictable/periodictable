@@ -398,9 +398,9 @@ class IonSet:
     def __getitem__(self, charge: int) -> Ion:
         if charge not in self.ionset:
             if charge not in self.element_or_isotope.ions:
-                raise ValueError("%(charge)d is not a valid charge for %(symbol)s"
-                                 % dict(charge=charge,
-                                        symbol=self.element_or_isotope.symbol))
+                valence = f"{abs(charge)}{'-' if charge < 0 else '+'}"
+                symbol = self.element_or_isotope.symbol
+                raise ValueError(f"valence {valence} is not valid for {symbol}")
             self.ionset[charge] = Ion(self.element_or_isotope, charge)
         return self.ionset[charge]
 
