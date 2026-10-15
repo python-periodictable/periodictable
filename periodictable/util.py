@@ -78,16 +78,25 @@ def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None) -> fl
 
         V = a b c \sqrt{1 - \cos^2 \alpha - \cos^2 \beta - \cos^2 \gamma
                           + 2 \cos \alpha \cos \beta \cos \gamma}
+
+    For numerical stability in skew cells, this is evaluated in the equivalent
+    factored form, with $s = (\alpha + \beta + \gamma)/2$:
+
+    .. math::
+
+        V = 2 a b c \sqrt{\sin s \sin(s-\alpha) \sin(s-\beta) \sin(s-\gamma)}
     """
-    from math import cos, radians, sqrt
+    from math import radians, sin, sqrt
     if a is None:
         raise TypeError('missing lattice parameters')
     if b is None:
         b = a
     if c is None:
         c = a
-    calpha = cos(radians(alpha)) if alpha is not None else 0
-    cbeta = cos(radians(beta)) if beta is not None else calpha
-    cgamma = cos(radians(gamma)) if gamma is not None else calpha
-    V = a*b*c*sqrt(1 - calpha**2 - cbeta**2 - cgamma**2 + 2*calpha*cbeta*cgamma)
+    alpha = radians(alpha) if alpha is not None else radians(90)
+    beta = radians(beta) if beta is not None else alpha
+    gamma = radians(gamma) if gamma is not None else alpha
+    # Factor the Gram determinant to avoid cancellation for skew cells.
+    s = (alpha + beta + gamma)/2
+    V = 2*a*b*c*sqrt(sin(s)*sin(s-alpha)*sin(s-beta)*sin(s-gamma))
     return V
