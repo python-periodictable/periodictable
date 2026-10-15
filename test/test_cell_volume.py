@@ -1,6 +1,6 @@
 """Check lattice volumes against independent Cartesian geometry."""
 from itertools import permutations
-from math import atan2, degrees, dist, prod
+from math import atan2, degrees, dist, inf, nextafter, prod, sqrt
 
 import pytest
 
@@ -70,3 +70,35 @@ def test_lattice_parameter_defaults():
         cell_volume()
     with pytest.raises(ValueError):
         cell_volume(1, alpha=10, beta=10, gamma=90)
+
+
+@pytest.mark.parametrize("angles", [
+    (1, 122, 123), (1, 38, 39), (30, 60, 90),
+    (120, 120, 120), (90, 90, 180),
+])
+@pytest.mark.parametrize("order", list(permutations(range(3))))
+def test_exact_planar_cell(angles, order):
+    # Exact degree relationships describe coplanar vectors: volume is zero.
+    assert cell_volume(1, 1, 1, *(angles[k] for k in order)) == 0
+
+
+@pytest.mark.parametrize("angles", [
+    (1, 122, nextafter(123, inf)),
+    (1, 38, nextafter(39, inf)),
+    (30, 60, nextafter(90, inf)),
+    (120, 120, nextafter(120, inf)),
+])
+@pytest.mark.parametrize("order", list(permutations(range(3))))
+def test_just_outside_planar_cell(angles, order):
+    # Do not hide invalid geometry by clamping small negative determinants.
+    with pytest.raises(ValueError):
+        cell_volume(1, 1, 1, *(angles[k] for k in order))
+
+
+@pytest.mark.parametrize("parameters, expected", [
+    ((1e308, 1e-308, 1), 1),
+    ((1e154, 1e154, 1e-308), 1),
+    ((1e308, 1e-308, 1, 60, 60, 60), 1/sqrt(2)),
+])
+def test_representable_volume_without_early_overflow(parameters, expected):
+    assert cell_volume(*parameters) == pytest.approx(expected, rel=1e-15)

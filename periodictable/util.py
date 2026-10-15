@@ -86,17 +86,27 @@ def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None) -> fl
 
         V = 2 a b c \sqrt{\sin s \sin(s-\alpha) \sin(s-\beta) \sin(s-\gamma)}
     """
-    from math import radians, sin, sqrt
+    from math import fsum, radians, sin, sqrt
     if a is None:
         raise TypeError('missing lattice parameters')
     if b is None:
         b = a
     if c is None:
         c = a
-    alpha = radians(alpha) if alpha is not None else radians(90)
-    beta = radians(beta) if beta is not None else alpha
-    gamma = radians(gamma) if gamma is not None else alpha
+    alpha = alpha if alpha is not None else 90
+    beta = beta if beta is not None else alpha
+    gamma = gamma if gamma is not None else alpha
+    # Sum in degrees before conversion so exact planar relationships survive.
+    # fsum also preserves small signed differences next to these boundaries.
+    s = fsum((alpha, beta, gamma))/2
+    # sin(s) = sin(180-s); use the complement near the upper boundary.
+    if s > 90:
+        s = fsum((360, -alpha, -beta, -gamma))/2
+    sa = fsum((beta, gamma, -alpha))/2
+    sb = fsum((alpha, gamma, -beta))/2
+    sc = fsum((alpha, beta, -gamma))/2
     # Factor the Gram determinant to avoid cancellation for skew cells.
-    s = (alpha + beta + gamma)/2
-    V = 2*a*b*c*sqrt(sin(s)*sin(s-alpha)*sin(s-beta)*sin(s-gamma))
-    return V
+    angular = 2*sqrt(sin(radians(s))*sin(radians(sa))
+                     *sin(radians(sb))*sin(radians(sc)))
+    # Keep the dimensionless factor separate: 2*a can overflow needlessly.
+    return a*b*c*angular
