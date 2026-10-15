@@ -70,7 +70,9 @@ def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None) -> fl
             Cell volume
 
     :Raises:
-        *TypeError* : missing or invalid parameters
+        *TypeError* : missing lattice parameters or incompatible parameter types
+
+        *ValueError* : lattice angles give a negative volume radicand
 
     The following formula works for all lattice types:
 
@@ -79,8 +81,9 @@ def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None) -> fl
         V = a b c \sqrt{1 - \cos^2 \alpha - \cos^2 \beta - \cos^2 \gamma
                           + 2 \cos \alpha \cos \beta \cos \gamma}
 
-    For numerical stability in skew cells, this is evaluated in the equivalent
-    factored form, with $s = (\alpha + \beta + \gamma)/2$:
+    For numerical stability in highly skew or near-degenerate cells, this is
+    evaluated in the equivalent factored form, with
+    $s = (\alpha + \beta + \gamma)/2$:
 
     .. math::
 
@@ -96,6 +99,10 @@ def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None) -> fl
     alpha = alpha if alpha is not None else 90
     beta = beta if beta is not None else alpha
     gamma = gamma if gamma is not None else alpha
+    # Convert through the existing real-number protocol before unary minus:
+    # unsigned NumPy scalars would otherwise wrap before fsum sees them.
+    # Unlike float(), singleton fsum rejects numeric strings.
+    alpha, beta, gamma = fsum((alpha,)), fsum((beta,)), fsum((gamma,))
     # Sum in degrees before conversion so exact planar relationships survive.
     # fsum also preserves small signed differences next to these boundaries.
     s = fsum((alpha, beta, gamma))/2
@@ -105,8 +112,12 @@ def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None) -> fl
     sa = fsum((beta, gamma, -alpha))/2
     sb = fsum((alpha, gamma, -beta))/2
     sc = fsum((alpha, beta, -gamma))/2
-    # Factor the Gram determinant to avoid cancellation for skew cells.
-    angular = 2*sqrt(sin(radians(s))*sin(radians(sa))
-                     *sin(radians(sb))*sin(radians(sc)))
+    if alpha == beta == gamma == 90:
+        # Orthogonal cells have an exact unit angular factor.
+        angular = 1.0
+    else:
+        # Factor the Gram determinant to avoid cancellation for skew cells.
+        angular = 2*sqrt(sin(radians(s))*sin(radians(sa))
+                         *sin(radians(sb))*sin(radians(sc)))
     # Keep the dimensionless factor separate: 2*a can overflow needlessly.
     return a*b*c*angular

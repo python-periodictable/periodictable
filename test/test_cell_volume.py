@@ -59,9 +59,9 @@ def test_cartesian_volume(vectors):
 
 
 def test_lattice_parameter_defaults():
-    assert cell_volume(2) == pytest.approx(8)
-    assert cell_volume(2, 3) == pytest.approx(12)
-    assert cell_volume(2, 3, 4) == pytest.approx(prod((2, 3, 4)))
+    assert cell_volume(2) == 8
+    assert cell_volume(2, 3) == 12
+    assert cell_volume(2, 3, 4) == prod((2, 3, 4))
     # Supplying alpha alone describes equal rhombohedral angles.
     assert cell_volume(2, alpha=60) == pytest.approx(8/2**0.5)
     assert cell_volume(2, alpha=60, beta=90) == pytest.approx(
