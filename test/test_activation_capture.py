@@ -45,6 +45,48 @@ def test_repeated_integrals(time):
                                time**2 * exp(-rate*time) / 2, rtol=1e-14, atol=0)
 
 
+@pytest.mark.parametrize('time', [0., 1e-8, 1., 100.])
+@pytest.mark.parametrize('rates', [
+    (0., 2.),
+    (0.2, 1.2),
+    (1., nextafter(1., inf)),
+    (1e-6, 1e-6 + 1e-12),
+    (20., 20.),
+])
+def test_two_rate_integral(time, rates):
+    from periodictable.activation import _two_rate_integral
+
+    with localcontext() as context:
+        context.prec = 100
+        t = Decimal.from_float(time)
+        a, b = map(Decimal.from_float, rates)
+        expected = float(t*(-a*t).exp() if a == b else
+                         ((-a*t).exp() - (-b*t).exp()) / (b-a))
+    for ordering in permutations(rates):
+        np.testing.assert_allclose(_two_rate_integral(time, *ordering),
+                                   expected, rtol=2e-14, atol=0)
+
+
+@pytest.mark.parametrize('time, rate', [(1e-200, 1e-125), (1e-124, 3e-200)])
+def test_two_rate_integral_subnormal_product(time, rate):
+    from periodictable.activation import _two_rate_integral
+
+    # With one zero rate and a subnormal rate*time, the integral rounds to time.
+    for rates in [(0., rate), (rate, 0.)]:
+        assert _two_rate_integral(time, *rates) == time
+
+
+def test_two_rate_integral_subnormal_decay():
+    from periodictable.activation import _two_rate_integral
+
+    time = 740.
+    rates = (1., nextafter(1., inf))
+    # Preserve the nonzero repeated-rate limit when exp(-rate*time) is subnormal.
+    expected = time*exp(-time)
+    for ordering in permutations(rates):
+        assert _two_rate_integral(time, *ordering) == expected
+
+
 @pytest.mark.parametrize('rates', [
     (1., 1.+1e-12, 1.+2e-12),
     (0., 0.004, 0.009),
