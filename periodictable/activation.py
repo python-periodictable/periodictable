@@ -888,11 +888,12 @@ def activity(
         # TODO: check 151Eu -> 152m2Eu -> 152Eu is missing b-mode 152Gd
         # - It is present for 151Eu -> 152m1Eu isomer and 151Eu -> 152Eu ground state.
 
+        # print(f"{ai.isotope=} {ai.daughter=} {ai.reaction=}")
         if ai.daughter.startswith("Nd-151"): # Nd-151t
             # Track 151Nd activity at t=0 so we can correct 151Sm for short exposure
             activity_151Nd = activity
 
-        elif ai.isotope == "Nd-150" and ai.daughter.startswith("Sm-151"): # Sm-151
+        if ai.isotope == "Nd-150" and ai.daughter.startswith("Sm-151"): # Sm-151
             # Decay chain: 150Nd -> 151Nd -> 151Pm -> 151Sm -> 151Eu
             # Because 151Sm uses 151Nd as its parent halflife, all the intensity from the
             # transient 151Pm is accounted for in the 151Sm activity. We subtract the scaled 151Pm
