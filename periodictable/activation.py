@@ -934,7 +934,7 @@ def bateman2(t, act, lam, act_p, lam_p):
     Accumulate build up following the Bateman equation::
 
         A1(t) = A(0) exp(-λ t)
-        A2(t) = λ/(λ - λ_p) A_p(0) (exp(-λ_p t) - exp(-λ t))
+        A2(t) = A_p(0) λ (exp(-λ_p t) - exp(-λ t))/(λ - λ_p)
 
         A(t) = A1(t) + A2(t)
 
@@ -942,7 +942,7 @@ def bateman2(t, act, lam, act_p, lam_p):
     # simple decay
     term1 = act*exp(-lam*t)
     # two-stage decay
-    term2 = lam / (lam - lam_p) * act_p * (exp(-lam_p*t) - exp(-lam*t))
+    term2 = act_p * lam * (exp(-lam_p*t) - exp(-lam*t)) / (lam - lam_p)
 
     return term1 + term2
 
@@ -952,8 +952,8 @@ def bateman3(t, act, lam, act_p, lam_p, act_gp, lam_gp):
     """
     # simple decay
     term1 = act * exp(-lam*t)
-    # two-stage decay (written in same form as three stage)
-    term2 = act_p * lam * (exp(-lam*t)/(lam_p - lam) + exp(-lam_p*t)/(lam - lam_p))
+    # two-stage decay
+    term2 = act_p * lam * (exp(-lam_p*t) - exp(-lam*t)) / (lam - lam_p)
     # three-stage decay
     term3 = act_gp * lam * lam_p * (
         exp(-lam*t)/((lam_p - lam)*(lam_gp - lam))
