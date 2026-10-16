@@ -81,9 +81,14 @@ def test_extreme_orthogonal_length_product(lengths):
 
 # cos(60) = 1/2 gives Gram determinant 1/2 and V = 12 sqrt(2).
 # Mixed cases put each unsigned type in every operand position.
-REAL_ANGLE_TYPES = [np.uint8, np.uint16, np.uint32, np.uint64,
-                    np.int8, np.int16, np.int32, np.int64]
-REAL_ANGLE_CASES = [(dtype, dtype, dtype) for dtype in REAL_ANGLE_TYPES]
+REAL_ANGLE_TYPES: list[type[np.integer]] = [
+    np.uint8, np.uint16, np.uint32, np.uint64,
+    np.int8, np.int16, np.int32, np.int64,
+]
+RealAngleType = type[float] | type[np.integer]
+REAL_ANGLE_CASES: list[tuple[RealAngleType, RealAngleType, RealAngleType]] = [
+    (dtype, dtype, dtype) for dtype in REAL_ANGLE_TYPES
+]
 REAL_ANGLE_CASES += [(dtype, float, np.int64) for dtype in REAL_ANGLE_TYPES[:4]]
 REAL_ANGLE_CASES += [(float, dtype, np.int64) for dtype in REAL_ANGLE_TYPES[:4]]
 REAL_ANGLE_CASES += [(float, np.int64, dtype) for dtype in REAL_ANGLE_TYPES[:4]]
