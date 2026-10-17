@@ -892,8 +892,6 @@ def activity(
 
 def _two_rate_integral(t: float, a: float, b: float) -> float:
     """Convolve exp(-a*t) and exp(-b*t), including coincident rates."""
-    if a == b:
-        return t*exp(-a*t)
     if a > b:
         a, b = b, a
     x = (b-a)*t
