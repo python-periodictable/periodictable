@@ -227,6 +227,7 @@ Code original developed for spreadsheet by Les Slaback of NIST.
 
 
 from math import exp, log, expm1
+from sys import float_info
 import os
 from collections.abc import Callable, Sequence
 from typing import cast
@@ -808,14 +809,17 @@ def activity(
             # Column S: resulting product [1/h]
             product_2n = lam if ai.reaction == '2n' else 0
             # Column T: activity if 2n mode
-            activity = root*lam*(parent_activity-parent_lam)*(
-                (exp(-lam_2n*exposure)
-                 / ((parent_activity-lam_2n)*(product_2n-lam_2n)))
-                + (exp(-parent_activity*exposure)
-                   / ((lam_2n-parent_activity)*(product_2n-parent_activity)))
-                + (exp(-product_2n*exposure)
-                   / ((lam_2n-product_2n)*(parent_activity-product_2n)))
-                )
+            #     activity = root*lam*(parent_activity-parent_lam)*(
+            #         (exp(-lam_2n*exposure)
+            #          / ((parent_activity-lam_2n)*(product_2n-lam_2n)))
+            #         + (exp(-parent_activity*exposure)
+            #            / ((lam_2n-parent_activity)*(product_2n-parent_activity)))
+            #         + (exp(-product_2n*exposure)
+            #            / ((lam_2n-product_2n)*(parent_activity-product_2n)))
+            #         )
+            # [CAOShurong 2026-10-15] Evaluate T as a three-rate convolution.
+            activity = root*lam*(parent_activity-parent_lam)*_three_rate_integral(
+                exposure, lam_2n, parent_activity, product_2n)
             #print("N", parent_lam, "P", effectiveXS, "Q", lam_2n,
             #      "R", parent_activity, "S", product_2n, "T", activity)
         else:
@@ -830,15 +834,24 @@ def activity(
             # Note: This cross-section always uses the total thermal flux
             effectiveXS = ai.thermalXS_parent + env.epithermal_reduction_factor*ai.resonance_parent
             # Column U: nv1s1t [neutrons]
-            U = (flux*3600)*(initialXS*1e-24)*exposure
+            #     U = (flux*3600)*(initialXS*1e-24)*exposure
             # Column V: nv2s2t+L2*t [neutrons]
-            V = ((env.fluence*3600)*(effectiveXS*1e-24)+lam)*exposure
+            #     V = ((env.fluence*3600)*(effectiveXS*1e-24)+lam)*exposure
             # Column W: L/(L-nvs1+nvs2) [unitless]
-            W = lam/(lam-(flux*3600)*(initialXS*1e-24)+(env.fluence*3600)*(effectiveXS*1e-24))
-            # Column X: W*(exp(-U)-exp(V)) if U,V > 1e-10 else W*(V-U+(V-U)*(V+U)/2)
-            # [PAK 2024-02-28] Rewrite the exponential difference using expm1()
-            #Xp = exp(-V)*expm1(V-U) if U>V else -exp(-U)*expm1(U-V)
-            X = W*exp(-V)*expm1(V-U) if U>V else -W*exp(-U)*expm1(U-V)
+            #     W = lam/(lam-(flux*3600)*(initialXS*1e-24)+(env.fluence*3600)*(effectiveXS*1e-24))
+            # Column X: W*(exp(-U)-exp(-V))
+            #     Original small-U,V form: W*(V-U+(V-U)*(V+U)/2)
+            # [PAK 2024-02-28] Rewrite the exponential difference using expm1():
+            #     X = W*exp(-V)*expm1(V-U) if U>V else -W*exp(-U)*expm1(U-V)
+            # [CAOShurong 2026-10-15] Rewrite U, V, W, X for higher accuracy.
+            # With a=production_rate, b=removal_rate, t=exposure:
+            #     U = a*t; V = b*t; W = lam/(b-a)
+            #     X = lam*(exp(-a*t)-exp(-b*t))/(b-a)
+            # The convolution also provides the finite equal-rate limit.
+            production_rate = (flux*3600)*(initialXS*1e-24)
+            removal_rate = (env.fluence*3600)*(effectiveXS*1e-24) + lam
+            # The exponential divided difference has a finite equal-rate limit.
+            X = lam*_two_rate_integral(exposure, production_rate, removal_rate)
             # Column Y: O if "b" else T if "2n" else L*X
             activity = root*X
             #print(f"{ai.isotope}=>{ai.daughter} {U=} {V=} {W=} {Xp=} {X=} {activity=} {lam=} {flux*initialXS*3600*1e-24+env.fluence*effectiveXS*3600*1e-24}")
@@ -876,6 +889,35 @@ def activity(
         #print([(Ti, Ai) for Ti, Ai in zip(rest_times, result[ai])])
 
     return result
+
+def _two_rate_integral(t: float, a: float, b: float) -> float:
+    """Convolve exp(-a*t) and exp(-b*t), including coincident rates."""
+    if a > b:
+        a, b = b, a
+    x = (b-a)*t
+    # A zero or subnormal product loses precision before division by b-a.
+    if abs(x) < float_info.min:
+        return t*exp(-a*t)
+    # Divide first so a subnormal decay is not lost in the intermediate product.
+    return (-expm1(-x)/(b-a))*exp(-a*t)
+
+def _three_rate_integral(t: float, a: float, b: float, c: float) -> float:
+    """Convolve three exponentials without singular repeated-rate factors."""
+    a, b, c = sorted((a, b, c))
+    x, y = (b-a)*t, (c-a)*t
+    if y > 0.01:
+        # Use the largest separation in the denominator.
+        return (_two_rate_integral(t, a, b)-_two_rate_integral(t, b, c))/(c-a)
+
+    # Near the all-equal limit, expand the second divided difference.
+    # h_k(x,y) = sum(x**j*y**(k-j)); coefficient truncation error is < 3e-22.
+    coefficient, homogeneous, x_power, factorial = 0.5, 1., 1., 2
+    for order in range(1, 8):
+        x_power *= x
+        homogeneous = y*homogeneous + x_power
+        factorial *= order+2
+        coefficient += (-1)**order * homogeneous/factorial
+    return t*(t*exp(-a*t))*coefficient
 
 class ActivationResult:
     r"""
