@@ -1,4 +1,3 @@
-# -*- coding: latin-1 -*-
 # This program is in the public domain
 # Author: Paul Kienzle
 """

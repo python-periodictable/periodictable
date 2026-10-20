@@ -4,7 +4,7 @@
 u"""
 Values for mass and isotope composition from
 *Atomic Weights of the Elements 1999* with updates from 2001.  You can
-override the existing tables using:
+override the existing tables using::
 
     from periodictable import elements, mass_2001
     mass_2001.init(elements, reload=True)
@@ -40,6 +40,8 @@ http://physics.nist.gov/PhysRefData/Compositions/
 
 Neutron mass from NIST Reference on Constants, Units, and Uncertainty
 http://physics.nist.gov/cuu/index.html
+
+.. rubric: References
 
 .. [#Coursey] Coursey. J. S., Schwab. D. J., and Dragoset. R. A., NIST,
        Physics Laboratory, Office of Electronic Commerce in Scientific

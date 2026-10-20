@@ -63,6 +63,7 @@ nitpick_ignore = [
     ('py:class', 'numpy._typing._array_like._ScalarType_co'),
     ('py:class', 'numpy._typing._array_like._SupportsArray'),
     ('py:class', 'numpy._typing._array_like._ScalarT'),
+    ('py:class', 'numpy._typing._array_like.NDArray'),
     ('py:class', 'numpy._typing._nested_sequence._NestedSequence'),
     ('py:class', 'pyparsing.core.ParserElement'),
 
@@ -87,7 +88,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Periodic Table'
-copyright = '2024, Paul Kienzle'
+copyright = '2026, Paul Kienzle'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -156,7 +157,7 @@ html_theme_options = {
     #"headbgcolor": "Oldlace",
 }
 
-html_style = 'site.css'
+#html_style = 'site.css'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
