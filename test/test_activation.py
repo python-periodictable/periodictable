@@ -46,7 +46,7 @@ def test():
     sample = Sample('Co', mass=10)
     env = ActivationEnvironment(fluence=1e8)
     sample.calculate_activation(
-        env, rest_times=[0, 1, 24],
+        env, exposure=1, rest_times=[0, 1, 24],
         abundance=IAEA1987_isotopic_abundance,
         #abundance=table_abundance,
         )
@@ -72,18 +72,9 @@ def test():
         # Stable two-capture result, checked against a 100-digit calculation.
         ("Co-61", [1.3655818015418685E-09, 8.969172140136206E-10, 5.672167543347562E-14]),
     ]
-    #print(list(sample.activity.keys()))
-    #print(" ".join(k for k in dir(list(sample.activity.keys())[0]) if k[0] != '_'))
-    #print(list(sample.activity.keys())[0].__dict__)
-    for k, (product, activity) in enumerate(sample.activity.items()):
-        #print(product)
-        #print(dir(product))
-        # Uncomment to show new table values
-        #activity_str = ",\t".join(f"{Ia:.14E}" for Ia in activity)
-        #print(f'        ("{product.daughter}", [{activity_str}]),')
-        assert product.daughter == results[k][0], f"Expected {product.daughter} but got {results[k][0]}"
-        # Test that results haven't changed since last update
-        assert np.allclose(results[k][1], activity, atol=0, rtol=1e-12)
+    check_table(sample, results)
+
+
 
     # 129-I has a long half-life (16 My) so any combination of exposure
     # fluence and mass that causes significant activation will yield a product
@@ -130,4 +121,65 @@ def test():
             #print(f"{alow_k=} {ahigh_k=}")
             assert np.allclose(alow_k*scale, ahigh_k), f"scaling fails at {alow_k=} {ahigh_k=}"
 
+def test_bateman():
+    sample = Sample('Nd', mass=10)
+    env = ActivationEnvironment(fluence=1e8, Cd_ratio=70, fast_ratio=50)
+    sample.calculate_activation(
+        env, exposure=1, rest_times=[0, 1, 24],
+        abundance=IAEA1987_isotopic_abundance,
+        #abundance=table_abundance,
+        )
+    # Spreadsheet results
+    #    ("Nd-147t", [7.1846042E-02	7.1658714E-02	6.7482432E-02],
+    #    ("Pm-147",  [1.0837323E-06	1.0836997E-06	1.0829483E-06].
+    #    ("Nd-149t", [5.4279655E+00	3.6934626E+00	5.2693381E-04],
+    #    ("Pm-149",  [3.7518439E-02	3.7031973E-02	2.7429311E-02],
+    #    ("Nd-151t", [8.2839488E+00	2.5906397E-01	6.3431983E-36],
+    #    ("Pm-151",  [1.4885091E-01	1.4526270E-01	8.2873173E-02],
+    #    ("Sm-151",  [5.4151602E-06	5.4151554E-06	5.4150460E-06],
+    # Results match v1.3.5 (initial conversion)
+    #    ("Nd-147t", [7.18460819622254E-02,	7.16587537625008E-02,	6.74824694565637E-02]),
+    #    ("Pm-147",  [1.08373233644659E-06,	1.08369965659330E-06,	1.08294829189398E-06]),
+    #    ("Nd-149t", [5.42796550374046E+00,	3.69346258031675E+00,	5.26933810918582E-04]),
+    #    ("Pm-149",  [3.75184393106657E-02,	3.70319731847190E-02,	2.74293110532566E-02]),
+    #    ("Nd-151t", [8.28394877194627E+00,	2.59063974896533E-01,	6.34319831491801E-36]),
+    #    ("Pm-151",  [1.48850911418719E-01,	1.45262696324095E-01,	8.28731733878711E-02]),
+    #    ("Sm-151",  [5.41516018833055E-06,	5.41515542843156E-06,	5.41504595190962E-06]),
+    # Results from v2.1.0 (switch to NuBase 2020 for half-life)
+    #    ("Nd-147t", [7.23754310236518E-02,	7.21853087887262E-02,	6.79477209334824E-02]),
+    #    ("Pm-147",  [1.09122954601348E-06,	1.09119665490308E-06,	1.09044043292477E-06]), # decreasing
+    #    ("Nd-149t", [5.61218053312601E+00,	3.75772037482054E+00,	3.69964003980992E-04]),
+    #    ("Pm-149",  [3.89111773898684E-02,	3.84063628404178E-02,	2.84423696213705E-02]), # decreasing
+    #    ("Nd-151t", [8.24828184506010E+00,	2.91373687385306E-01,	1.17610906034480E-34]),
+    #    ("Pm-151",  [1.47015198605385E-01,	1.43470491863699E-01,	8.18409551527891E-02]), # decreasing
+    #    ("Sm-151",  [5.08521250925607E-06,	5.08520825824191E-06,	5.08511048589707E-06]), # decreasing
+    # Results from PR #130 (switch to 3-stage Bateman equation for Nd[150] decay)
+    results = [
+        ("Nd-147t", [7.23754310236518E-02,	7.21853087887262E-02,	6.79477209334824E-02]),
+        ("Pm-147",  [1.09122954601348E-06,	3.26982190261643E-06,	5.18101337117162E-05]), # increasing
+        ("Nd-149t", [5.61218053312601E+00,	3.75772037482054E+00,	3.69964003980992E-04]),
+        ("Pm-149",  [3.89111773898684E-02,	9.83584332412775E-02,	1.66469845209970E-01]), # increasing
+        ("Nd-151t", [8.24828184506010E+00,	2.91373687385306E-01,	1.17610906034480E-34]),
+        ("Pm-151",  [1.47015198605385E-01,	2.00524291103734E-01,	1.15608922581670E-01]), # up then down
+        ("Sm-151",  [4.97572645610762E-08,	2.06630403513325E-07,	3.18791122026443E-06]), # lower initial, increasing
+    ]
+    check_table(sample, results) # use results=[] to print table
+
+
+def check_table(sample, results):
+    #print(list(sample.activity.keys()))
+    #print(" ".join(k for k in dir(list(sample.activity.keys())[0]) if k[0] != '_'))
+    #print(list(sample.activity.keys())[0].__dict__)
+    for k, (product, activity) in enumerate(sample.activity.items()):
+        #print(product)
+        #print(dir(product))
+        if results: # Check
+            assert product.daughter == results[k][0], f"Expected {product.daughter} but got {results[k][0]}"
+            # Test that results haven't changed since last update
+            assert np.allclose(results[k][1], activity, atol=0, rtol=1e-12)
+        else: # Show results table
+            activity_str = ",\t".join(f"{Ia:.14E}" for Ia in activity)
+            print(f'        ("{product.daughter}", [{activity_str}]),')
+
 test()
+test_bateman()

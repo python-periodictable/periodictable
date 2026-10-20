@@ -758,7 +758,7 @@ def activity(
     # Hack: delayed beta calculation needs activity and decay rate
     # of the parent. Since the "b" mode reaction line follows directly
     # after the parent line, save the last activity and the last decay rate
-    # at each step of the loop. 151Sm also needs the 151Nd activity
+    # at each step of the loop. The 151Sm decay needs the 151Nd activity.
     last_activity = last_lam = activity_151Nd = 0.
     for ai in isotope.neutron_activation:
         # Ignore fast neutron interactions if not using fast ratio
@@ -957,7 +957,7 @@ def bateman2(t, act, lam, act_p, lam_p):
     term1 = act*exp(-lam*t)
     # two-stage decay
     term2 = act_p * lam * _two_rate_integral(t, lam, lam_p)
-    
+
     return term1 + term2
 
 def bateman3(t, act, lam, act_p, lam_p, act_gp, lam_gp):
@@ -970,7 +970,7 @@ def bateman3(t, act, lam, act_p, lam_p, act_gp, lam_gp):
     term2 = act_p * lam * _two_rate_integral(t, lam, lam_p)
     # three-stage decay
     term3 = act_gp * lam * lam_p * _three_rate_integral(t, lam, lam_p, lam_gp)
-    
+
     return term1 + term2 + term3
 
 def _two_rate_integral(t: float, a: float, b: float) -> float:
