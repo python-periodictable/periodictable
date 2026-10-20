@@ -51,25 +51,27 @@ def genfiles(package, package_name, modules, dir='api'):
         f.write(INDEX_TEMPLATE%locals())
 
 
-modules=[
+modules = [
     #('__init__', 'Top level namespace'),
-    ('core', 'Core table'),
-    ('formulas', 'Chemical formula operations'),
-    ('covalent_radius', 'Covalent radius'),
+    ('activation', 'Neutron activation'),
     ('constants', 'Fundamental constants'),
+    ('core', 'Core table'),
+    ('covalent_radius', 'Covalent radius'),
+    ('cromermann', 'X-ray scattering factor f0 calculations'),
     ('crystal_structure', 'Crystal structure'),
     ('density', 'Density'),
     ('fasta', 'FASTA format for DNA/RNA and amino acid sequences'),
+    ('formulas', 'Chemical formula operations'),
     ('magnetic_ff', 'Magnetic Form Factor'),
-    ('mass', 'Mass'),
-    ('activation', 'Neutron activation'),
+    ('mass', 'Mass/abundance (IUPAC 2021)'),
+    ('mass_2001', 'Mass/abundance (NIST 2001)'),
     ('nsf', 'Neutron scattering potentials'),
-    ('xsf', 'X-ray scattering potentials and spectral lines'),
-    ('cromermann', 'X-ray scattering factor f0 calculations'),
     ('plot', 'Element plotter'),
     ('util', 'Utility functions'),
-    ('mass_2001', 'Deprecated mass/abundance values'),
+    ('xsf', 'X-ray scattering potentials and spectral lines'),
 ]
-package='periodictable'
-package_name='Reference'
+package = 'periodictable'
+package_name = 'Reference'
+# Sort modules alphabetically by description
+modules = sorted(modules, key=lambda pair: (pair[1], pair[0]))
 genfiles(package, package_name, modules)
