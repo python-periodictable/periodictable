@@ -266,9 +266,10 @@ def test_energy_dependent():
 
     # Use Lu natural to test composite since xs are derived from composite
     # Use abundance from mass.py: 97.41% Lu[175] + 2.59% Lu[176]
+    # Updated to 97.414% and 2.586% in 2024
     # Note: abundance uses mole fraction. DOI:10.1351/PAC-REP-10-06-02
     Lu = elements.Lu
-    Lu_175_abundance, Lu_176_abundance = 97.401, 2.599
+    Lu_175_abundance, Lu_176_abundance = 97.414, 2.586
     Lu_equiv = f"Lu[175]{Lu_175_abundance:g}+Lu[176]{Lu_176_abundance:g}"
     # Note: skipping incoherent xs in returned value
 
