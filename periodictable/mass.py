@@ -40,6 +40,10 @@ than return NaN for composition we replace the ranges with representative
 atomic abundance values in Meija (2016). See the CIAAW page on
 `lead <https://www.ciaaw.org/lead.htm>`_ for details.
 
+Updated values for Zr, Gd and Lu from 2024 are included. These are available on the
+`Historical Atomic Weights <https://www.ciaaw.org/historical-atomic-weights.htm>`_
+site. [Last checked on 2026-10-20]
+
 Note: uncertainties are stored in `iso._mass_unc` and `iso._abundance_unc`,
 but they are not yet part of the public interface.
 
@@ -237,6 +241,11 @@ def check_abundance(table: PeriodicTable|None=None) -> None:
 # CIAAW. Isotopic compositions of the elements 2021. Available online at www.ciaaw.org.
 #
 # https://www.ciaaw.org/atomic-weights.htm (2023-07-06)
+#
+# See the Historical Atomic Weights <https://www.ciaaw.org/historical-atomic-weights.htm>
+# chart for changes in the standard values.
+#
+# * Updated Gd, Lu, Zr with 2024 values
 
 #Z 	Symbol 	Element 	Standard Atomic Weight 	Notes
 element_mass = """\
@@ -279,7 +288,7 @@ element_mass = """\
 37	Rb	rubidium	  85.4678(3)	g
 38	Sr	strontium	  87.62(1)	g r
 39	Y	yttrium	  88.905838(2)
-40	Zr	zirconium	  91.224(2)	g
+40	Zr	zirconium	  91.222(3)	g
 41	Nb	niobium	  92.90637(1)
 42	Mo	molybdenum	  95.95(1)	g
 44	Ru	ruthenium	 101.07(2)	g
@@ -301,14 +310,14 @@ element_mass = """\
 60	Nd	neodymium	 144.242(3)	g
 62	Sm	samarium	 150.36(2)	g
 63	Eu	europium	 151.964(1)	g
-64	Gd	gadolinium	 157.25(3)	g
+64	Gd	gadolinium	 157.249(2)	g
 65	Tb	terbium	 158.925354(7)
 66	Dy	dysprosium	 162.500(1)	g
 67	Ho	holmium	 164.930329(5)
 68	Er	erbium	 167.259(3)	g
 69	Tm	thulium	 168.934219(5)
 70	Yb	ytterbium	 173.045(10)	g
-71	Lu	lutetium	 174.9668(1)	g
+71	Lu	lutetium	 174.96669(5)	g
 72	Hf	hafnium	 178.486(6)	g
 73	Ta	tantalum	 180.94788(2)
 74	W	tungsten	 183.84(1)
@@ -486,11 +495,11 @@ isotope_abundance = """\
 39	Y	yttrium
     89	 1
 40	Zr	zirconium
-    90	 0.5145(4)	g
-    91	 0.1122(5)
-    92	 0.1715(3)
-    94	 0.1738(4)
-    96	 0.0280(2)
+    90	 0.5147(6)	g
+    91	 0.1123(6)
+    92	 0.1716(4)
+    94	 0.1736(7)
+    96	 0.0278(4)
 41	Nb	niobium
     93	 1
 42	Mo	molybdenum
@@ -608,13 +617,13 @@ isotope_abundance = """\
     151	 0.4781(6)	g
     153	 0.5219(6)
 64	Gd	gadolinium
-    152	 0.0020(3)	g
-    154	 0.0218(2)
-    155	 0.1480(9)
-    156	 0.2047(3)
-    157	 0.1565(4)
-    158	 0.2484(8)
-    160	 0.2186(3)
+    152	 0.00204(2)	g
+    154	 0.02187(9)
+    155	 0.14828(60)
+    156	 0.20493(22)
+    157	 0.15657(17)
+    158	 0.24820(20)
+    160	 0.21811(28)
 65	Tb	terbium
 	159	 1
 66	Dy	dysprosium
@@ -645,8 +654,8 @@ isotope_abundance = """\
     174	 0.31896(26)
     176	 0.12887(30)
 71	Lu	lutetium
-	175	 0.97401(13)	g
-    176	 0.02599(13)
+	175	 0.97414(5)	g
+    176	 0.02586(5)
 72	Hf	hafnium
 	174	 0.00161(2)	g
     176	 0.0524(14)
