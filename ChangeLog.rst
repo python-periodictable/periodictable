@@ -23,6 +23,15 @@ Known issues
 Change history
 ==============
 
+2026-11-?? R2.2.0
+-----------------
+Modified:
+
+* New chemical formula parser based on lark (better error messages)
+* More accurate activation and decay calculations
+* Updated mass and abundance for Gd, Lu, Zr (2024 values)
+* Updated X-ray scattering factors for Mg, Si, Pt, Er (in progress)
+
 2026-02-27 R2.1.0
 -----------------
 
