@@ -520,7 +520,9 @@ class Formula:
 
             *KeyError* : unknown lattice type
 
-            *TypeError* : missing or bad lattice parameters
+            *TypeError* : missing lattice parameters or incompatible parameter types
+
+            *ValueError* : lattice angles give a negative volume radicand
 
         Using the cell volume, mass density can be set with::
 

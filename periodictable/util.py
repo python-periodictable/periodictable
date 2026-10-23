@@ -70,7 +70,9 @@ def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None) -> fl
             Cell volume
 
     :Raises:
-        *TypeError* : missing or invalid parameters
+        *TypeError* : missing lattice parameters or incompatible parameter types
+
+        *ValueError* : lattice angles give a negative volume radicand
 
     The following formula works for all lattice types:
 
@@ -78,16 +80,44 @@ def cell_volume(a=None, b=None, c=None, alpha=None, beta=None, gamma=None) -> fl
 
         V = a b c \sqrt{1 - \cos^2 \alpha - \cos^2 \beta - \cos^2 \gamma
                           + 2 \cos \alpha \cos \beta \cos \gamma}
+
+    For numerical stability in highly skew or near-degenerate cells, this is
+    evaluated in the equivalent factored form, with
+    $s = (\alpha + \beta + \gamma)/2$:
+
+    .. math::
+
+        V = 2 a b c \sqrt{\sin s \sin(s-\alpha) \sin(s-\beta) \sin(s-\gamma)}
     """
-    from math import cos, radians, sqrt
+    from math import fsum, radians, sin, sqrt
     if a is None:
         raise TypeError('missing lattice parameters')
     if b is None:
         b = a
     if c is None:
         c = a
-    calpha = cos(radians(alpha)) if alpha is not None else 0
-    cbeta = cos(radians(beta)) if beta is not None else calpha
-    cgamma = cos(radians(gamma)) if gamma is not None else calpha
-    V = a*b*c*sqrt(1 - calpha**2 - cbeta**2 - cgamma**2 + 2*calpha*cbeta*cgamma)
-    return V
+    alpha = alpha if alpha is not None else 90
+    beta = beta if beta is not None else alpha
+    gamma = gamma if gamma is not None else alpha
+    # Convert through the existing real-number protocol before unary minus:
+    # unsigned NumPy scalars would otherwise wrap before fsum sees them.
+    # Unlike float(), singleton fsum rejects numeric strings.
+    alpha, beta, gamma = fsum((alpha,)), fsum((beta,)), fsum((gamma,))
+    # Sum in degrees before conversion so exact planar relationships survive.
+    # fsum also preserves small signed differences next to these boundaries.
+    s = fsum((alpha, beta, gamma))/2
+    # sin(s) = sin(180-s); use the complement near the upper boundary.
+    if s > 90:
+        s = fsum((360, -alpha, -beta, -gamma))/2
+    sa = fsum((beta, gamma, -alpha))/2
+    sb = fsum((alpha, gamma, -beta))/2
+    sc = fsum((alpha, beta, -gamma))/2
+    if alpha == beta == gamma == 90:
+        # Orthogonal cells have an exact unit angular factor.
+        angular = 1.0
+    else:
+        # Factor the Gram determinant to avoid cancellation for skew cells.
+        angular = 2*sqrt(sin(radians(s))*sin(radians(sa))
+                         *sin(radians(sb))*sin(radians(sc)))
+    # Keep the dimensionless factor separate: 2*a can overflow needlessly.
+    return a*b*c*angular
