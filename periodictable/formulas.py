@@ -635,6 +635,8 @@ class Formula:
         *target* is the replacement isotope/element.
 
         *portion* is the proportion of source which is substituted for target.
+
+        Replacing an atom with itself leaves the composition unchanged.
         """
         return _isotope_substitution(self, source, target, portion=portion)
 
@@ -706,7 +708,7 @@ def _isotope_substitution(compound: "Formula", source: Atom, target: Atom, porti
     # TODO: fails if density is not defined
     atoms = compound.atoms
     assert compound.density is not None, "Need density for isotope substitution"
-    if source in atoms:
+    if source in atoms and source != target:
         mass = compound.mass
         mass_reduction = atoms[source]*portion*(source.mass - target.mass)
         density = compound.density * (mass - mass_reduction)/mass
