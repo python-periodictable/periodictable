@@ -14,3 +14,22 @@ def test_explicit_mixture_density(mixer, keyword, density):
     assert getattr(mixture, keyword) == pytest.approx(density)
     if density == 0.:
         assert neutron_sld(mixture) == (0., 0., 0.)
+
+
+@pytest.mark.parametrize("mixer", [mix_by_weight, mix_by_volume])
+@pytest.mark.parametrize("keyword", ["density", "natural_density"])
+def test_empty_mixture_at_zero_density(mixer, keyword):
+    water = formula("H2O", density=1.)
+    mixture = mixer(water, 0., **{keyword: 0.})
+
+    assert mixture.density == 0.
+    assert mixture.natural_density == 0.
+    assert neutron_sld(mixture) == (0., 0., 0.)
+
+
+@pytest.mark.parametrize("keyword", ["density", "natural_density"])
+def test_empty_formula_at_zero_density(keyword):
+    vacuum = formula("", **{keyword: 0.})
+
+    assert vacuum.density == 0.
+    assert vacuum.natural_density == 0.

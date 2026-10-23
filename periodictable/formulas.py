@@ -421,11 +421,17 @@ class Formula:
         """
         if self.density is None:
             return None
+        if self.density == 0:
+            return 0.
         return self.density*self.natural_mass_ratio()
 
     @natural_density.setter
     def natural_density(self, natural_density):
-        self.density = natural_density / self.natural_mass_ratio()
+        # A vacuum needs no isotope mass ratio, even for an empty formula.
+        if natural_density == 0:
+            self.density = 0.
+        else:
+            self.density = natural_density / self.natural_mass_ratio()
 
     @property
     def mass(self) -> float:
