@@ -62,6 +62,8 @@ def mix_by_weight(*args, **kw) -> "Formula":
 
         *formula* : Formula
 
+    An explicitly supplied zero density represents a vacuum.
+
     If density is not given, then it will be computed from the density
     of the components, assuming the components take up no more nor less
     space because they are in the mixture.  If component densities are
@@ -81,9 +83,9 @@ def mix_by_weight(*args, **kw) -> "Formula":
     pairs = [(formula(args[i], table=table), args[i+1])
              for i in range(0, len(args), 2)]
     result = _mix_by_weight_pairs(pairs)
-    if natural_density:
+    if natural_density is not None:
         result.natural_density = natural_density
-    if density:
+    if density is not None:
         result.density = density
     if name:
         result.name = name
@@ -148,6 +150,8 @@ def mix_by_volume(*args, **kw) -> "Formula":
 
         *formula* : Formula
 
+    An explicitly supplied zero density represents a vacuum.
+
     If density is not given, then it will be computed from the density
     of the components, assuming the components take up no more nor less
     space because they are in the mixture.  If component densities are
@@ -167,9 +171,9 @@ def mix_by_volume(*args, **kw) -> "Formula":
     pairs = [(formula(args[i], table=table), args[i+1])
              for i in range(0, len(args), 2)]
     result = _mix_by_volume_pairs(pairs)
-    if natural_density:
+    if natural_density is not None:
         result.natural_density = natural_density
-    if density:
+    if density is not None:
         result.density = density
     if name:
         result.name = name
@@ -417,11 +421,17 @@ class Formula:
         """
         if self.density is None:
             return None
+        if self.density == 0:
+            return 0.
         return self.density*self.natural_mass_ratio()
 
     @natural_density.setter
     def natural_density(self, natural_density):
-        self.density = natural_density / self.natural_mass_ratio()
+        # A vacuum needs no isotope mass ratio, even for an empty formula.
+        if natural_density == 0:
+            self.density = 0.
+        else:
+            self.density = natural_density / self.natural_mass_ratio()
 
     @property
     def mass(self) -> float:
