@@ -8,7 +8,8 @@
     ]
     license = { file = "LICENSE.txt" }
     dependencies = [
-        "pyparsing>=3.0.0", "numpy",
+        "numpy",
+        "lark",
     ]
 
     classifiers = [
@@ -36,6 +37,8 @@
         {include-group = "build"},
         {include-group = "docs"},
         {include-group = "test"},
+        # TODO: Shouldn't have to copy base dependencies here...is there a better way?
+        "numpy", "lark",
     ]
 
 [project.urls]

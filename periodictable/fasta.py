@@ -75,7 +75,7 @@ from pathlib import Path
 from collections.abc import Iterator
 from typing import IO, cast
 
-from .formulas import formula as parse_formula, Formula, FormulaInput
+from .formulas import formula as make_formula, Formula, FormulaInput
 from .nsf import neutron_sld
 from .xsf import xray_sld
 from .core import default_table, Atom
@@ -177,7 +177,7 @@ class Molecule:
         elements = default_table()
 
         # Fill in density or cell_volume.
-        M = parse_formula(formula, natural_density=density)
+        M = make_formula(formula, natural_density=density)
         # CRUFT: use of T rather than H[1] is deprecated since 1.5.3
         if elements.T in M.atoms:
             warnings.warn("Use of tritium for labile hydrogen is deprecated."
@@ -274,7 +274,7 @@ class Sequence(Molecule):
             structure.extend(list(p.labile_formula.structure))
         # Add H + OH terminators to the sequence
         structure.extend(((2, elements.H[1]), (1, elements.O)))
-        formula = parse_formula(structure).hill
+        formula = make_formula(structure).hill
 
         Molecule.__init__(
             self, name, formula, cell_volume=cell_volume, charge=charge)
@@ -356,7 +356,7 @@ def _code_average(bases, code_table) -> tuple[Formula, float, float]:
     Note: averaging can lead to a fractional charge on the returned molecule.
     """
     n = len(bases)
-    formula, cell_volume, charge = parse_formula(), 0., 0.
+    formula, cell_volume, charge = make_formula(), 0., 0.
     for c in bases:
         base = code_table[c]
         formula += base.labile_formula

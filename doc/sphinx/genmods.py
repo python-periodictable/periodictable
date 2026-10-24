@@ -55,6 +55,7 @@ modules=[
     #('__init__', 'Top level namespace'),
     ('core', 'Core table'),
     ('formulas', 'Chemical formula operations'),
+    ('lark_parse', 'Chemical formula parser'),
     ('covalent_radius', 'Covalent radius'),
     ('constants', 'Fundamental constants'),
     ('crystal_structure', 'Crystal structure'),

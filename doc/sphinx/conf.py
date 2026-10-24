@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.abspath('.')) # needed for extension tests
 sys.path.insert(0, os.path.abspath('../..'))
 sys.path.insert(0, os.path.abspath('_extensions'))
 import periodictable
+from periodictable.lark_parse import grammar
 
 
 # -- General configuration -----------------------------------------------------
@@ -65,6 +66,11 @@ nitpick_ignore = [
     ('py:class', 'numpy._typing._array_like._ScalarT'),
     ('py:class', 'numpy._typing._nested_sequence._NestedSequence'),
     ('py:class', 'pyparsing.core.ParserElement'),
+    ('py:class', 'lark.tree.Tree'),
+    ('py:class', 'lark.lexer.Token'),
+    ('py:class', 'lark.visitors.Transformer'),
+    ('py:class', 'lark.visitors._Leaf_T'),
+    ('py:class', 'lark.visitors._Return_T'),
 
     ('py:class', 'periodictable.core._AtomBase'),
     ('py:class', 'periodictable.core.IonSet'),
@@ -300,4 +306,3 @@ autodoc_member_order = 'groupwise'
 if os.path.exists('rst_prolog'):
     with io.open('rst_prolog', encoding='utf-8') as fid:
         rst_prolog = fid.read()
-
