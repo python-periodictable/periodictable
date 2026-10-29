@@ -6,6 +6,24 @@ from periodictable import Ca, C, O, H, Fe, Ni, Si, D, Na, Cl, Co, Ti, S
 from periodictable import formula, mix_by_weight, mix_by_volume
 from periodictable.formulas import count_elements, pretty
 
+
+def test_mixtures_reject_negative_or_nonfinite_quantities():
+    """Relative material quantities cannot be negative or non-finite."""
+    water = formula("H2O", density=1.0)
+    heavy_water = formula("D2O", density=1.0)
+    for mixer, items in [
+        (mix_by_weight, ("H2O", -1, "D2O", 1)),
+        (mix_by_weight, ("H2O", float("nan"), "D2O", 1)),
+        (mix_by_volume, (water, -1, heavy_water, 1)),
+        (mix_by_volume, (water, float("inf"), heavy_water, 1)),
+    ]:
+        try:
+            mixer(*items)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"invalid mixture quantities accepted: {items!r}")
+
 def check_parse_fails(s):
     try:
         formula(s)

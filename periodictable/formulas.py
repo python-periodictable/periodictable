@@ -5,7 +5,7 @@ Chemical formula parser.
 """
 
 from copy import copy
-from math import pi, sqrt
+from math import isfinite, pi, sqrt
 from typing import cast, Union, Any
 from collections.abc import Sequence, Callable
 
@@ -94,6 +94,8 @@ def mix_by_weight(*args, **kw) -> "Formula":
 def _mix_by_weight_pairs(pairs: list[tuple["Formula", float]]) -> "Formula":
     from .formulas import Formula # For running as __main__
 
+    if any(not isfinite(q) or q < 0 for _, q in pairs):
+        raise ValueError("mixture quantities must be finite and non-negative")
     # Drop pairs with zero quantity
     # Note: must be first statement in order to accept iterators
     pairs = [(f, q) for f, q in pairs if q > 0]
@@ -182,6 +184,8 @@ def mix_by_volume(*args, **kw) -> "Formula":
 def _mix_by_volume_pairs(pairs: list[tuple["Formula", float]]) -> "Formula":
     from .formulas import Formula # For running as __main__
 
+    if any(not isfinite(q) or q < 0 for _, q in pairs):
+        raise ValueError("mixture quantities must be finite and non-negative")
     # Drop pairs with zero quantity
     # Note: must be first statement in order to accept iterators
     pairs = [(f, q) for f, q in pairs if q > 0]
