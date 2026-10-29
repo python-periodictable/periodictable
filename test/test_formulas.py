@@ -235,3 +235,8 @@ def check_formula(f1, f2, tol=1e-14):
 
 if __name__ == "__main__":
     test()
+
+
+def test_zero_mass_fraction():
+    assert formula("H0").mass_fraction == {H: 0.0}
+    assert formula("C0H0").mass_fraction == {C: 0.0, H: 0.0}

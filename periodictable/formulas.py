@@ -468,6 +468,8 @@ class Formula:
         Fractional mass representation of each element/isotope/ion.
         """
         total_mass = self.mass
+        if total_mass == 0.0:
+            return dict((a, 0.0) for a in self.atoms)
         return dict((a, m*a.mass/total_mass) for a, m in self.atoms.items())
 
     # TODO: Remove compound._pf. It is unused and wrong.
