@@ -408,6 +408,8 @@ def xray_sld(compound, *, density=None, natural_density=None,
     compound = formulas.formula(compound, density=density,
                                 natural_density=natural_density)
     assert compound.density is not None, "scattering calculation needs density"
+    if not np.isfinite(compound.density) or compound.density < 0.0:
+        raise ValueError("density must be finite and non-negative")
 
     if wavelength is not None:
         energy = xray_energy(wavelength)

@@ -161,3 +161,11 @@ def main():
     test_xsf()
     test_refl()
 if __name__ == "__main__": main()
+
+
+def test_xray_sld_rejects_invalid_density():
+    with pytest.raises(ValueError):
+        xray_sld("H2O", density=-1.0, wavelength=1.54)
+    with pytest.raises(ValueError):
+        xray_sld("H2O", density=float("nan"), wavelength=1.54)
+    assert xray_sld("", density=0.0, wavelength=1.54) == (0, 0)
