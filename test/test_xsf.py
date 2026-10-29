@@ -1,9 +1,10 @@
+import pytest
 import numpy as np
 from numpy import pi, isnan
 
 from periodictable import formula
 from periodictable import Cu,Mo,Ni,Fe,Si,H,D,O
-from periodictable.xsf import xray_energy, xray_sld_from_atoms, xray_sld
+from periodictable.xsf import xray_energy, xray_wavelength, xray_sld_from_atoms, xray_sld
 from periodictable.xsf import index_of_refraction, mirror_reflectivity
 
 def test_xsf():
@@ -161,3 +162,14 @@ def main():
     test_xsf()
     test_refl()
 if __name__ == "__main__": main()
+
+
+def test_xray_conversion_rejects_nonphysical_values():
+    for value in (0, -1, float("nan"), float("inf")):
+        with pytest.raises(ValueError):
+            xray_energy(value)
+        with pytest.raises(ValueError):
+            xray_wavelength(value)
+    # Valid vector input remains supported
+    values = xray_energy([1.54, 0.71])
+    assert len(values) == 2

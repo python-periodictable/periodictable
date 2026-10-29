@@ -216,7 +216,10 @@ def xray_wavelength(energy):
 
         $c$ = speed of light in m/s
     """
-    return planck_constant/electron_volt*speed_of_light/np.asarray(energy)*1e7
+    energy = np.asarray(energy)
+    if np.any(~np.isfinite(energy)) or np.any(energy <= 0):
+        raise ValueError("X-ray energy must be finite and positive")
+    return planck_constant/electron_volt*speed_of_light/energy*1e7
 
 def xray_energy(wavelength):
     r"""
@@ -240,7 +243,10 @@ def xray_energy(wavelength):
 
         $c$ = speed of light in m/s
     """
-    return planck_constant/electron_volt*speed_of_light/np.asarray(wavelength)*1e7
+    wavelength = np.asarray(wavelength)
+    if np.any(~np.isfinite(wavelength)) or np.any(wavelength <= 0):
+        raise ValueError("X-ray wavelength must be finite and positive")
+    return planck_constant/electron_volt*speed_of_light/wavelength*1e7
 
 class Xray:
     """
