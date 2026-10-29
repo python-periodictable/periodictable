@@ -50,6 +50,7 @@ def test():
     # Only allow subscripts in the post position
     assert check_parse_fails("₃H₂O")
     assert check_parse_fails("H₂O@₁")
+    assert check_parse_fails("H2O@")
     assert check_parse_fails("₁wt% NaCl@2.3 // H₂O@1n")
 
     # Test composition

@@ -846,7 +846,11 @@ def formula_grammar(table: PeriodicTable) -> ParserElement:
     implicit_separator = separator | space
     composite << group + ZeroOrMore(implicit_separator + group)
 
-    density = Literal('@').suppress() + number + Optional(Regex("[ni]"), default='i')
+    # A density annotation requires an explicit numeric value.  Reusing
+    # ``number`` here would make a bare trailing '@' parse as density 1
+    # because ``number`` is optional and defaults to one for element counts.
+    density_number = ~White() + (fract | whole)
+    density = Literal('@').suppress() + density_number + Optional(Regex("[ni]"), default='i')
     compound = (composite|fasta) + Optional(density, default=None)
     def convert_compound(string, location, tokens):
         """convert material @ density or fasta @ density"""
