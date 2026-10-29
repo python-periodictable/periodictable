@@ -6,6 +6,17 @@ from periodictable import Ca, C, O, H, Fe, Ni, Si, D, Na, Cl, Co, Ti, S
 from periodictable import formula, mix_by_weight, mix_by_volume
 from periodictable.formulas import count_elements, pretty
 
+
+def test_replace_rejects_invalid_portion():
+    """Isotope substitution must preserve non-negative atom counts."""
+    for portion in (-1, 2, float("nan"), float("inf")):
+        try:
+            formula("H2").replace(H, D, portion=portion)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"invalid replacement portion accepted: {portion!r}")
+
 def check_parse_fails(s):
     try:
         formula(s)

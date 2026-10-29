@@ -5,7 +5,7 @@ Chemical formula parser.
 """
 
 from copy import copy
-from math import pi, sqrt
+from math import isfinite, pi, sqrt
 from typing import cast, Union, Any
 from collections.abc import Sequence, Callable
 
@@ -705,6 +705,8 @@ def _isotope_substitution(compound: "Formula", source: Atom, target: Atom, porti
 
     *portion* is the proportion of source which is substituted for target.
     """
+    if not isfinite(portion) or not 0 <= portion <= 1:
+        raise ValueError("portion must be a finite number between 0 and 1")
     # TODO: fails if density is not defined
     atoms = compound.atoms
     assert compound.density is not None, "Need density for isotope substitution"
